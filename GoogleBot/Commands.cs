@@ -142,7 +142,7 @@ namespace GoogleBot
             
             if (channel == null)
             {
-                await ReplyAsync("You must be connected to a voice channel to play audio!");
+                await ReplyAsync("Connected to a voice channel to play audio!");
                 typing.Dispose();
                 return;
             }
@@ -158,12 +158,20 @@ namespace GoogleBot
                     embed.AddField("Now playing",
                         $"[{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})]({video.Url})");
                     break;
+                case State.PlayingAsPlaylist:
+                    embed.AddField("Added Playlist to queue", "⠀");
+                    embed.AddField("Now playing",
+                        $"[{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})]({video.Url})");
+                    break;
                 case State.Queued:
                     embed.AddField("Song added to queue",
                         $"[{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})]({video.Url})");
                     break;
+                case State.QueuedAsPlaylist:
+                    embed.AddField("Playlist added to queue","⠀");
+                    break;
                 case State.InvalidQuery:
-                    embed.AddField("Queue invalid", "`Please enter a valid YouTube-url`");
+                    embed.AddField("Query invalid", "`Couldn't find any results`");
                     break;
                 case State.NoVoiceChannel:
                     embed.AddField("No voice channel", "`Please connect to voice channel first!`");
@@ -176,6 +184,7 @@ namespace GoogleBot
 
 
         [Command("skip")]
+        [Alias("s")]
         [Summary("Skips current song")]
         public Task Skip()
         {
@@ -203,10 +212,32 @@ namespace GoogleBot
 
             if (queue.Count > 0)
             {
-                embed.AddField("Queue",
-                    String.Join("\n\n",
-                        queue.ConvertAll((video) =>
-                            $"[`{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})`]({video.Url})")));
+                int max_length = 1024;
+                int counter = 0;
+
+                int more_hint_len = 50;
+                
+                int approx_length = 0 + more_hint_len;
+
+                string queue_formatted = "";
+                
+                foreach (var video in queue)
+                {
+                    
+                    string content =
+                        $"\n\n[`{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})`]({video.Url})";
+
+                    if (content.Length + approx_length > max_length)
+                    {
+                        queue_formatted += $"\n\n `And {queue.Count - counter} more...`";
+                        break;
+                    }
+
+                    approx_length += content.Length;
+                    queue_formatted += content;
+                    counter++;
+                }
+                embed.AddField($"Queue ({queue.Count})", queue_formatted);
             }
             else
             {
@@ -216,6 +247,16 @@ namespace GoogleBot
             await ReplyAsync(embed: embed.Build());
         }
 
+        [Command("clear")]
+        [Alias("c")]
+        [Summary("Clears the queue")]
+        public async Task ClearQueue()
+        {
+            EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+            embed.AddField("Queue cleared", $"`Removed {AudioPlayer.queue.Count} items`");
+            AudioPlayer.Clear();
+            await ReplyAsync(embed: embed.Build());
+        }
 
 
         [Command("stop")]

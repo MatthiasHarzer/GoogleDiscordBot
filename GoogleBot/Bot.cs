@@ -223,7 +223,7 @@ namespace GoogleBot
                         $"[{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})]({video.Url})");
                     break;
                 case State.InvalidQuery:
-                    embed.AddField("Queue invalid", "`Please enter a valid YouTube-URL`");
+                    embed.AddField("Query invalid", "`Couldn't find any results`");
                     break;
                 case State.NoVoiceChannel:
                     embed.AddField("No voice channel", "`Please connect to voice channel first!`");

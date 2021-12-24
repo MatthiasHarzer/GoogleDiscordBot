@@ -23,6 +23,8 @@ namespace GoogleBot
     public enum State
     {
         Success,
+        PlayingAsPlaylist,
+        QueuedAsPlaylist,
         Queued,
         InvalidQuery,
         NoVoiceChannel
@@ -57,6 +59,7 @@ namespace GoogleBot
         public static Video currentSong;
         private static IVoiceChannel currentChannel;
         private static ISocketMessageChannel messageChannel;
+        private static YoutubeClient youtube = new YoutubeClient();
         
 
         private static CancellationTokenSource taskCanceller = new CancellationTokenSource();
@@ -74,6 +77,12 @@ namespace GoogleBot
             }
         }
 
+        private static async Task AddToQueueAsync(string id)
+        {
+            if(youtube == null) return;
+            Video video = await youtube.Videos.GetAsync(id);
+            queue.Add(video);
+        } 
         private static async void PlaySoundFromMemoryStream(IAudioClient audioClient, MemoryStream memoryStream)
         {
             await using (var discord = audioClient.CreatePCMStream(AudioApplication.Mixed))
@@ -128,15 +137,39 @@ namespace GoogleBot
             }
             
             //* Initialize youtube streaming client
-            YoutubeClient youtube = new YoutubeClient();
             Video video;
-            
-            
+            bool isNewPlaylist = false;
 
             //* Check if video exists (only ids or urls)
             try
             {
-                video = await youtube.Videos.GetAsync(query);
+                try
+                {
+
+                    video = await youtube.Videos.GetAsync(query);
+                }
+                catch(ArgumentException)
+                {
+                    var videos = await youtube.Playlists.GetVideosAsync(query);
+                    if (videos.Count > 0)
+                    {
+                        video = await youtube.Videos.GetAsync(videos[0].Id);
+                        isNewPlaylist = true;
+
+                        foreach (var v in videos)
+                        {
+                            if (v.Id != video.Id)
+                            {
+                                AddToQueueAsync(v.Id);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentException();
+                    }
+                }
+                
             }
             catch (ArgumentException)
             {
@@ -172,6 +205,10 @@ namespace GoogleBot
             if (playing)
             {
                 queue.Add(video);
+                if (isNewPlaylist)
+                {
+                    return (State.QueuedAsPlaylist, video);
+                }
                 return (State.Queued, video);
             }
 
@@ -217,6 +254,10 @@ namespace GoogleBot
             //* Play sound async
             PlaySoundFromMemoryStream(audioClient, memoryStream);
 
+            if (isNewPlaylist)
+            {
+                return (State.PlayingAsPlaylist, video);
+            }
             return (State.Success, video);
         }
         
@@ -253,7 +294,12 @@ namespace GoogleBot
         {
             taskCanceller?.Cancel();
         }
-        
+
+        public static void Clear()
+        {
+            queue.Clear();
+            
+        }
     }
     
 }
