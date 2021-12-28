@@ -10,8 +10,6 @@ using Discord;
 using Discord.Audio;
 using Discord.Commands;
 using Google.Apis.CustomSearchAPI.v1.Data;
-using YoutubeDLSharp;
-using YoutubeDLSharp.Options;
 using YoutubeExplode;
 using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;

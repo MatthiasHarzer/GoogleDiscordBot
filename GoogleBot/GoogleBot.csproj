@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net6.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
@@ -10,8 +10,19 @@
         <PackageReference Include="Discord.Net" Version="3.0.0" />
         <PackageReference Include="Google.Apis.CustomSearchAPI.v1" Version="1.55.0.2455" />
         <PackageReference Include="Google.Apis.YouTube.v3" Version="1.55.0.2449" />
-        <PackageReference Include="YoutubeDLSharp" Version="0.4.0" />
         <PackageReference Include="YoutubeExplode" Version="6.0.7" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="obj\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="obj\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="obj\**" />
     </ItemGroup>
 
 </Project>
