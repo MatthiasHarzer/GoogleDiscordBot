@@ -27,6 +27,7 @@ namespace GoogleBot
         QueuedAsPlaylist,
         Queued,
         InvalidQuery,
+        TooLong,
         NoVoiceChannel
     }
     public class Actions
@@ -217,11 +218,17 @@ namespace GoogleBot
             currentSong = video;
 
             // Console.WriteLine("Getting song from yt");
+            if (video.Duration.Value.TotalHours > 1)
+            {
+                return (State.TooLong, null);
+            }
 
             //* get stream from youtube
             var manifest = await youtube.Videos.Streams.GetManifestAsync(video.Id);
             var streamInfo = manifest.GetMuxedStreams().GetWithHighestBitrate();
             Stream stream = await youtube.Videos.Streams.GetAsync(streamInfo);
+            
+            
 
             //* Start ffmpeg process to convert yt-stream to memory stream
             Process streamProcess = Process.Start(new ProcessStartInfo
@@ -288,6 +295,7 @@ namespace GoogleBot
             if (audioClient != null)
                 audioClient.StopAsync();
             currentChannel = null;
+            currentSong = null;
         }
 
         public static void Skip()

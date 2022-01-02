@@ -218,15 +218,26 @@ namespace GoogleBot
                     embed.AddField("Now playing",
                         $"[{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})]({video.Url})");
                     break;
+                case State.PlayingAsPlaylist:
+                    embed.AddField("Added Playlist to queue", "⠀");
+                    embed.AddField("Now playing",
+                        $"[{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})]({video.Url})");
+                    break;
                 case State.Queued:
                     embed.AddField("Song added to queue",
                         $"[{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})]({video.Url})");
+                    break;
+                case State.QueuedAsPlaylist:
+                    embed.AddField("Playlist added to queue","⠀");
                     break;
                 case State.InvalidQuery:
                     embed.AddField("Query invalid", "`Couldn't find any results`");
                     break;
                 case State.NoVoiceChannel:
                     embed.AddField("No voice channel", "`Please connect to voice channel first!`");
+                    break;
+                case State.TooLong:
+                    embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
                     break;
             }
 

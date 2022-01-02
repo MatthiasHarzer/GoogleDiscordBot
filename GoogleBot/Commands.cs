@@ -174,6 +174,9 @@ namespace GoogleBot
                 case State.NoVoiceChannel:
                     embed.AddField("No voice channel", "`Please connect to voice channel first!`");
                     break;
+                case State.TooLong:
+                    embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
+                    break;
             }
 
             await ReplyAsync(embed: embed.Build());
