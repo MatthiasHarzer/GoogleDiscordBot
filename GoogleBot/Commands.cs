@@ -28,26 +28,13 @@ namespace GoogleBot
         }
 
         [Command("help")]
+        [Alias("?")]
         [Summary("Shows this dialog")]
         public async Task Help()
         {
-            List<CommandInfo> _commands = CommandHandler._coms.Commands.ToList();
-            EmbedBuilder embedBuilder = new EmbedBuilder
-            {
-                Title = "Here's a list of commands and their description:"
-            };
+            EmbedBuilder embed = CommandExecutor.Help();
 
-            foreach (CommandInfo command in _commands)
-            {
-                // Get the command Summary attribute information
-                string embedFieldText = command.Summary ?? "No description available\n";
-
-                embedBuilder.AddField(
-                    $"{String.Join(" / ", command.Aliases)}  {String.Join(" ", command.Parameters.AsParallel().ToList().ConvertAll(param => $"<{param.Summary}>"))}",
-                    embedFieldText);
-            }
-
-            await ReplyAsync(embed: embedBuilder.Build());
+            await ReplyAsync(embed: embed.Build());
         }
     }
 
@@ -139,53 +126,7 @@ namespace GoogleBot
             //* Get users voice channel, if none -> error message 
             IVoiceChannel channel = (Context.User as IGuildUser)?.VoiceChannel;
 
-            if (channel == null)
-            {
-                await ReplyAsync("Connected to a voice channel to play audio!");
-                typing.Dispose();
-                return;
-            }
-
-            Console.WriteLine(channel.GuildId);
-            if (!guildMaster.ContainsKey(channel.GuildId))
-            {
-                guildMaster.Add(channel.GuildId, new AudioPlayer());
-            }
-
-            AudioPlayer player = guildMaster[channel.GuildId];
-            (State state, Video video) = await player.Play(query, channel);
-
-            EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
-
-            //* User response
-            switch (state)
-            {
-                case State.Success:
-                    embed.AddField("Now playing",
-                        FormattedVideo(video));
-                    break;
-                case State.PlayingAsPlaylist:
-                    embed.AddField("Added Playlist to queue", "⠀");
-                    embed.AddField("Now playing",
-                        FormattedVideo(video));
-                    break;
-                case State.Queued:
-                    embed.AddField("Song added to queue",
-                        FormattedVideo(video));
-                    break;
-                case State.QueuedAsPlaylist:
-                    embed.AddField("Playlist added to queue", "⠀");
-                    break;
-                case State.InvalidQuery:
-                    embed.AddField("Query invalid", "`Couldn't find any results`");
-                    break;
-                case State.NoVoiceChannel:
-                    embed.AddField("No voice channel", "`Please connect to voice channel first!`");
-                    break;
-                case State.TooLong:
-                    embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
-                    break;
-            }
+            EmbedBuilder embed = await CommandExecutor.Play(channel, query);
 
             await ReplyAsync(embed: embed.Build());
             typing.Dispose();
@@ -197,11 +138,8 @@ namespace GoogleBot
         [Summary("Skips current song")]
         public Task Skip()
         {
-            if (guildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
-            {
-                player.Skip();
-            }
-            return ReplyAsync("Skipping...");
+            EmbedBuilder embed = CommandExecutor.Skip(Context.Guild.Id);
+            return ReplyAsync(embed: embed.Build());
         }
 
 
@@ -210,62 +148,7 @@ namespace GoogleBot
         [Summary("Shows current queue")]
         public async Task ListQueue()
         {
-            EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
-            
-            if (guildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
-            {
-                Video currentSong = player.currentSong;
-                ;
-                List<Video> queue = player.queue;
-
-                if (player.playing)
-                {
-                    embed.AddField("Currently playing",
-                        $"[`{currentSong.Title} - {currentSong.Author} ({FormattedVideoDuration(currentSong)})`]({currentSong.Url})");
-                }
-
-                if (queue.Count > 0)
-                {
-                    int max_length = 1024; //Discord embedField limit
-                    int counter = 0;
-
-                    int more_hint_len = 50;
-
-                    int approx_length = 0 + more_hint_len;
-
-                    string queue_formatted = "";
-
-                    foreach (var video in queue)
-                    {
-                        string content =
-                            $"\n\n[`{video.Title} - {video.Author} ({FormattedVideoDuration(video)})`]({video.Url})";
-
-                        if (content.Length + approx_length > max_length)
-                        {
-                            queue_formatted += $"\n\n `And {queue.Count - counter} more...`";
-                            break;
-                        }
-
-                        approx_length += content.Length;
-                        queue_formatted += content;
-                        counter++;
-                    }
-
-                    embed.AddField($"Queue ({queue.Count})", queue_formatted);
-                }
-                else
-                {
-                    embed.AddField("Queue is empty", "Nothing to show.");
-                }
-            }
-            else
-            {
-                embed.AddField("Queue is empty", "Nothing to show.");
-            }
-
-            
-        
-
+            EmbedBuilder embed = CommandExecutor.Queue(Context.Guild.Id);
             await ReplyAsync(embed: embed.Build());
         }
 
@@ -274,12 +157,7 @@ namespace GoogleBot
         [Summary("Clears the queue")]
         public async Task ClearQueue()
         {
-            EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
-            if (guildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
-            {
-                embed.AddField("Queue cleared", $"`Removed {player.queue.Count} items`");
-                player.Clear();
-            }
+            EmbedBuilder embed = CommandExecutor.Clear(Context.Guild.Id);
             await ReplyAsync(embed: embed.Build());
         }
 
@@ -287,14 +165,11 @@ namespace GoogleBot
         [Command("stop")]
         [Alias("disconnect", "stfu", "leave")]
         [Summary("Disconnects the bot from the current voice channel")]
-        public Task Disconnect()
+        public async  Task Disconnect()
         {
             
-            if (guildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
-            {
-                player.Stop();
-            }
-            return ReplyAsync("Disconnected");
+            EmbedBuilder embed = CommandExecutor.Stop(Context.Guild.Id);
+            await ReplyAsync(embed: embed.Build());
         }
     }
 }
