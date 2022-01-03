@@ -37,11 +37,11 @@ namespace GoogleBot
             CustomSearchAPIService service = new CustomSearchAPIService(new BaseClientService.Initializer
             {
                 // ApplicationName = "Google Bot (Discord)",
-                ApiKey = Secretes.GoogleApiKey
+                ApiKey = Secrets.GoogleApiKey
             });
 
             var listRequest = service.Cse.List();
-            listRequest.Cx = Secretes.SearchEngineID;
+            listRequest.Cx = Secrets.SearchEngineID;
             listRequest.Q = query;
             
             listRequest.Start = 10;

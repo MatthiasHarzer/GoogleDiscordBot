@@ -150,7 +150,7 @@ namespace GoogleBot
                 //* If catches, query wasn't url or id -> search youtube for video
                 YouTubeService service = new YouTubeService(new BaseClientService.Initializer
                 {
-                    ApiKey = Secretes.GoogleApiKey
+                    ApiKey = Secrets.GoogleApiKey
                 });
                 var searchListRequest = service.Search.List("snippet");
                 searchListRequest.Q = query;

@@ -37,7 +37,7 @@ namespace GoogleBot
             client.Log += Log;
             client.Ready += ClientReady;
 
-            await client.LoginAsync(TokenType.Bot, Secretes.DiscordToken);
+            await client.LoginAsync(TokenType.Bot, Secrets.DiscordToken);
             await client.StartAsync();
 
             await Task.Delay(-1);
