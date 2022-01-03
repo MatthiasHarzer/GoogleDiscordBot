@@ -126,77 +126,78 @@ namespace GoogleBot
             await command.DeferAsync(true);
             Console.WriteLine("command.Data.Name " + command.Data.Name);
             EmbedBuilder embed;
-            switch (command.Data.Name.ToString())
-            {
-                case "play":
-                    Console.WriteLine("PLAY");
-                    HandleSlashPlayCommand(command);
-                    break;
-                case "queue":
-                    embed = new EmbedBuilder().WithCurrentTimestamp();
-
-                    Video currentSong = AudioPlayer.currentSong;
-                    List<Video> queue = AudioPlayer.queue;
-            
-                    if (AudioPlayer.playing)
-                    {
-                        embed.AddField("Currently playing",
-                            $"[`{currentSong.Title} - {currentSong.Author} ({AudioPlayer.FormattedVideoDuration(currentSong)})`]({currentSong.Url})");
-                    }
-
-                    if (queue.Count > 0)
-                    {
-                        embed.AddField("Queue",
-                            String.Join("\n\n",
-                                queue.ConvertAll((video) =>
-                                    $"[`{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})`]({video.Url})")));
-                    }
-                    else
-                    {
-                        embed.AddField("Queue is empty", "Nothing to show.");
-                    }
-
-                    await command.ModifyOriginalResponseAsync(properties =>
-                    {
-                        properties.Embed = embed.Build();
-                    });
-                    break;
-                case "skip":
-                    AudioPlayer.Skip();
-                    await command.ModifyOriginalResponseAsync(properties =>
-                    {
-                        properties.Content = "Skipping";
-                    });
-                    break;
-                case "stop":
-                    AudioPlayer.Stop();
-                    await command.ModifyOriginalResponseAsync(properties =>
-                    {
-                        properties.Content = "Disconnecting";
-                    });
-                    break;
-                case "help":
-                    List<CommandInfo> _commands = _coms.Commands.ToList();
-                    embed = new EmbedBuilder
-                    {
-                        Title = "Here's a list of commands and their description:"
-                    };
-
-                    foreach (CommandInfo c in _commands)
-                    {
-                        // Get the command Summary attribute information
-                        string embedFieldText = c.Summary ?? "No description available\n";
-
-                        embed.AddField(
-                            $"{String.Join(" / ", c.Aliases)}  {String.Join(" ", c.Parameters.AsParallel().ToList().ConvertAll(param => $"<{param.Summary}>"))}",
-                            embedFieldText);
-                    }
-                    await command.ModifyOriginalResponseAsync(properties =>
-                    {
-                        properties.Embed = embed.Build();
-                    });
-                    break;
-            }
+            // switch (command.Data.Name.ToString())
+            // {
+            //     case "play":
+            //         Console.WriteLine("PLAY");
+            //         HandleSlashPlayCommand(command);
+            //         break;
+            //     case "queue":
+            //         embed = new EmbedBuilder().WithCurrentTimestamp();
+            //
+            //         Video currentSong = AudioMaster.currentSong;
+            //         List<Video> queue = AudioMaster.queue;
+            //
+            //         if (AudioMaster.playing)
+            //         {
+            //             embed.AddField("Currently playing",
+            //                 $"[`{currentSong.Title} - {currentSong.Author} ({AudioMaster.FormattedVideoDuration(currentSong)})`]({currentSong.Url})");
+            //         }
+            //
+            //         if (queue.Count > 0)
+            //         {
+            //             embed.AddField("Queue",
+            //                 String.Join("\n\n",
+            //                     queue.ConvertAll((video) =>
+            //                         $"[`{video.Title} - {video.Author} ({AudioMaster.FormattedVideoDuration(video)})`]({video.Url})")));
+            //         }
+            //         else
+            //         {
+            //             embed.AddField("Queue is empty", "Nothing to show.");
+            //         }
+            //
+            //         await command.ModifyOriginalResponseAsync(properties =>
+            //         {
+            //             properties.Embed = embed.Build();
+            //         });
+            //         break;
+            //     case "skip":
+            //         AudioMaster.Skip();
+            //         await command.ModifyOriginalResponseAsync(properties =>
+            //         {
+            //             properties.Content = "Skipping";
+            //         });
+            //         break;
+            //     case "stop":
+            //         AudioMaster.Stop();
+            //         await command.ModifyOriginalResponseAsync(properties =>
+            //         {
+            //             properties.Content = "Disconnecting";
+            //         });
+            //         break;
+            //     case "help":
+            //         List<CommandInfo> _commands = _coms.Commands.ToList();
+            //         embed = new EmbedBuilder
+            //         {
+            //             Title = "Here's a list of commands and their description:"
+            //         };
+            //
+            //         foreach (CommandInfo c in _commands)
+            //         {
+            //             // Get the command Summary attribute information
+            //             string embedFieldText = c.Summary ?? "No description available\n";
+            //
+            //             embed.AddField(
+            //                 $"{String.Join(" / ", c.Aliases)}  {String.Join(" ", c.Parameters.AsParallel().ToList().ConvertAll(param => $"<{param.Summary}>"))}",
+            //                 embedFieldText);
+            //         }
+            //         await command.ModifyOriginalResponseAsync(properties =>
+            //         {
+            //             properties.Embed = embed.Build();
+            //         });
+            //         break;
+            // }
+            //
         }
 
         private async Task HandleSlashPlayCommand(SocketSlashCommand command)
@@ -207,39 +208,39 @@ namespace GoogleBot
             // Console.WriteLine("Channel name: "+channel);
             string query = command.Data.Options.First()?.Value?.ToString();
             
-            (State state, Video video) = await AudioPlayer.Play(query, channel);
+            (State state, Video video) = await AudioMaster.Play(query, channel);
             
             EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
             //* User response
             Console.WriteLine(state);
-            switch (state)
-            {
-                case State.Success:
-                    embed.AddField("Now playing",
-                        $"[{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})]({video.Url})");
-                    break;
-                case State.PlayingAsPlaylist:
-                    embed.AddField("Added Playlist to queue", "⠀");
-                    embed.AddField("Now playing",
-                        $"[{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})]({video.Url})");
-                    break;
-                case State.Queued:
-                    embed.AddField("Song added to queue",
-                        $"[{video.Title} - {video.Author} ({AudioPlayer.FormattedVideoDuration(video)})]({video.Url})");
-                    break;
-                case State.QueuedAsPlaylist:
-                    embed.AddField("Playlist added to queue","⠀");
-                    break;
-                case State.InvalidQuery:
-                    embed.AddField("Query invalid", "`Couldn't find any results`");
-                    break;
-                case State.NoVoiceChannel:
-                    embed.AddField("No voice channel", "`Please connect to voice channel first!`");
-                    break;
-                case State.TooLong:
-                    embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
-                    break;
-            }
+            // switch (state)
+            // {
+            //     case State.Success:
+            //         embed.AddField("Now playing",
+            //             $"[{video.Title} - {video.Author} ({AudioMaster.FormattedVideoDuration(video)})]({video.Url})");
+            //         break;
+            //     case State.PlayingAsPlaylist:
+            //         embed.AddField("Added Playlist to queue", "⠀");
+            //         embed.AddField("Now playing",
+            //             $"[{video.Title} - {video.Author} ({AudioMaster.FormattedVideoDuration(video)})]({video.Url})");
+            //         break;
+            //     case State.Queued:
+            //         embed.AddField("Song added to queue",
+            //             $"[{video.Title} - {video.Author} ({AudioMaster.FormattedVideoDuration(video)})]({video.Url})");
+            //         break;
+            //     case State.QueuedAsPlaylist:
+            //         embed.AddField("Playlist added to queue","⠀");
+            //         break;
+            //     case State.InvalidQuery:
+            //         embed.AddField("Query invalid", "`Couldn't find any results`");
+            //         break;
+            //     case State.NoVoiceChannel:
+            //         embed.AddField("No voice channel", "`Please connect to voice channel first!`");
+            //         break;
+            //     case State.TooLong:
+            //         embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
+            //         break;
+            // }
 
             await command.ModifyOriginalResponseAsync(properties =>
             {
