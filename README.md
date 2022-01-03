@@ -2,7 +2,7 @@
 Discord Bot that Googles and plays music
 
 ## Todo for own use:
-Added a `Secrets.cs` file with your DiscordToken and Api keys:
+Add a `Secrets.cs` file with your DiscordToken and Api keys:
 ```cs
 namespace GoogleBot
 {
