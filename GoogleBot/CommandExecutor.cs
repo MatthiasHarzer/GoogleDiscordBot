@@ -6,7 +6,7 @@ using Discord;
 using Discord.Commands;
 using Discord.Interactions;
 using YoutubeExplode.Videos;
-using static GoogleBot.Globals;
+
 using static GoogleBot.Util;
 
 namespace GoogleBot;
@@ -14,6 +14,8 @@ namespace GoogleBot;
 // Execute a command and return an embed as response (unified for text- and slash-commands)
 public static class CommandExecutor
 {
+    public static readonly Dictionary<ulong, AudioPlayer> guildMaster = new Dictionary<ulong, AudioPlayer>();
+    
     public static async Task<EmbedBuilder> Play(IVoiceChannel channel, string query)
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();

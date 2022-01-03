@@ -30,9 +30,6 @@ namespace GoogleBot
 
 
     }
-    public static class Globals
-    {
-        public static readonly Dictionary<ulong, AudioPlayer> guildMaster = new Dictionary<ulong, AudioPlayer>();
-    }
+
 }
 

@@ -31,19 +31,6 @@ namespace GoogleBot
 
         private CancellationTokenSource taskCanceller = new CancellationTokenSource();
 
-        public string FormattedVideoDuration(Video video)
-        {
-            if (video.Duration.Value.Hours == 0)
-            {
-                return
-                    $"{video.Duration.Value.Minutes.ToString().PadLeft(2, '0')}:{video.Duration.Value.Seconds.ToString().PadLeft(2, '0')}";
-            }
-            else
-            {
-                return video.Duration.ToString();
-            }
-        }
-
         private async Task AddToQueueAsync(string id)
         {
             if (youtube == null) return;

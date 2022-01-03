@@ -14,7 +14,7 @@ using YoutubeExplode;
 using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
 using static GoogleBot.Util;
-using static GoogleBot.Globals;
+
 namespace GoogleBot
 {
     

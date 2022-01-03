@@ -11,7 +11,7 @@ using Discord.WebSocket;
 using Newtonsoft.Json;
 using YoutubeExplode.Videos;
 using static GoogleBot.Util;
-using static GoogleBot.Globals;
+
 
 namespace GoogleBot
 {
