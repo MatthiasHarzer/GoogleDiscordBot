@@ -14,9 +14,10 @@ using YoutubeExplode;
 using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
 using static GoogleBot.Util;
-
+using static GoogleBot.Globals;
 namespace GoogleBot
 {
+    
     public class InfoModule : ModuleBase<SocketCommandContext>
     {
         [Command("echo")]
@@ -125,7 +126,7 @@ namespace GoogleBot
 
     public class AudioModule : ModuleBase<SocketCommandContext>
     {
-        private static readonly Dictionary<ulong, AudioPlayer> guildMaster = new Dictionary<ulong, AudioPlayer>();
+        
 
         [Command("play", RunMode = RunMode.Async)]
         [Alias("p")]
@@ -145,6 +146,7 @@ namespace GoogleBot
                 return;
             }
 
+            Console.WriteLine(channel.GuildId);
             if (!guildMaster.ContainsKey(channel.GuildId))
             {
                 guildMaster.Add(channel.GuildId, new AudioPlayer());
@@ -160,16 +162,16 @@ namespace GoogleBot
             {
                 case State.Success:
                     embed.AddField("Now playing",
-                        $"[{video.Title} - {video.Author} ({FormattedVideoDuration(video)})]({video.Url})");
+                        FormattedVideo(video));
                     break;
                 case State.PlayingAsPlaylist:
                     embed.AddField("Added Playlist to queue", "⠀");
                     embed.AddField("Now playing",
-                        $"[{video.Title} - {video.Author} ({FormattedVideoDuration(video)})]({video.Url})");
+                        FormattedVideo(video));
                     break;
                 case State.Queued:
                     embed.AddField("Song added to queue",
-                        $"[{video.Title} - {video.Author} ({FormattedVideoDuration(video)})]({video.Url})");
+                        FormattedVideo(video));
                     break;
                 case State.QueuedAsPlaylist:
                     embed.AddField("Playlist added to queue", "⠀");
@@ -224,7 +226,7 @@ namespace GoogleBot
 
                 if (queue.Count > 0)
                 {
-                    int max_length = 1024;
+                    int max_length = 1024; //Discord embedField limit
                     int counter = 0;
 
                     int more_hint_len = 50;

@@ -8,6 +8,7 @@ namespace GoogleBot
 
     public static class Util
     {
+        
         public static string FormattedVideoDuration(Video video)
         {
             if (video.Duration.Value.Hours == 0)
@@ -21,8 +22,17 @@ namespace GoogleBot
             }
         }
 
+        public static string FormattedVideo(Video video)
+        {
+            return $"[{video.Title} - {video.Author} ({FormattedVideoDuration(video)})]({video.Url})";
+        }
 
 
+
+    }
+    public static class Globals
+    {
+        public static readonly Dictionary<ulong, AudioPlayer> guildMaster = new Dictionary<ulong, AudioPlayer>();
     }
 }
 

@@ -52,42 +52,5 @@ namespace GoogleBot
         
     }
 
-    public class AudioMaster
-    {
-        private static readonly Dictionary<ulong, AudioPlayer> guildMaster = new Dictionary<ulong, AudioPlayer>(); 
-        
-
-        
-
-        
-        public static async Task<(State, Video)> Play(string query, IVoiceChannel channel, ISocketMessageChannel messageChannel = null)
-        {
-
-
-            if (!guildMaster.ContainsKey(channel.GuildId))
-            {
-                guildMaster.Add(channel.GuildId, new AudioPlayer());
-            }
-
-            AudioPlayer player = guildMaster[channel.GuildId];
-            return await player.Play(query, channel, messageChannel);
-        }
-        
-
-        public static void Stop(IGuild guild)
-        {
-            guildMaster[guild.Id]?.Stop();
-        }
-
-        public static void Skip(IGuild guild)
-        {
-            guildMaster[guild.Id]?.Skip();
-        }
-
-        public static void Clear(IGuild guild)
-        {
-            guildMaster[guild.Id]?.Clear();
-        }
-    }
-    
+   
 }

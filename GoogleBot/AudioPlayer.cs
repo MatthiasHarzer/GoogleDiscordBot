@@ -109,6 +109,8 @@ namespace GoogleBot
             {
                 return (State.NoVoiceChannel, null);
             }
+            
+            
 
             //* Initialize youtube streaming client
             Video video;

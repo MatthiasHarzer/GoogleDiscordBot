@@ -10,13 +10,13 @@ using Discord.Net;
 using Discord.WebSocket;
 using Newtonsoft.Json;
 using YoutubeExplode.Videos;
-
+using static GoogleBot.Util;
+using static GoogleBot.Globals;
 
 namespace GoogleBot
 {
     internal class Bot
     {
-
         private DiscordSocketClient client;
         private CommandHandler commandHandler;
 
@@ -45,7 +45,6 @@ namespace GoogleBot
 
         private async Task ClientReady()
         {
-
             // SlashCommandBuilder builder = new SlashCommandBuilder();
             //
             // builder.WithName("help");
@@ -73,8 +72,6 @@ namespace GoogleBot
             await commandHandler.InstallCommandsAsync();
 
             await client.SetGameAsync("with Google", null, ActivityType.Playing);
-
-
         }
     }
 
@@ -89,7 +86,6 @@ namespace GoogleBot
             this.client = client;
             this.commands = commands;
             CommandHandler._coms = commands;
-            
         }
 
         public async Task InstallCommandsAsync()
@@ -106,7 +102,7 @@ namespace GoogleBot
             if (message == null) return;
 
             int argPos = 0;
-            
+
             // Console.WriteLine("Received: " + message.ToString());
 
             if (!(message.HasCharPrefix('!', ref argPos) || message.HasMentionPrefix(client.CurrentUser, ref argPos)) ||
@@ -124,128 +120,166 @@ namespace GoogleBot
         private async Task HandleSlashCommandAsync(SocketSlashCommand command)
         {
             await command.DeferAsync(true);
-            Console.WriteLine("command.Data.Name " + command.Data.Name);
-            EmbedBuilder embed;
-            // switch (command.Data.Name.ToString())
-            // {
-            //     case "play":
-            //         Console.WriteLine("PLAY");
-            //         HandleSlashPlayCommand(command);
-            //         break;
-            //     case "queue":
-            //         embed = new EmbedBuilder().WithCurrentTimestamp();
-            //
-            //         Video currentSong = AudioMaster.currentSong;
-            //         List<Video> queue = AudioMaster.queue;
-            //
-            //         if (AudioMaster.playing)
-            //         {
-            //             embed.AddField("Currently playing",
-            //                 $"[`{currentSong.Title} - {currentSong.Author} ({AudioMaster.FormattedVideoDuration(currentSong)})`]({currentSong.Url})");
-            //         }
-            //
-            //         if (queue.Count > 0)
-            //         {
-            //             embed.AddField("Queue",
-            //                 String.Join("\n\n",
-            //                     queue.ConvertAll((video) =>
-            //                         $"[`{video.Title} - {video.Author} ({AudioMaster.FormattedVideoDuration(video)})`]({video.Url})")));
-            //         }
-            //         else
-            //         {
-            //             embed.AddField("Queue is empty", "Nothing to show.");
-            //         }
-            //
-            //         await command.ModifyOriginalResponseAsync(properties =>
-            //         {
-            //             properties.Embed = embed.Build();
-            //         });
-            //         break;
-            //     case "skip":
-            //         AudioMaster.Skip();
-            //         await command.ModifyOriginalResponseAsync(properties =>
-            //         {
-            //             properties.Content = "Skipping";
-            //         });
-            //         break;
-            //     case "stop":
-            //         AudioMaster.Stop();
-            //         await command.ModifyOriginalResponseAsync(properties =>
-            //         {
-            //             properties.Content = "Disconnecting";
-            //         });
-            //         break;
-            //     case "help":
-            //         List<CommandInfo> _commands = _coms.Commands.ToList();
-            //         embed = new EmbedBuilder
-            //         {
-            //             Title = "Here's a list of commands and their description:"
-            //         };
-            //
-            //         foreach (CommandInfo c in _commands)
-            //         {
-            //             // Get the command Summary attribute information
-            //             string embedFieldText = c.Summary ?? "No description available\n";
-            //
-            //             embed.AddField(
-            //                 $"{String.Join(" / ", c.Aliases)}  {String.Join(" ", c.Parameters.AsParallel().ToList().ConvertAll(param => $"<{param.Summary}>"))}",
-            //                 embedFieldText);
-            //         }
-            //         await command.ModifyOriginalResponseAsync(properties =>
-            //         {
-            //             properties.Embed = embed.Build();
-            //         });
-            //         break;
-            // }
-            //
+            // Console.WriteLine("command.Data.Name " + command.Data.Name);
+            EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+
+            AudioPlayer player = null;
+            IVoiceChannel channel = (command.User as IGuildUser)?.VoiceChannel;
+
+            if (channel == null)
+            {
+                embed.AddField("No voice channel", "`Please connect to voice channel first!`");
+            }
+            else
+            {
+                if (!guildMaster.ContainsKey(channel.GuildId))
+                {
+                    guildMaster.Add(channel.GuildId, new AudioPlayer());
+                }
+
+                player = guildMaster[channel.GuildId];
+
+                switch (command.Data.Name.ToString())
+                {
+                    case "play":
+                        // Console.WriteLine("PLAY");
+                        HandleSlashPlayCommand(command, channel, player);
+                        break;
+                    case "queue":
+
+
+                        if (player != null)
+                        {
+                            Video currentSong = player.currentSong;
+                            ;
+                            List<Video> queue = player.queue;
+
+                            if (player.playing)
+                            {
+                                embed.AddField("Currently playing",
+                                    FormattedVideo(currentSong));
+                            }
+
+                            if (queue.Count > 0)
+                            {
+                                int max_length = 1024; //Discord embedField limit
+                                int counter = 0;
+
+                                int more_hint_len = 50;
+
+                                int approx_length = 0 + more_hint_len;
+
+                                string queue_formatted = "";
+
+                                foreach (var video in queue)
+                                {
+                                    string content =
+                                        $"\n\n`{FormattedVideo(currentSong)}`";
+
+                                    if (content.Length + approx_length > max_length)
+                                    {
+                                        queue_formatted += $"\n\n `And {queue.Count - counter} more...`";
+                                        break;
+                                    }
+
+                                    approx_length += content.Length;
+                                    queue_formatted += content;
+                                    counter++;
+                                }
+
+                                embed.AddField($"Queue ({queue.Count})", queue_formatted);
+                            }
+                            else
+                            {
+                                embed.AddField("Queue is empty", "Nothing to show.");
+                            }
+                        }
+                        else
+                        {
+                            embed.AddField("Queue is empty", "Nothing to show.");
+                        }
+
+
+                        break;
+                    case "skip":
+                        player?.Skip();
+                        embed.WithTitle("Skipping...");
+                        break;
+                    case "stop":
+                        player?.Stop();
+                        embed.WithTitle("Disconnecting");
+                        break;
+                    case "help":
+                        List<CommandInfo> _commands = _coms.Commands.ToList();
+                        embed.WithTitle("Here's a list of commands and their description:");
+
+                        foreach (CommandInfo c in _commands)
+                        {
+                            // Get the command Summary attribute information
+                            string embedFieldText = c.Summary ?? "No description available\n";
+
+                            embed.AddField(
+                                $"{String.Join(" / ", c.Aliases)}  {String.Join(" ", c.Parameters.AsParallel().ToList().ConvertAll(param => $"<{param.Summary}>"))}",
+                                embedFieldText);
+                        }
+
+
+                        break;
+                }
+            }
+
+            switch (command.Data.Name.ToString())
+            {
+                case "queue":
+                case "skip":
+                case "stop":
+                case "help":
+                    await command.ModifyOriginalResponseAsync(properties => { properties.Embed = embed.Build(); });
+                    break;
+            }
         }
 
-        private async Task HandleSlashPlayCommand(SocketSlashCommand command)
+        private async void HandleSlashPlayCommand(SocketSlashCommand command, IVoiceChannel channel, AudioPlayer player)
         {
-            
-            IVoiceChannel channel = (command.User as IGuildUser)?.VoiceChannel;
-            
             // Console.WriteLine("Channel name: "+channel);
             string query = command.Data.Options.First()?.Value?.ToString();
-            
-            (State state, Video video) = await AudioMaster.Play(query, channel);
-            
+
+            (State state, Video video) = await player.Play(query, channel);
+
             EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
             //* User response
-            Console.WriteLine(state);
-            // switch (state)
-            // {
-            //     case State.Success:
-            //         embed.AddField("Now playing",
-            //             $"[{video.Title} - {video.Author} ({AudioMaster.FormattedVideoDuration(video)})]({video.Url})");
-            //         break;
-            //     case State.PlayingAsPlaylist:
-            //         embed.AddField("Added Playlist to queue", "⠀");
-            //         embed.AddField("Now playing",
-            //             $"[{video.Title} - {video.Author} ({AudioMaster.FormattedVideoDuration(video)})]({video.Url})");
-            //         break;
-            //     case State.Queued:
-            //         embed.AddField("Song added to queue",
-            //             $"[{video.Title} - {video.Author} ({AudioMaster.FormattedVideoDuration(video)})]({video.Url})");
-            //         break;
-            //     case State.QueuedAsPlaylist:
-            //         embed.AddField("Playlist added to queue","⠀");
-            //         break;
-            //     case State.InvalidQuery:
-            //         embed.AddField("Query invalid", "`Couldn't find any results`");
-            //         break;
-            //     case State.NoVoiceChannel:
-            //         embed.AddField("No voice channel", "`Please connect to voice channel first!`");
-            //         break;
-            //     case State.TooLong:
-            //         embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
-            //         break;
-            // }
 
-            await command.ModifyOriginalResponseAsync(properties =>
+
+            switch (state)
             {
-                properties.Embed = embed.Build();
-            });
+                case State.Success:
+                    embed.AddField("Now playing",
+                        FormattedVideo(video));
+                    break;
+                case State.PlayingAsPlaylist:
+                    embed.AddField("Added Playlist to queue", "⠀");
+                    embed.AddField("Now playing",
+                        FormattedVideo(video));
+                    break;
+                case State.Queued:
+                    embed.AddField("Song added to queue",
+                        FormattedVideo(video));
+                    break;
+                case State.QueuedAsPlaylist:
+                    embed.AddField("Playlist added to queue", "⠀");
+                    break;
+                case State.InvalidQuery:
+                    embed.AddField("Query invalid", "`Couldn't find any results`");
+                    break;
+                case State.NoVoiceChannel:
+                    embed.AddField("No voice channel", "`Please connect to voice channel first!`");
+                    break;
+                case State.TooLong:
+                    embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
+                    break;
+            }
+
+            await command.ModifyOriginalResponseAsync(properties => { properties.Embed = embed.Build(); });
         }
     }
 }
