@@ -1,21 +1,127 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.Interactions;
+using Google.Apis.CustomSearchAPI.v1.Data;
 using YoutubeExplode.Videos;
-
 using static GoogleBot.Util;
 
 namespace GoogleBot;
 
+public class CommandExecuteContext
+{
+    [NotNull] public string Command { get; set; }
+    public ulong GuildId { get; set; }
+    public IVoiceChannel VoiceChannel { get; set; }
+}
+
 // Execute a command and return an embed as response (unified for text- and slash-commands)
 public static class CommandExecutor
 {
-    public static readonly Dictionary<ulong, AudioPlayer> guildMaster = new Dictionary<ulong, AudioPlayer>();
-    
+    private static readonly Dictionary<ulong, AudioPlayer> guildMaster = new Dictionary<ulong, AudioPlayer>();
+
+    public static async Task<EmbedBuilder> Execute(CommandExecuteContext context, params object[] additionalArgs)
+    {
+        EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+        try
+        {
+            if (context.Command == null)
+                throw new ArgumentException("No command provided");
+
+            switch (context.Command.ToLower())
+            {
+                case "play":
+                    return await Play(context.VoiceChannel, additionalArgs.FirstOrDefault("")?.ToString());
+                case "skip":
+                    return Skip(context.GuildId);
+                case "queue":
+                    return Queue(context.GuildId);
+                case "stop":
+                    return Stop(context.GuildId);
+                case "clear":
+                    return Clear(context.GuildId);
+                case "help":
+                    return Help();
+
+                case "echo":
+                    return new EmbedBuilder().WithCurrentTimestamp().WithTitle(string.Join(" ", additionalArgs));
+
+                case "google":
+                    return Google(additionalArgs.ToList().ConvertAll(a => a.ToString()).ToArray());
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.StackTrace);
+            embed.AddField("Error", e.Message);
+        }
+
+        return embed;
+    }
+
+    private static EmbedBuilder Google(params string[] _query)
+    {
+        string query = String.Join(' ', _query);
+        if (query.Length <= 0)
+        {
+            return new EmbedBuilder().WithCurrentTimestamp().WithTitle("Please add a search term.");
+        }
+
+        Search result = Actions.FetchGoogleQuery(String.Join(' ', query));
+
+        string title = $"Search results for __**{query}**__";
+        string footer =
+            $"[`See approx. {result.SearchInformation.FormattedTotalResults} results on google.com 🡕`](https://goo.gl/search?{String.Join("%20", _query)})";
+        string reqTimeFormatted = $"{Math.Round((double)result.SearchInformation.SearchTime * 100) / 100}s";
+
+        EmbedBuilder embed = new EmbedBuilder
+        {
+            Title = title,
+            Color = Color.Blue,
+            Footer = new EmbedFooterBuilder
+            {
+                Text = reqTimeFormatted
+            }
+        }.WithCurrentTimestamp();
+
+        if (result?.Items == null)
+        {
+            embed.AddField("*Suggestions:*",
+                    $"•Make sure that all words are spelled correctly.\n  •Try different keywords.\n  •Try more general keywords.\n  •Try fewer keywords.\n\n [`View on google.com 🡕`](https://goo.gl/search?{String.Join("%20", _query)})")
+                .WithTitle($"No results for **{query}**");
+        }
+        else
+        {
+            int approx_lenght = title.Length + footer.Length + reqTimeFormatted.Length + 20;
+            int max_length = 2000;
+
+            foreach (Result item in result.Items)
+            {
+                string itemTitle = $"{item.Title}";
+                string itemContent = $"[`>> {item.DisplayLink}`]({item.Link})\n{item.Snippet}";
+                int length = itemContent.Length + itemTitle.Length;
+
+                if (approx_lenght + length < max_length)
+                {
+                    approx_lenght += length;
+                    embed.AddField(itemTitle, itemContent);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            embed.AddField("\n⠀", footer);
+        }
+
+        return embed;
+    }
+
     public static async Task<EmbedBuilder> Play(IVoiceChannel channel, string query)
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
@@ -76,6 +182,7 @@ public static class CommandExecutor
         {
             player.Skip();
         }
+
         return new EmbedBuilder().WithCurrentTimestamp().WithTitle("Skipping...");
     }
 
@@ -85,6 +192,7 @@ public static class CommandExecutor
         {
             player.Stop();
         }
+
         return new EmbedBuilder().WithCurrentTimestamp().WithTitle("Disconnecting");
     }
 
@@ -97,6 +205,7 @@ public static class CommandExecutor
             count = player.queue.Count;
             player.Stop();
         }
+
         embed.AddField("Queue cleared", $"`Removed {count} items`");
         return embed;
     }
@@ -107,10 +216,10 @@ public static class CommandExecutor
         if (guildMaster.TryGetValue(guildId, out AudioPlayer player))
         {
             Video currentSong = player.currentSong;
-            ;
+
             List<Video> queue = player.queue;
 
-            if (player.playing)
+            if (player.playing && currentSong != null)
             {
                 embed.AddField("Currently playing",
                     FormattedVideo(currentSong));
@@ -149,7 +258,8 @@ public static class CommandExecutor
             {
                 embed.AddField("Queue is empty", "Nothing to show.");
             }
-        }else
+        }
+        else
         {
             embed.AddField("Queue is empty", "Nothing to show.");
         }

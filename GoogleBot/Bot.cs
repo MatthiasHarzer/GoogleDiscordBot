@@ -11,6 +11,7 @@ using Discord.WebSocket;
 using Newtonsoft.Json;
 using YoutubeExplode.Videos;
 using static GoogleBot.Util;
+using ParameterInfo = Discord.Commands.ParameterInfo;
 
 
 namespace GoogleBot
@@ -45,22 +46,7 @@ namespace GoogleBot
 
         private async Task ClientReady()
         {
-            // SlashCommandBuilder builder = new SlashCommandBuilder();
-            //
-            // builder.WithName("help");
-            // builder.WithDescription("Shows all available commands");
-            //
-            // try
-            // {
-            //     await client.CreateGlobalApplicationCommandAsync(builder.Build());
-            // }
-            // catch(ApplicationCommandException exception)
-            // {
-            //     var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
-            //
-            //     // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
-            //     Console.WriteLine(json);
-            // }
+            
 
             CommandService commandsService = new CommandService(new CommandServiceConfig
             {
@@ -72,6 +58,42 @@ namespace GoogleBot
             await commandHandler.InstallCommandsAsync();
 
             await client.SetGameAsync("with Google", null, ActivityType.Playing);
+
+
+            InitSlashCommandsAsync();
+            // Console.WriteLine(string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>String.Join(" / ", c.Aliases))));
+        }
+
+        private async Task InitSlashCommandsAsync()
+        {
+            // foreach (CommandInfo command in CommandHandler._coms.Commands)  
+            // {
+            //     SlashCommandBuilder builder = new SlashCommandBuilder();
+            //
+            //     builder.WithName(command.Aliases[0]);
+            //     builder.WithDescription(command.Summary ?? "No description available");
+            //     if (command.Parameters.Count > 0)
+            //     {
+            //         foreach (ParameterInfo parameter in command.Parameters)
+            //         {
+            //             builder.AddOption(parameter.Name, ApplicationCommandOptionType.String,
+            //                 parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
+            //         }
+            //     }
+            //     
+            //     try
+            //     {
+            //         await client.CreateGlobalApplicationCommandAsync(builder.Build());
+            //     }
+            //     catch(ApplicationCommandException exception)
+            //     {
+            //         var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
+            //     
+            //         // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+            //         Console.WriteLine(json);
+            //     }
+            // }
+            // Console.WriteLine("Available slash commands: \n" + string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>c.Aliases[0].ToString())));
         }
     }
 
@@ -119,47 +141,81 @@ namespace GoogleBot
 
         private async Task HandleSlashCommandAsync(SocketSlashCommand command)
         {
-            await command.DeferAsync(true);
-            // Console.WriteLine("command.Data.Name " + command.Data.Name);
-            EmbedBuilder embed = null;
-
-
-            IVoiceChannel channel = (command.User as IGuildUser)?.VoiceChannel;
-            ulong guildId = ((IGuildUser)command.User).GuildId;
-
-
-            switch (command.Data.Name.ToString())
+            try
             {
-                case "play":
-                    // Console.WriteLine("PLAY");
-                    HandleSlashPlayCommand(command, channel);
-                    break;
-                case "queue":
-                    embed = CommandExecutor.Queue(guildId);
-                    break;
-                case "skip":
-                    embed = CommandExecutor.Skip(guildId);
-                    break;
-                case "stop":
-                    embed = CommandExecutor.Stop(guildId);
-                    break;
-                case "help":
-                    embed = CommandExecutor.Help();
-                    break;
+
+                // Console.WriteLine("command.Data.Name " + command.Data.Name);
+                await command.DeferAsync(true);
+
+                // Console.WriteLine(command.CommandName);
+
+                ExecuteSlashCommandAsync(command);
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
             }
 
-            if (embed != null)
-                await command.ModifyOriginalResponseAsync(properties => { properties.Embed = embed.Build(); });
+            // SocketMessage m =  (client, command.Data.Id, command.Channel, command.User, MessageSource.User);
+
+
+
+
+
+            // switch (command.Data.Name.ToString())
+            // {
+            //     case "play":
+            //         // Console.WriteLine("PLAY");
+            //         HandleSlashPlayCommand(command, channel);
+            //         break;
+            //     case "queue":
+            //         embed = CommandExecutor.Queue(guildId);
+            //         break;
+            //     case "skip":
+            //         embed = CommandExecutor.Skip(guildId);
+            //         break;
+            //     case "stop":
+            //         embed = CommandExecutor.Stop(guildId);
+            //         break;
+            //     case "help":
+            //         embed = CommandExecutor.Help();
+            //         break;
+            // }
+
+
         }
 
-        private async void HandleSlashPlayCommand(SocketSlashCommand command, IVoiceChannel channel)
+        private async void ExecuteSlashCommandAsync(SocketSlashCommand command)
         {
-            // Console.WriteLine("Channel name: "+channel);
-            string query = command.Data.Options.First()?.Value?.ToString();
-
-            EmbedBuilder embed = await CommandExecutor.Play(channel, query);
-
-            await command.ModifyOriginalResponseAsync(properties => { properties.Embed = embed.Build(); });
+            IVoiceChannel channel = (command.User as IGuildUser)?.VoiceChannel;
+            ulong guildId = ((IGuildUser)command.User).GuildId;
+            EmbedBuilder embed = null;
+            
+            
+            
+            embed = await CommandExecutor.Execute(new CommandExecuteContext
+            {
+                Command = command.CommandName,
+                GuildId = guildId,
+                VoiceChannel = channel
+            }, command.Data.Options.ToList().ConvertAll(option=>option.Value).ToArray());
+                
+            // Console.WriteLine(embed);
+            try
+            {
+                await command.ModifyOriginalResponseAsync(properties => { properties.Embed = embed.Build(); });
+            }
+            catch
+            {
+                await command.ModifyOriginalResponseAsync(properties =>
+                {
+                    properties.Content = "Something really bad happened!";
+                });
+            }
+            
         }
+        
     }
 }

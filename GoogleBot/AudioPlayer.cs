@@ -108,6 +108,14 @@ namespace GoogleBot
                     State = State.NoVoiceChannel,
                 };
             }
+
+            if (query.Length <= 0)
+            {
+                return new IPlayReturnValue
+                {
+                    State = State.InvalidQuery
+                };
+            }
             
             
 
@@ -211,6 +219,7 @@ namespace GoogleBot
                 return new IPlayReturnValue
                 {
                     State = State.Queued,
+                    Video = video,
                 };
             }
 

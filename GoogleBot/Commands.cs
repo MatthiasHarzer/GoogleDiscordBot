@@ -43,61 +43,10 @@ namespace GoogleBot
         [Command("google")]
         [Alias("gl")]
         [Summary("Google something")]
-        public Task Request([Summary("query")] params string[] _query)
+        public async Task Request([Summary("query")] params string[] _query)
         {
-            string query = String.Join(' ', _query);
-            if (query.Length <= 0)
-            {
-                return ReplyAsync("Please add a search term.");
-            }
-
-            Search result = Actions.FetchGoogleQuery(String.Join(' ', query));
-
-            string title = $"Search results for __**{query}**__";
-            string footer =
-                $"[`See approx. {result.SearchInformation.FormattedTotalResults} more results on google.com 🡕`](https://goo.gl/search?{String.Join("%20", _query)})";
-            string reqTimeFormatted = $"{Math.Round((double)result.SearchInformation.SearchTime * 100) / 100}s";
-
-            EmbedBuilder embed = new EmbedBuilder
-            {
-                Title = title,
-                Color = Color.Blue,
-                Footer = new EmbedFooterBuilder
-                {
-                    Text = reqTimeFormatted
-                }
-            }.WithCurrentTimestamp();
-
-            if (result?.Items == null)
-            {
-                embed.AddField("*Suggestions:*",
-                        $"•Make sure that all words are spelled correctly.\n  •Try different keywords.\n  •Try more general keywords.\n  •Try fewer keywords.\n\n [`View on google.com 🡕`](https://goo.gl/search?{String.Join("%20", _query)})")
-                    .WithTitle($"No results for **{query}**");
-            }
-            else
-            {
-                int approx_lenght = title.Length + footer.Length + reqTimeFormatted.Length + 20;
-                int max_length = 2000;
-
-                foreach (Result item in result.Items)
-                {
-                    string itemTitle = $"{item.Title}";
-                    string itemContent = $"[`>> {item.DisplayLink}`]({item.Link})\n{item.Snippet}";
-                    int length = itemContent.Length + itemTitle.Length;
-
-                    if (approx_lenght + length < max_length)
-                    {
-                        approx_lenght += length;
-                        embed.AddField(itemTitle, itemContent);
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-
-                embed.AddField("\n⠀", footer);
-            }
+            var typing = Context.Channel.EnterTypingState(); //* Start typing animation
+            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "google", GuildId = Context.Guild.Id}, _query);
 
 
             // List<Result> results = Actions.FetchGoogleQuery(String.Join(' ', query));
@@ -107,26 +56,28 @@ namespace GoogleBot
             // });
 
 
-            return ReplyAsync(embed: embed.Build());
+            await ReplyAsync(embed: embed.Build());
+            typing.Dispose();
         }
     }
 
     public class AudioModule : ModuleBase<SocketCommandContext>
     {
-        
-
         [Command("play", RunMode = RunMode.Async)]
         [Alias("p")]
         [Summary("Plays audio from an url")]
-        public async Task Play([Summary("query")] params string[] _query)
+        public async Task Play([Summary("query")] params string[] query)
         {
-            string query = String.Join(" ", _query);
+            string q = String.Join(" ", query);
             var typing = Context.Channel.EnterTypingState(); //* Start typing animation
 
             //* Get users voice channel, if none -> error message 
             IVoiceChannel channel = (Context.User as IGuildUser)?.VoiceChannel;
 
-            EmbedBuilder embed = await CommandExecutor.Play(channel, query);
+            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext
+            {
+                Command = "play", VoiceChannel = channel
+            }, q);
 
             await ReplyAsync(embed: embed.Build());
             typing.Dispose();
@@ -136,10 +87,10 @@ namespace GoogleBot
         [Command("skip")]
         [Alias("s")]
         [Summary("Skips current song")]
-        public Task Skip()
+        public async Task Skip()
         {
-            EmbedBuilder embed = CommandExecutor.Skip(Context.Guild.Id);
-            return ReplyAsync(embed: embed.Build());
+            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "skip", GuildId = Context.Guild.Id});
+            await ReplyAsync(embed: embed.Build());
         }
 
 
@@ -148,16 +99,17 @@ namespace GoogleBot
         [Summary("Shows current queue")]
         public async Task ListQueue()
         {
-            EmbedBuilder embed = CommandExecutor.Queue(Context.Guild.Id);
+            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "queue", GuildId = Context.Guild.Id});
             await ReplyAsync(embed: embed.Build());
         }
 
         [Command("clear")]
         [Alias("c")]
         [Summary("Clears the queue")]
+        
         public async Task ClearQueue()
         {
-            EmbedBuilder embed = CommandExecutor.Clear(Context.Guild.Id);
+            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "clear", GuildId = Context.Guild.Id});
             await ReplyAsync(embed: embed.Build());
         }
 
@@ -167,8 +119,7 @@ namespace GoogleBot
         [Summary("Disconnects the bot from the current voice channel")]
         public async  Task Disconnect()
         {
-            
-            EmbedBuilder embed = CommandExecutor.Stop(Context.Guild.Id);
+            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "stop", GuildId = Context.Guild.Id});
             await ReplyAsync(embed: embed.Build());
         }
     }
