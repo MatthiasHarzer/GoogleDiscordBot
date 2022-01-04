@@ -58,6 +58,7 @@ namespace GoogleBot
 
             await ReplyAsync(embed: embed.Build());
             typing.Dispose();
+            
         }
     }
 

@@ -313,6 +313,7 @@ namespace GoogleBot
                 audioClient.StopAsync();
             voiceChannel = null;
             currentSong = null;
+            playing = false;
         }
 
         public void Skip()
