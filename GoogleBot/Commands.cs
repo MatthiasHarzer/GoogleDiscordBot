@@ -43,10 +43,10 @@ namespace GoogleBot
         [Command("google")]
         [Alias("gl")]
         [Summary("Google something")]
-        public async Task Request([Summary("query")] params string[] _query)
+        public async Task Request([Summary("query")] params string[] query)
         {
             var typing = Context.Channel.EnterTypingState(); //* Start typing animation
-            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "google", GuildId = Context.Guild.Id}, _query);
+            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "google", GuildId = Context.Guild.Id}, query);
 
 
             // List<Result> results = Actions.FetchGoogleQuery(String.Join(' ', query));
