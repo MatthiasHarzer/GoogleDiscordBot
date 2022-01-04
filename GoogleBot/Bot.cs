@@ -60,39 +60,39 @@ namespace GoogleBot
             await client.SetGameAsync("with Google", null, ActivityType.Playing);
 
 
-            InitSlashCommandsAsync();
+            //InitSlashCommandsAsync();
             // Console.WriteLine(string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>String.Join(" / ", c.Aliases))));
         }
 
         private async Task InitSlashCommandsAsync()
         {
-            // foreach (CommandInfo command in CommandHandler._coms.Commands)  
-            // {
-            //     SlashCommandBuilder builder = new SlashCommandBuilder();
-            //
-            //     builder.WithName(command.Aliases[0]);
-            //     builder.WithDescription(command.Summary ?? "No description available");
-            //     if (command.Parameters.Count > 0)
-            //     {
-            //         foreach (ParameterInfo parameter in command.Parameters)
-            //         {
-            //             builder.AddOption(parameter.Name, ApplicationCommandOptionType.String,
-            //                 parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
-            //         }
-            //     }
-            //     
-            //     try
-            //     {
-            //         await client.CreateGlobalApplicationCommandAsync(builder.Build());
-            //     }
-            //     catch(ApplicationCommandException exception)
-            //     {
-            //         var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
-            //     
-            //         // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
-            //         Console.WriteLine(json);
-            //     }
-            // }
+            foreach (CommandInfo command in CommandHandler._coms.Commands)  
+            {
+                SlashCommandBuilder builder = new SlashCommandBuilder();
+            
+                builder.WithName(command.Aliases[0]);
+                builder.WithDescription(command.Summary ?? "No description available");
+                if (command.Parameters.Count > 0)
+                {
+                    foreach (ParameterInfo parameter in command.Parameters)
+                    {
+                        builder.AddOption(parameter.Name, ApplicationCommandOptionType.String,
+                            parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
+                    }
+                }
+                
+                try
+                {
+                    await client.CreateGlobalApplicationCommandAsync(builder.Build());
+                }
+                catch(ApplicationCommandException exception)
+                {
+                    var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
+                
+                    // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+                    Console.WriteLine(json);
+                }
+            }
             // Console.WriteLine("Available slash commands: \n" + string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>c.Aliases[0].ToString())));
         }
     }
