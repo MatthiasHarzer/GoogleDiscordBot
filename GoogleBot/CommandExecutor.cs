@@ -34,27 +34,27 @@ public static class CommandExecutor
         }
 
         AudioPlayer player = guildMaster[channel.GuildId];
-        (State state, Video video) = await player.Play(query, channel);
+        IPlayReturnValue returnValue = await player.Play(query, channel);
 
 
         //* User response
-        switch (state)
+        switch (returnValue.State)
         {
             case State.Success:
                 embed.AddField("Now playing",
-                    FormattedVideo(video));
+                    FormattedVideo(returnValue.Video));
                 break;
             case State.PlayingAsPlaylist:
-                embed.AddField("Added Playlist to queue", "⠀");
+                embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
                 embed.AddField("Now playing",
-                    FormattedVideo(video));
+                    FormattedVideo(returnValue.Video));
                 break;
             case State.Queued:
                 embed.AddField("Song added to queue",
-                    FormattedVideo(video));
+                    FormattedVideo(returnValue.Video));
                 break;
             case State.QueuedAsPlaylist:
-                embed.AddField("Playlist added to queue", "⠀");
+                embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
                 break;
             case State.InvalidQuery:
                 embed.AddField("Query invalid", "`Couldn't find any results`");

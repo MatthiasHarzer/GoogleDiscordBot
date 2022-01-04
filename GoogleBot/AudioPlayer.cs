@@ -18,6 +18,15 @@ using YoutubeExplode.Videos.Streams;
 
 namespace GoogleBot
 {
+    public class IPlayReturnValue
+    {
+        public State State { get; set; }
+        public Video Video { get; set; }
+        public string[] Videos { get; set; }
+    }
+
+
+
     public class AudioPlayer
     {
         public bool playing;
@@ -79,7 +88,7 @@ namespace GoogleBot
             }
         }
 
-        public async Task<(State, Video)> Play(string query, IVoiceChannel voiceChannel = null,
+        public async Task<IPlayReturnValue> Play(string query, IVoiceChannel voiceChannel = null,
             ISocketMessageChannel messageChannel = null)
         {
             if (voiceChannel != null)
@@ -94,13 +103,17 @@ namespace GoogleBot
 
             if (this.voiceChannel == null)
             {
-                return (State.NoVoiceChannel, null);
+                return new IPlayReturnValue
+                {
+                    State = State.NoVoiceChannel,
+                };
             }
             
             
 
             //* Initialize youtube streaming client
             Video video;
+            List<string> playlistVideos = new();
             bool isNewPlaylist = false;
 
             //* Check if video exists (only ids or urls)
@@ -116,12 +129,14 @@ namespace GoogleBot
                     if (videos.Count > 0)
                     {
                         video = await youtube.Videos.GetAsync(videos[0].Id);
+                        playlistVideos = videos.AsParallel().ToList().ConvertAll(v => v.Id.ToString());
                         isNewPlaylist = true;
 
                         foreach (var v in videos)
                         {
                             if (v.Duration != null && v.Id != video.Id && v.Duration.Value.TotalHours <= 1)
                             {
+                                
                                 AddToQueueAsync(v.Id);
                             }
                         }
@@ -161,13 +176,21 @@ namespace GoogleBot
                 }
                 catch
                 {
-                    return (State.InvalidQuery, null);
+                    return new IPlayReturnValue
+                    {
+                        State = State.InvalidQuery,
+                    };
+                   
                 }
             }
 
             if (video.Duration is { TotalHours: > 1 })
             {
-                return (State.TooLong, null);
+                return new IPlayReturnValue
+                {
+                    State = State.TooLong,
+                };
+              
             }
 
             //* If a song is already playing -> add new one to queue
@@ -176,10 +199,19 @@ namespace GoogleBot
                 queue.Add(video);
                 if (isNewPlaylist)
                 {
-                    return (State.QueuedAsPlaylist, video);
+                    return new IPlayReturnValue
+                    {
+                        State = State.QueuedAsPlaylist,
+                        Video = video,
+                        Videos = playlistVideos.ToArray()
+                    };
+                    
                 }
 
-                return (State.Queued, video);
+                return new IPlayReturnValue
+                {
+                    State = State.Queued,
+                };
             }
 
 
@@ -228,10 +260,19 @@ namespace GoogleBot
 
             if (isNewPlaylist)
             {
-                return (State.PlayingAsPlaylist, video);
+                return new IPlayReturnValue
+                {
+                    State = State.PlayingAsPlaylist,
+                    Video = video,
+                    Videos = playlistVideos.ToArray()
+                };
             }
 
-            return (State.Success, video);
+            return new IPlayReturnValue
+            {
+                State = State.Success,
+                Video = video,
+            };
         }
 
         private void NextSong()
