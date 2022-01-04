@@ -319,6 +319,7 @@ namespace GoogleBot
         public void Skip()
         {
             taskCanceller?.Cancel();
+            playing = false;
         }
 
         public void Clear()

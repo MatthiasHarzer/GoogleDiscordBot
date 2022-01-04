@@ -203,7 +203,7 @@ public static class CommandExecutor
         if (guildMaster.TryGetValue(guildId, out AudioPlayer player))
         {
             count = player.queue.Count;
-            player.Stop();
+            player.Clear();
         }
 
         embed.AddField("Queue cleared", $"`Removed {count} items`");
