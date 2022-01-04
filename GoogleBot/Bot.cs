@@ -189,29 +189,31 @@ namespace GoogleBot
 
         private async void ExecuteSlashCommandAsync(SocketSlashCommand command)
         {
-            IVoiceChannel channel = (command.User as IGuildUser)?.VoiceChannel;
-            ulong guildId = ((IGuildUser)command.User).GuildId;
-            EmbedBuilder embed = null;
-            
-            
-            
-            embed = await CommandExecutor.Execute(new CommandExecuteContext
-            {
-                Command = command.CommandName,
-                GuildId = guildId,
-                VoiceChannel = channel
-            }, command.Data.Options.ToList().ConvertAll(option=>option.Value).ToArray());
-                
-            // Console.WriteLine(embed);
             try
             {
+                IVoiceChannel channel = (command.User as IGuildUser)?.VoiceChannel;
+                ulong guildId = ((IGuildUser)command.User).GuildId;
+                EmbedBuilder embed = null;
+                
+                
+                
+                embed = await CommandExecutor.Execute(new CommandExecuteContext
+                {
+                    Command = command.CommandName,
+                    GuildId = guildId,
+                    VoiceChannel = channel
+                }, command.Data.Options.ToList().ConvertAll(option=>option.Value).ToArray());
+                    
+                // Console.WriteLine(embed);
+            
+                
                 await command.ModifyOriginalResponseAsync(properties => { properties.Embed = embed.Build(); });
             }
             catch
             {
                 await command.ModifyOriginalResponseAsync(properties =>
                 {
-                    properties.Content = "Something really bad happened!";
+                    properties.Content = "Something went wrong. Please try again.";
                 });
             }
             

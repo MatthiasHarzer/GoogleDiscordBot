@@ -57,7 +57,7 @@ public static class CommandExecutor
         catch (Exception e)
         {
             Console.WriteLine(e.StackTrace);
-            embed.AddField("Error", e.Message);
+            embed.AddField("Error", "Something went wrong. Please try again.");
         }
 
         return embed;
