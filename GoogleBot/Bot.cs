@@ -66,6 +66,7 @@ namespace GoogleBot
 
         private async Task InitSlashCommandsAsync()
         {
+            List<ApplicationCommandProperties> applicationCommandProperties = new();
             foreach (CommandInfo command in CommandHandler._coms.Commands)  
             {
                 SlashCommandBuilder builder = new SlashCommandBuilder();
@@ -76,22 +77,24 @@ namespace GoogleBot
                 {
                     foreach (ParameterInfo parameter in command.Parameters)
                     {
-                        builder.AddOption(parameter.Name, ApplicationCommandOptionType.String,
+                        builder.AddOption(parameter.Summary ?? parameter.Name, ApplicationCommandOptionType.String,
                             parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
                     }
                 }
+                applicationCommandProperties.Add(builder.Build());
                 
-                try
-                {
-                    await client.CreateGlobalApplicationCommandAsync(builder.Build());
-                }
-                catch(ApplicationCommandException exception)
-                {
-                    var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
                 
-                    // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
-                    Console.WriteLine(json);
-                }
+            }
+            try
+            {
+                await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
+            }
+            catch(ApplicationCommandException exception)
+            {
+                var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
+                
+                // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+                Console.WriteLine(json);
             }
             // Console.WriteLine("Available slash commands: \n" + string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>c.Aliases[0].ToString())));
         }
@@ -197,12 +200,7 @@ namespace GoogleBot
                 
                 
                 
-                embed = await CommandExecutor.Execute(new CommandExecuteContext
-                {
-                    Command = command.CommandName,
-                    GuildId = guildId,
-                    VoiceChannel = channel
-                }, command.Data.Options.ToList().ConvertAll(option=>option.Value).ToArray());
+                embed = await CommandExecutor.Execute(ExecuteContext.From(socketSlashCommand: command), command.Data.Options.ToList().ConvertAll(option=>option.Value).ToArray());
                     
                 // Console.WriteLine(embed);
             

@@ -32,7 +32,9 @@ namespace GoogleBot
         [Summary("Shows this dialog")]
         public async Task Help()
         {
+            
             EmbedBuilder embed = CommandExecutor.Help();
+            
 
             await ReplyAsync(embed: embed.Build());
         }
@@ -46,8 +48,9 @@ namespace GoogleBot
         public async Task Request([Summary("query")] params string[] query)
         {
             var typing = Context.Channel.EnterTypingState(); //* Start typing animation
-            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "google", GuildId = Context.Guild.Id}, query);
-
+            
+            EmbedBuilder embed = await CommandExecutor.Execute(ExecuteContext.From("google", Context), query);
+            
 
             // List<Result> results = Actions.FetchGoogleQuery(String.Join(' ', query));
             // results.ForEach(item =>
@@ -71,14 +74,8 @@ namespace GoogleBot
         {
             string q = String.Join(" ", query);
             var typing = Context.Channel.EnterTypingState(); //* Start typing animation
-
-            //* Get users voice channel, if none -> error message 
-            IVoiceChannel channel = (Context.User as IGuildUser)?.VoiceChannel;
-
-            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext
-            {
-                Command = "play", VoiceChannel = channel
-            }, q);
+            
+            EmbedBuilder embed = await CommandExecutor.Execute(ExecuteContext.From(Context), q);
 
             await ReplyAsync(embed: embed.Build());
             typing.Dispose();
@@ -90,7 +87,7 @@ namespace GoogleBot
         [Summary("Skips current song")]
         public async Task Skip()
         {
-            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "skip", GuildId = Context.Guild.Id});
+            EmbedBuilder embed = await CommandExecutor.Execute(ExecuteContext.From(Context));
             await ReplyAsync(embed: embed.Build());
         }
 
@@ -100,7 +97,7 @@ namespace GoogleBot
         [Summary("Shows current queue")]
         public async Task ListQueue()
         {
-            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "queue", GuildId = Context.Guild.Id});
+            EmbedBuilder embed = await CommandExecutor.Execute(ExecuteContext.From(Context));
             await ReplyAsync(embed: embed.Build());
         }
 
@@ -110,7 +107,7 @@ namespace GoogleBot
         
         public async Task ClearQueue()
         {
-            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "clear", GuildId = Context.Guild.Id});
+            EmbedBuilder embed = await CommandExecutor.Execute(ExecuteContext.From(Context));
             await ReplyAsync(embed: embed.Build());
         }
 
@@ -120,7 +117,9 @@ namespace GoogleBot
         [Summary("Disconnects the bot from the current voice channel")]
         public async  Task Disconnect()
         {
-            EmbedBuilder embed = await CommandExecutor.Execute(new CommandExecuteContext{Command = "stop", GuildId = Context.Guild.Id});
+            Console.WriteLine(GetCommandFromMessage(Context.Message));
+            
+            EmbedBuilder embed = await CommandExecutor.Execute(ExecuteContext.From(Context));
             await ReplyAsync(embed: embed.Build());
         }
     }

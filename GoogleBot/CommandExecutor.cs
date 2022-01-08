@@ -6,17 +6,57 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.Interactions;
+using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using YoutubeExplode.Videos;
 using static GoogleBot.Util;
 
 namespace GoogleBot;
 
-public class CommandExecuteContext
+public class ExecuteContext
 {
-    [NotNull] public string Command { get; set; }
-    public ulong GuildId { get; set; }
+    public ISocketMessageChannel Channel { get; set; }
+    public string Command { get; set; }
+
+    public SocketGuild Guild { get; set; }
+
+    public SocketUser User { get; set; }
+    
     public IVoiceChannel VoiceChannel { get; set; }
+    
+    
+
+    public static ExecuteContext From(string command, SocketCommandContext socketCommandContext)
+    {
+        IGuildUser guildUser = socketCommandContext.User as IGuildUser;
+        return new ExecuteContext
+        {
+            Command = command,
+            Channel = socketCommandContext.Channel,
+            VoiceChannel = guildUser?.VoiceChannel,
+            Guild = socketCommandContext.Guild,
+            User = socketCommandContext.User,
+ 
+        };
+    }
+
+    public static ExecuteContext From(SocketCommandContext socketCommandContext)
+    {
+        return From(GetCommandFromMessage(socketCommandContext.Message), socketCommandContext);
+    }
+
+    public static ExecuteContext From(SocketSlashCommand socketSlashCommand)
+    {
+        IGuildUser guildUser = socketSlashCommand.User as IGuildUser;
+        return new ExecuteContext
+        {
+            Command = socketSlashCommand.CommandName,
+            Channel = socketSlashCommand.Channel,
+            VoiceChannel = guildUser?.VoiceChannel,
+            Guild = (SocketGuild)guildUser?.Guild,
+            User = socketSlashCommand.User,
+        };
+    }
 }
 
 // Execute a command and return an embed as response (unified for text- and slash-commands)
@@ -24,7 +64,7 @@ public static class CommandExecutor
 {
     private static readonly Dictionary<ulong, AudioPlayer> guildMaster = new Dictionary<ulong, AudioPlayer>();
 
-    public static async Task<EmbedBuilder> Execute(CommandExecuteContext context, params object[] additionalArgs)
+    public static async Task<EmbedBuilder> Execute(ExecuteContext context, params object[] additionalArgs)
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
         try
@@ -37,13 +77,13 @@ public static class CommandExecutor
                 case "play":
                     return await Play(context.VoiceChannel, additionalArgs.FirstOrDefault("")?.ToString());
                 case "skip":
-                    return Skip(context.GuildId);
+                    return Skip(context.Guild.Id);
                 case "queue":
-                    return Queue(context.GuildId);
+                    return Queue(context.Guild.Id);
                 case "stop":
-                    return Stop(context.GuildId);
+                    return Stop(context.Guild.Id);
                 case "clear":
-                    return Clear(context.GuildId);
+                    return Clear(context.Guild.Id);
                 case "help":
                     return Help();
 

@@ -2,6 +2,9 @@
 using YoutubeExplode.Videos;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using Discord.Commands;
+using Discord.WebSocket;
 
 namespace GoogleBot
 {
@@ -25,6 +28,27 @@ namespace GoogleBot
         public static string FormattedVideo(Video video)
         {
             return $"[{video.Title} - {video.Author} ({FormattedVideoDuration(video)})]({video.Url})";
+        }
+
+        public static string GetCommandFromMessage(SocketUserMessage message)
+        {
+            int argPos = 0;
+            if (message.ToString().Length > 1 && message.HasCharPrefix('!', ref argPos))
+            {
+                string command = message.ToString().Split(" ")[0].Substring(argPos);
+
+                
+                foreach (CommandInfo ctx in CommandHandler._coms.Commands)
+                {
+                    if (ctx.Name.Equals(command) || ctx.Aliases.Contains(command))
+                    {
+                        return ctx.Name;
+                    }
+                }
+                
+                
+            }
+            return null;
         }
 
 
