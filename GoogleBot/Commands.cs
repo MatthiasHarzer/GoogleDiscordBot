@@ -33,7 +33,7 @@ namespace GoogleBot
         public async Task Help()
         {
             
-            EmbedBuilder embed = CommandExecutor.Help();
+            EmbedBuilder embed = await CommandExecutor.Execute(ExecuteContext.From(Context));
             
 
             await ReplyAsync(embed: embed.Build());
@@ -49,7 +49,7 @@ namespace GoogleBot
         {
             var typing = Context.Channel.EnterTypingState(); //* Start typing animation
             
-            EmbedBuilder embed = await CommandExecutor.Execute(ExecuteContext.From("google", Context), query);
+            EmbedBuilder embed = await CommandExecutor.Execute(ExecuteContext.From(Context), query);
             
 
             // List<Result> results = Actions.FetchGoogleQuery(String.Join(' ', query));
