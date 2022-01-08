@@ -11,10 +11,12 @@ using Discord.Audio;
 using Discord.WebSocket;
 using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
+using Google.Apis.YouTube.v3.Data;
 using YoutubeExplode;
 using YoutubeExplode.Common;
-using YoutubeExplode.Videos;
+using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos.Streams;
+using Video = YoutubeExplode.Videos.Video;
 
 namespace GoogleBot
 {
@@ -120,7 +122,7 @@ namespace GoogleBot
             
 
             //* Initialize youtube streaming client
-            Video video;
+            Video video = null;
             List<string> playlistVideos = new();
             bool isNewPlaylist = false;
 
@@ -133,6 +135,7 @@ namespace GoogleBot
                 }
                 catch (ArgumentException)
                 {
+                    
                     var videos = await youtube.Playlists.GetVideosAsync(query);
                     if (videos.Count > 0)
                     {
@@ -144,7 +147,6 @@ namespace GoogleBot
                         {
                             if (v.Duration != null && v.Id != video.Id && v.Duration.Value.TotalHours <= 1)
                             {
-                                
                                 AddToQueueAsync(v.Id);
                             }
                         }
@@ -164,19 +166,38 @@ namespace GoogleBot
                 });
                 var searchListRequest = service.Search.List("snippet");
                 searchListRequest.Q = query;
-                searchListRequest.Type = "youtube#video";
+                searchListRequest.Type = "video";
+                // searchListRequest.VideoDuration = SearchResource.ListRequest.VideoDurationEnum.Short__;
                 searchListRequest.MaxResults = 20;
-
-                var response = (await searchListRequest.ExecuteAsync())?.Items;
-
-
-                // Console.WriteLine(String.Join(", ", response.ToList().Select(item=>item.Snippet.LiveBroadcastContent)));
-
+                
                 try
                 {
+                    var response = (await searchListRequest.ExecuteAsync())?.Items;
+                    
+
+                    
+
+                    // Console.WriteLine(String.Join(", ", response.ToList().Select(item=>item.Snippet.LiveBroadcastContent)));
+
+                
                     if (response != null)
-                        video = await youtube.Videos.GetAsync(response.ToList()
-                            .Find(item => item.Snippet.LiveBroadcastContent == "none")?.Id.VideoId);
+                    {
+                        List<SearchResult> results = response.ToList().FindAll(item =>item.Snippet.LiveBroadcastContent == "none");
+                        
+                        
+                        
+                        foreach (var res in results)
+                        {
+                            video = await youtube.Videos.GetAsync(res.Id.VideoId);
+                            if (video.Duration is { TotalHours: > 1 })
+                            {
+                                continue;
+                            }
+                            break;
+                        }
+                        if(video == null)
+                            throw new NullReferenceException();
+                    }
                     else
                     {
                         throw new NullReferenceException();
