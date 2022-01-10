@@ -12,6 +12,8 @@ using Newtonsoft.Json;
 using YoutubeExplode.Videos;
 using static GoogleBot.Util;
 using ParameterInfo = Discord.Commands.ParameterInfo;
+using GoogleBot.Interactions;
+using CommandInfo = Discord.Commands.CommandInfo;
 
 
 namespace GoogleBot
@@ -59,45 +61,49 @@ namespace GoogleBot
 
             await client.SetGameAsync("with Google", null, ActivityType.Playing);
 
+            // Commands.testing();
+            CommandMaster.InstantiateCommands();
+            
+            // Console.WriteLine(string.Join(", ", CommandHandler._coms.Commands.ToList().ConvertAll(c=>c.Name)));
 
             //InitSlashCommandsAsync();
             // Console.WriteLine(string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>String.Join(" / ", c.Aliases))));
         }
 
-        private async Task InitSlashCommandsAsync()
-        {
-            List<ApplicationCommandProperties> applicationCommandProperties = new();
-            foreach (CommandInfo command in CommandHandler._coms.Commands)  
-            {
-                SlashCommandBuilder builder = new SlashCommandBuilder();
-            
-                builder.WithName(command.Aliases[0]);
-                builder.WithDescription(command.Summary ?? "No description available");
-                if (command.Parameters.Count > 0)
-                {
-                    foreach (ParameterInfo parameter in command.Parameters)
-                    {
-                        builder.AddOption(parameter.Summary ?? parameter.Name, ApplicationCommandOptionType.String,
-                            parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
-                    }
-                }
-                applicationCommandProperties.Add(builder.Build());
-                
-                
-            }
-            try
-            {
-                await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
-            }
-            catch(ApplicationCommandException exception)
-            {
-                var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
-                
-                // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
-                Console.WriteLine(json);
-            }
-            // Console.WriteLine("Available slash commands: \n" + string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>c.Aliases[0].ToString())));
-        }
+        // private async Task InitSlashCommandsAsync()
+        // {
+        //     List<ApplicationCommandProperties> applicationCommandProperties = new();
+        //     foreach (CommandInfo command in CommandHandler._coms.Commands)  
+        //     {
+        //         SlashCommandBuilder builder = new SlashCommandBuilder();
+        //     
+        //         builder.WithName(command.Aliases[0]);
+        //         builder.WithDescription(command.Summary ?? "No description available");
+        //         if (command.Parameters.Count > 0)
+        //         {
+        //             foreach (ParameterInfo parameter in command.Parameters)
+        //             {
+        //                 builder.AddOption(parameter.Summary ?? parameter.Name, ApplicationCommandOptionType.String,
+        //                     parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
+        //             }
+        //         }
+        //         applicationCommandProperties.Add(builder.Build());
+        //         
+        //         
+        //     }
+        //     try
+        //     {
+        //         await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
+        //     }
+        //     catch(ApplicationCommandException exception)
+        //     {
+        //         var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
+        //         
+        //         // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+        //         Console.WriteLine(json);
+        //     }
+        //     // Console.WriteLine("Available slash commands: \n" + string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>c.Aliases[0].ToString())));
+        // }
     }
 
     public class CommandHandler
@@ -134,12 +140,66 @@ namespace GoogleBot
                 message.Author.IsBot)
                 return;
 
-            SocketCommandContext context = new SocketCommandContext(client, message);
+            // SocketCommandContext context = new SocketCommandContext(client, message);
 
-            await commands.ExecuteAsync(
-                context: context,
-                argPos: argPos,
-                services: null);
+
+            ExecuteCommandAsync(message);
+
+
+
+            // await commands.ExecuteAsync(
+            //     context: context,
+            //     argPos: argPos,
+            //     services: null);
+        }
+
+        private async Task ExecuteCommandAsync(SocketUserMessage message)
+        {
+            var (context, info) = ExecuteContext.From(new SocketCommandContext(client, message));
+
+            EmbedBuilder embed = new EmbedBuilder();
+            string m = null;
+            bool isEmbed = false;
+
+            IDisposable typing = null;
+   
+            
+            switch (info.State)
+            {
+                case CommandConversionState.Success:
+                    typing = context.Channel?.EnterTypingState();
+                    CommandReturnValue retval = await CommandMaster.Execute(context, info.Arguments.ToArray());
+                    isEmbed = retval.IsEmbed;
+                    embed = retval.Embed;
+                    m = retval.Message;
+                    break;
+                case CommandConversionState.Failed:
+                    // embed = new EmbedBuilder().WithTitle("")
+                    return;
+                    break;
+                case CommandConversionState.MissingArg:
+                    isEmbed = true;
+                    embed.AddField("Missing args",
+                        string.Join(" ", info.MissingArgs.ToList().ConvertAll(a => $"<{a.Summary ?? a.Name}>")));
+                    break;
+                case CommandConversionState.InvalidArgType:
+                    isEmbed = true;
+                    embed.AddField("Invalid argument type provided",
+                        string.Join("\n",
+                            info.TargetTypeParam.ToList()
+                                .ConvertAll(tp => $"`{tp.Item1}` should be from type `{tp.Item2}`")));
+                    break;
+            }
+
+            if (isEmbed)
+            {
+                await message.ReplyAsync(embed: embed.Build());
+            }
+            else if(m != null)
+            {
+                await message.ReplyAsync(m);
+            }
+            typing?.Dispose();
         }
 
         private async Task HandleSlashCommandAsync(SocketSlashCommand command)
@@ -194,21 +254,40 @@ namespace GoogleBot
         {
             try
             {
-                IVoiceChannel channel = (command.User as IGuildUser)?.VoiceChannel;
-                ulong guildId = ((IGuildUser)command.User).GuildId;
-                EmbedBuilder embed = null;
+                CommandConversionInfo info = GetCommandInfoFromSlashCommand(command);
+                
+                // Console.WriteLine(string.Join(", " , command.Data.Options.ToList().ConvertAll(option=>option.Value)));
+                switch (info.State)
+                {
+                    case CommandConversionState.NotFound:
+                        await command.ModifyOriginalResponseAsync(properties => properties.Content = "Looks like this command does not exist...");
+                        break;
+                    
+                    case CommandConversionState.Success:
+                        CommandReturnValue retval = await CommandMaster.Execute(new ExecuteContext(command), info.Arguments.ToArray());
+                        if (retval.IsEmbed)
+                        {
+                    
+                            await command.ModifyOriginalResponseAsync(properties => { properties.Embed = retval.Embed.Build(); });
+                        }
+                        else
+                        {
+                            await command.ModifyOriginalResponseAsync(properties => properties.Content = retval.Message);
+                        }
+                        break;
+                }
                 
                 
-                
-                embed = await CommandExecutor.Execute(ExecuteContext.From(socketSlashCommand: command), command.Data.Options.ToList().ConvertAll(option=>option.Value).ToArray());
                     
                 // Console.WriteLine(embed);
-            
+
                 
-                await command.ModifyOriginalResponseAsync(properties => { properties.Embed = embed.Build(); });
             }
-            catch
+            catch(Exception e)
             {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+                Console.WriteLine(e.Source);
                 await command.ModifyOriginalResponseAsync(properties =>
                 {
                     properties.Content = "Something went wrong. Please try again.";

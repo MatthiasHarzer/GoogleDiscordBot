@@ -22,9 +22,20 @@ namespace GoogleBot
 {
     public class IPlayReturnValue
     {
-        public State State { get; set; }
+        public AudioPlayState AudioPlayState { get; set; }
         public Video Video { get; set; }
         public string[] Videos { get; set; }
+    }
+    
+    public enum AudioPlayState
+    {
+        Success,
+        PlayingAsPlaylist,
+        QueuedAsPlaylist,
+        Queued,
+        InvalidQuery,
+        TooLong,
+        NoVoiceChannel
     }
 
 
@@ -107,7 +118,7 @@ namespace GoogleBot
             {
                 return new IPlayReturnValue
                 {
-                    State = State.NoVoiceChannel,
+                    AudioPlayState = AudioPlayState.NoVoiceChannel,
                 };
             }
 
@@ -115,7 +126,7 @@ namespace GoogleBot
             {
                 return new IPlayReturnValue
                 {
-                    State = State.InvalidQuery
+                    AudioPlayState = AudioPlayState.InvalidQuery
                 };
             }
             
@@ -135,7 +146,7 @@ namespace GoogleBot
                 }
                 catch (ArgumentException)
                 {
-                    
+                    Console.WriteLine("ArgumentException 1");
                     var videos = await youtube.Playlists.GetVideosAsync(query);
                     if (videos.Count > 0)
                     {
@@ -159,6 +170,7 @@ namespace GoogleBot
             }
             catch (ArgumentException)
             {
+                Console.WriteLine("ArgumentException 2");
                 //* If catches, query wasn't url or id -> search youtube for video
                 YouTubeService service = new YouTubeService(new BaseClientService.Initializer
                 {
@@ -207,7 +219,7 @@ namespace GoogleBot
                 {
                     return new IPlayReturnValue
                     {
-                        State = State.InvalidQuery,
+                        AudioPlayState = AudioPlayState.InvalidQuery,
                     };
                    
                 }
@@ -217,7 +229,7 @@ namespace GoogleBot
             {
                 return new IPlayReturnValue
                 {
-                    State = State.TooLong,
+                    AudioPlayState = AudioPlayState.TooLong,
                 };
               
             }
@@ -230,7 +242,7 @@ namespace GoogleBot
                 {
                     return new IPlayReturnValue
                     {
-                        State = State.QueuedAsPlaylist,
+                        AudioPlayState = AudioPlayState.QueuedAsPlaylist,
                         Video = video,
                         Videos = playlistVideos.ToArray()
                     };
@@ -239,7 +251,7 @@ namespace GoogleBot
 
                 return new IPlayReturnValue
                 {
-                    State = State.Queued,
+                    AudioPlayState = AudioPlayState.Queued,
                     Video = video,
                 };
             }
@@ -292,7 +304,7 @@ namespace GoogleBot
             {
                 return new IPlayReturnValue
                 {
-                    State = State.PlayingAsPlaylist,
+                    AudioPlayState = AudioPlayState.PlayingAsPlaylist,
                     Video = video,
                     Videos = playlistVideos.ToArray()
                 };
@@ -300,7 +312,7 @@ namespace GoogleBot
 
             return new IPlayReturnValue
             {
-                State = State.Success,
+                AudioPlayState = AudioPlayState.Success,
                 Video = video,
             };
         }
