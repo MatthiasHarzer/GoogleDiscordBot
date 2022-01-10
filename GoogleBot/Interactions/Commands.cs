@@ -78,7 +78,7 @@ public class Commands
     [Command("test")]
     [Alias("t")]
     [Summary("new")]
-    public async Task<CommandReturnValue> Test()
+    private async Task<CommandReturnValue> Test()
     {
         Console.WriteLine("In test command");
         // EmbedBuilder embed = await CommandExecutor.Execute(Context);
