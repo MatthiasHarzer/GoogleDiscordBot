@@ -252,7 +252,7 @@ public class Commands
     [Command("google")]
     [Alias("gl")]
     [Summary("Google something")]
-    private async Task<CommandReturnValue> Google([Summary("query")]params string[] _query)
+    public async Task<CommandReturnValue> Google([Summary("query")]params string[] _query)
     {
         string query = String.Join(' ', _query);
         if (query.Length <= 0)
