@@ -2,8 +2,7 @@
 A Discord bot that can google things and play music, built with [DiscordNET](https://discordnet.dev/).
 
 ## Todo for own use:
-Add a `Secrets.cs` file with your DiscordToken and Api keys:
-<sub><sub>Sorry, to lazy to add a dummy file.</sub></sub>
+Configure the [`Secrets.cs`](/GoogleBot/Secrets.cs) file to your need with the DiscordToken and Api keys or set the environmnet variables accordingly:
 ```cs
 namespace GoogleBot
 {
@@ -14,5 +13,4 @@ namespace GoogleBot
         public static readonly string SearchEngineID = @"YOUR-CUSTOM-SEARCHENGINE-ID";
     }
 }
-
 ```
