@@ -49,7 +49,7 @@ namespace GoogleBot
         private async Task ClientReady()
         {
             
-
+            
             CommandService commandsService = new CommandService(new CommandServiceConfig
             {
                 CaseSensitiveCommands = false,
@@ -144,6 +144,8 @@ namespace GoogleBot
 
 
             ExecuteCommandAsync(message);
+            
+            
 
 
 
