@@ -25,7 +25,7 @@ jobs:
       run: dotnet publish -c release -r debian.10-x64 --self-contained
       
     - name: Install SSH Key
-      uses: shimataro{sshkey-action@v2
+      uses: shimataro/ssh-key-action@v2
       with:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
@@ -33,5 +33,14 @@ jobs:
       run: ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
       
     - name: Deploy with rsync
-      run: rsync -avz ~/GoogleDiscordBot/GoogleBot/bin/Release/net6.0/debian.10-x64/publish/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/worker/GoogleDiscordBot/publish
+      run: rsync -av ~/work/GoogleDiscordBot/GoogleDiscordBot/GoogleBot/bin/Release/net6.0/debian.10-x64/publish/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/services/googlediscordbot/publish
 
+    - name: Trigger Bot Restart
+      id: req
+      uses: fjogeleit/http-request-action@master
+      with:
+        url: https://api.taptwice.dev/services/discord-bot/restart?key=${{secrets.API_KEY_SERVICES}}
+        method: "GET"
+    - name: Show Response
+      run: echo ${{ steps.req.outputs.response }}
+        
