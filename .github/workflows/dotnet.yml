@@ -25,7 +25,7 @@ jobs:
       run: dotnet publish -c release -r debian.10-x64 --self-contained
       
     - name: Install SSH Key
-      uses: shimataro{sshkey-action@v2
+      uses: shimataro/ssh-key-action@v2
       with:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
