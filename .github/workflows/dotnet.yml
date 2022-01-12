@@ -39,7 +39,7 @@ jobs:
       id: req
       uses: fjogeleit/http-request-action@master
       with:
-        url: https://api.taptwice.dev/services/discord-bot/restart?key=${{secretes.API_KEY_SERVICES}}
+        url: https://api.taptwice.dev/services/discord-bot/restart?key=${{secrets.API_KEY_SERVICES}}
         method: "GET"
         run: echo ${{ steps.req.outputs.response }}
         
