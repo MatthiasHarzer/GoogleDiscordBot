@@ -110,13 +110,11 @@ namespace GoogleBot
     {
         private readonly DiscordSocketClient client;
         private readonly CommandService commands;
-        public static CommandService _coms;
 
         public CommandHandler(DiscordSocketClient client, CommandService commands)
         {
             this.client = client;
             this.commands = commands;
-            CommandHandler._coms = commands;
         }
 
         public async Task InstallCommandsAsync()
@@ -143,7 +141,9 @@ namespace GoogleBot
             // SocketCommandContext context = new SocketCommandContext(client, message);
 
 
+
             ExecuteCommandAsync(message);
+
             
             
 
@@ -171,9 +171,18 @@ namespace GoogleBot
                 case CommandConversionState.Success:
                     typing = context.Channel?.EnterTypingState();
                     CommandReturnValue retval = await CommandMaster.Execute(context, info.Arguments.ToArray());
-                    isEmbed = retval.IsEmbed;
-                    embed = retval.Embed;
-                    m = retval.Message;
+                    if (retval == null)
+                    {
+                        isEmbed = true;
+                        embed = new EmbedBuilder().WithTitle("Something went wrong.");
+                    }
+                    else
+                    {
+                        isEmbed = retval.IsEmbed;
+                        embed = retval.Embed;
+                        m = retval.Message;
+                    }
+                    
                     break;
                 case CommandConversionState.Failed:
                     // embed = new EmbedBuilder().WithTitle("")

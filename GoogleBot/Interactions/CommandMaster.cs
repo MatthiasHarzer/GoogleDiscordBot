@@ -183,13 +183,18 @@ public class CommandMaster
         {
             // Console.WriteLine(string.Join(", ", args));
             // Console.WriteLine(args.GetType());
-            return await ((Task<CommandReturnValue>)context.Command.Method.Invoke(new Commands(context), args.ToArray()))!;
+            Console.WriteLine($"Executing {context.Command.Name} with args {string.Join(", ", args)}");
+            try
+            {
+                return await ((Task<CommandReturnValue>)context.Command.Method.Invoke(new Commands(context),
+                    args.ToArray()))!;
+            }catch (Exception e)
+            {
+                Console.WriteLine(e.Message + " " + e.StackTrace);
+            }
         }
-        else
-        {
+     
 
-        }
-
-        return new CommandReturnValue();
+        return null;
     }
 }
