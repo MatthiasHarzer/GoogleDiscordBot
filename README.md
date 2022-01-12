@@ -1,4 +1,6 @@
 # Google Discord Bot
+[![.NET](https://github.com/MatthiasHarzer/GoogleDiscordBot/actions/workflows/dotnet.yml/badge.svg)](https://github.com/MatthiasHarzer/GoogleDiscordBot/actions/workflows/dotnet.yml)
+<br>
 A Discord bot that can google things and play music, built with [DiscordNET](https://discordnet.dev/).
 
 ## Todo for own use:
