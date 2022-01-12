@@ -41,5 +41,6 @@ jobs:
       with:
         url: https://api.taptwice.dev/services/discord-bot/restart?key=${{secrets.API_KEY_SERVICES}}
         method: "GET"
-        run: echo ${{ steps.req.outputs.response }}
+    - name: Show Response
+      run: echo ${{ steps.req.outputs.response }}
         
