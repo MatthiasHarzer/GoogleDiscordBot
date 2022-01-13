@@ -1,19 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.Net;
 using Discord.WebSocket;
-using Newtonsoft.Json;
-using YoutubeExplode.Videos;
 using static GoogleBot.Util;
-using ParameterInfo = Discord.Commands.ParameterInfo;
 using GoogleBot.Interactions;
-using CommandInfo = Discord.Commands.CommandInfo;
 
 
 namespace GoogleBot
@@ -59,7 +52,7 @@ namespace GoogleBot
             commandHandler = new CommandHandler(client, commandsService);
             await commandHandler.InstallCommandsAsync();
 
-            await client.SetGameAsync("with Google", null, ActivityType.Playing);
+            await client.SetGameAsync("with Google", type:ActivityType.Playing);
 
             // Commands.testing();
             CommandMaster.InstantiateCommands();
@@ -125,10 +118,10 @@ namespace GoogleBot
             // await commands.AddModuleAsync(typeof(GoogleModule), null);
         }
 
-        private async Task HandleCommandAsync(SocketMessage messageParam)
+        private Task HandleCommandAsync(SocketMessage messageParam)
         {
             SocketUserMessage message = messageParam as SocketUserMessage;
-            if (message == null) return;
+            if (message == null) return Task.CompletedTask;
 
             int argPos = 0;
 
@@ -136,17 +129,14 @@ namespace GoogleBot
 
             if (!(message.HasCharPrefix('!', ref argPos) || message.HasMentionPrefix(client.CurrentUser, ref argPos)) ||
                 message.Author.IsBot)
-                return;
+                return Task.CompletedTask;
 
             // SocketCommandContext context = new SocketCommandContext(client, message);
 
 
 
-            ExecuteCommandAsync(message);
-
-            
-            
-
+            var _ = ExecuteCommandAsync(message);
+            return Task.CompletedTask;
 
 
             // await commands.ExecuteAsync(
@@ -187,7 +177,6 @@ namespace GoogleBot
                 case CommandConversionState.Failed:
                     // embed = new EmbedBuilder().WithTitle("")
                     return;
-                    break;
                 case CommandConversionState.MissingArg:
                     isEmbed = true;
                     embed.AddField("Missing args",

@@ -162,7 +162,9 @@ namespace GoogleBot
                             {
                                 if (v.Duration != null && v.Id != video.Id && v.Duration.Value.TotalHours <= 1)
                                 {
-                                    AddToQueueAsync(v.Id);
+
+                                   AddToQueueAsync(v.Id);
+
                                 }
                             }
                         }

@@ -1,16 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using YoutubeExplode.Videos;
 using static GoogleBot.Util;
-using ParameterInfo = Discord.Commands.ParameterInfo;
 
 namespace GoogleBot.Interactions;
 
@@ -62,8 +59,8 @@ public class CommandReturnValue
 /// </summary>
 public class Commands
 {
-    private static readonly Dictionary<ulong, AudioPlayer> guildMaster = new Dictionary<ulong, AudioPlayer>();
-    private ExecuteContext Context;
+    private static readonly Dictionary<ulong, AudioPlayer> GuildMaster = new Dictionary<ulong, AudioPlayer>();
+    private ExecuteContext Context { get; set; }
 
     /// <summary>
     /// Sets the <see cref="ExecuteContext">context</see> of the command to execute in
@@ -78,12 +75,12 @@ public class Commands
     [Command("test")]
     [Alias("t")]
     [Summary("new")]
-    private async Task<CommandReturnValue> Test()
+    private Task<CommandReturnValue> Test()
     {
         Console.WriteLine("In test command");
         // EmbedBuilder embed = await CommandExecutor.Execute(Context);
 
-        return CommandReturnValue.From(new EmbedBuilder().WithTitle("TEST SUCCESS"));
+        return Task.FromResult(CommandReturnValue.From(new EmbedBuilder().WithTitle("TEST SUCCESS")));
     }
     
     [Command("play")]
@@ -104,12 +101,12 @@ public class Commands
         }
 
 
-        if (!guildMaster.ContainsKey(channel.GuildId))
+        if (!GuildMaster.ContainsKey(channel.GuildId))
         {
-            guildMaster.Add(channel.GuildId, new AudioPlayer());
+            GuildMaster.Add(channel.GuildId, new AudioPlayer());
         }
 
-        AudioPlayer player = guildMaster[channel.GuildId];
+        AudioPlayer player = GuildMaster[channel.GuildId];
         IPlayReturnValue returnValue = await player.Play(query, channel);
 
 
@@ -149,53 +146,53 @@ public class Commands
     [Command("skip")]
     [Alias("s")]
     [Summary("Skips the current song")]
-    public async Task<CommandReturnValue> Skip()
+    public Task<CommandReturnValue> Skip()
     {
-        if (guildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
+        if (GuildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
         {
             player.Skip();
         }
 
-        return CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Skipping..."));
+        return Task.FromResult(CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Skipping...")));
     }
 
     [Command("stop")]
     [Alias("leave", "disconnect", "stfu", "hdf")]
     [Summary("Disconnects the bot from the current voice channel")]
-    public async Task<CommandReturnValue> Stop()
+    public Task<CommandReturnValue> Stop()
     {
-        if (guildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
+        if (GuildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
         {
             player.Stop();
         }
 
-        return CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Disconnecting"));
+        return Task.FromResult(CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Disconnecting")));
     }
 
     [Command("clear")]
     [Alias("c")]
     [Summary("Clears the queue")]
-    public async Task<CommandReturnValue> Clear()
+    public Task<CommandReturnValue> Clear()
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
         int count = 0;
-        if (guildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
+        if (GuildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
         {
             count = player.queue.Count;
             player.Clear();
         }
 
         embed.AddField("Queue cleared", $"`Removed {count} items`");
-        return CommandReturnValue.From(embed);
+        return Task.FromResult(CommandReturnValue.From(embed));
     }
 
     [Command("queue")]
     [Alias("q","list", "playing")]
     [Summary("Displays the current queue")]
-    public async Task<CommandReturnValue> Queue()
+    public Task<CommandReturnValue> Queue()
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
-        if (guildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
+        if (GuildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
         {
             Video currentSong = player.currentSong;
 
@@ -214,27 +211,27 @@ public class Commands
 
                 int more_hint_len = 50;
 
-                int approx_length = 0 + more_hint_len;
+                int approxLength = 0 + more_hint_len;
 
-                string queue_formatted = "";
+                string queueFormatted = "";
 
                 foreach (var video in queue)
                 {
                     string content =
                         $"\n\n[`{video.Title} - {video.Author} ({FormattedVideoDuration(video)})`]({video.Url})";
 
-                    if (content.Length + approx_length > max_length)
+                    if (content.Length + approxLength > max_length)
                     {
-                        queue_formatted += $"\n\n `And {queue.Count - counter} more...`";
+                        queueFormatted += $"\n\n `And {queue.Count - counter} more...`";
                         break;
                     }
 
-                    approx_length += content.Length;
-                    queue_formatted += content;
+                    approxLength += content.Length;
+                    queueFormatted += content;
                     counter++;
                 }
 
-                embed.AddField($"Queue ({queue.Count})", queue_formatted);
+                embed.AddField($"Queue ({queue.Count})", queueFormatted);
             }
             else
             {
@@ -246,26 +243,27 @@ public class Commands
             embed.AddField("Queue is empty", "Nothing to show.");
         }
 
-        return CommandReturnValue.From(embed);
+        return Task.FromResult(CommandReturnValue.From(embed));
     }
     
     [Command("google")]
     [Alias("gl")]
     [Summary("Google something")]
-    public async Task<CommandReturnValue> Google([Summary("query")]params string[] _query)
+    public Task<CommandReturnValue> Google([Summary("query")]params string[] q)
     {
-        string query = String.Join(' ', _query);
+        string query = String.Join(' ', q);
         if (query.Length <= 0)
         {
-            return CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Please add a search term."));
+            return Task.FromResult(CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Please add a search term.")));
         }
 
         Search result = FetchGoogleQuery(String.Join(' ', query));
 
         string title = $"Search results for __**{query}**__";
         string footer =
-            $"[`See approx. {result.SearchInformation.FormattedTotalResults} results on google.com 🡕`](https://goo.gl/search?{String.Join("%20", _query)})";
-        string reqTimeFormatted = $"{Math.Round((double)result.SearchInformation.SearchTime * 100) / 100}s";
+            $"[`See approx. {result.SearchInformation.FormattedTotalResults} results on google.com 🡕`](https://goo.gl/search?{String.Join("%20", q)})";
+        
+        string reqTimeFormatted = result.SearchInformation.SearchTime != null ? $"{Math.Round((double)result.SearchInformation.SearchTime * 100) / 100}s" : "";
 
         EmbedBuilder embed = new EmbedBuilder
         {
@@ -277,15 +275,15 @@ public class Commands
             }
         }.WithCurrentTimestamp();
 
-        if (result?.Items == null)
+        if (result.Items == null)
         {
             embed.AddField("*Suggestions:*",
-                    $"•Make sure that all words are spelled correctly.\n  •Try different keywords.\n  •Try more general keywords.\n  •Try fewer keywords.\n\n [`View on google.com 🡕`](https://goo.gl/search?{String.Join("%20", _query)})")
+                    $"•Make sure that all words are spelled correctly.\n  •Try different keywords.\n  •Try more general keywords.\n  •Try fewer keywords.\n\n [`View on google.com 🡕`](https://goo.gl/search?{String.Join("%20", q)})")
                 .WithTitle($"No results for **{query}**");
         }
         else
         {
-            int approx_lenght = title.Length + footer.Length + reqTimeFormatted.Length + 20;
+            int approxLenght = title.Length + footer.Length + reqTimeFormatted.Length + 20;
             int max_length = 2000;
 
             foreach (Result item in result.Items)
@@ -294,9 +292,9 @@ public class Commands
                 string itemContent = $"[`>> {item.DisplayLink}`]({item.Link})\n{item.Snippet}";
                 int length = itemContent.Length + itemTitle.Length;
 
-                if (approx_lenght + length < max_length)
+                if (approxLenght + length < max_length)
                 {
-                    approx_lenght += length;
+                    approxLenght += length;
                     embed.AddField(itemTitle, itemContent);
                 }
                 else
@@ -308,7 +306,7 @@ public class Commands
             embed.AddField("\n⠀", footer);
         }
 
-        return CommandReturnValue.From(embed);
+        return Task.FromResult(CommandReturnValue.From(embed));
     }
 
 
@@ -317,7 +315,7 @@ public class Commands
     [Command("help")]
     [Alias("h", "?")]
     [Summary("Shows a help dialog with all available commands")]
-    public async Task<CommandReturnValue> Help()
+    public Task<CommandReturnValue> Help()
     {
         // List<CommandInfo> _commands = CommandHandler._coms.Commands.ToList();
         EmbedBuilder embedBuilder = new EmbedBuilder
@@ -336,7 +334,7 @@ public class Commands
                 embedFieldText);
         }
     
-        return CommandReturnValue.From(embedBuilder);
+        return Task.FromResult(CommandReturnValue.From(embedBuilder));
     }
 
 
