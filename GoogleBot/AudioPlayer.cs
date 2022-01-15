@@ -269,9 +269,6 @@ namespace GoogleBot
                 playing = true;
                 currentSong = video;
 
-                // Console.WriteLine("Getting song from yt");
-
-
                 //* get stream from youtube
                 var manifest = await youtube.Videos.Streams.GetManifestAsync(video.Id);
                 var streamInfo = manifest.GetMuxedStreams().GetWithHighestBitrate();
@@ -293,10 +290,6 @@ namespace GoogleBot
                 MemoryStream memoryStream = new MemoryStream();
 
                 //* Attach pipe-input (yt-stream) and pipe-output (memory stream) 
-
-
-
-                // Console.WriteLine("Starting ffmpeg stream");
                 await Cli.Wrap("ffmpeg")
                     .WithArguments("-hide_banner -loglevel panic -i pipe:0 -ac 2 -f s16le -ar 48000 pipe:1")
                     .WithStandardInputPipe(PipeSource.FromStream(stream))
