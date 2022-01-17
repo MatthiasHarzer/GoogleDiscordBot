@@ -11,7 +11,6 @@ using static GoogleBot.Util;
 
 namespace GoogleBot.Interactions;
 
-    
 /// <summary>
 /// Return value of executed command. Can be embed or string.
 /// </summary>
@@ -50,16 +49,11 @@ public class CommandReturnValue
     }
 }
 
-
-
-
-
 /// <summary>
 /// Represents all active commands
 /// </summary>
 public class Commands
 {
-    private static readonly Dictionary<ulong, AudioPlayer> GuildMaster = new Dictionary<ulong, AudioPlayer>();
     private ExecuteContext Context { get; set; }
 
     /// <summary>
@@ -70,8 +64,8 @@ public class Commands
     {
         Context = context;
     }
-    
-    
+
+
     [Command("test")]
     [Alias("t")]
     [Summary("new")]
@@ -82,7 +76,7 @@ public class Commands
 
         return Task.FromResult(CommandReturnValue.From(new EmbedBuilder().WithTitle("TEST SUCCESS")));
     }
-    
+
     [Command("play")]
     [Alias("p")]
     [Summary("Plays music in the current voice channel from an url or query")]
@@ -99,14 +93,8 @@ public class Commands
             embed.AddField("No voice channel", "`Please connect to voice channel first!`");
             return CommandReturnValue.From(embed);
         }
-
-
-        if (!GuildMaster.ContainsKey(channel.GuildId))
-        {
-            GuildMaster.Add(channel.GuildId, new AudioPlayer());
-        }
-
-        AudioPlayer player = GuildMaster[channel.GuildId];
+        
+        AudioPlayer player = Context.GuildConfig.AudioPlayer;
         IPlayReturnValue returnValue = await player.Play(query, channel);
 
 
@@ -142,18 +130,17 @@ public class Commands
 
         return CommandReturnValue.From(embed);
     }
-    
+
     [Command("skip")]
     [Alias("s")]
     [Summary("Skips the current song")]
     public Task<CommandReturnValue> Skip()
     {
-        if (GuildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
-        {
-            player.Skip();
-        }
+        Context.GuildConfig.AudioPlayer.Skip();
 
-        return Task.FromResult(CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Skipping...")));
+
+        return Task.FromResult(
+            CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Skipping...")));
     }
 
     [Command("stop")]
@@ -161,12 +148,11 @@ public class Commands
     [Summary("Disconnects the bot from the current voice channel")]
     public Task<CommandReturnValue> Stop()
     {
-        if (GuildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
-        {
-            player.Stop();
-        }
+        Context.GuildConfig.AudioPlayer.Stop();
 
-        return Task.FromResult(CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Disconnecting")));
+
+        return Task.FromResult(
+            CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Disconnecting")));
     }
 
     [Command("clear")]
@@ -175,86 +161,83 @@ public class Commands
     public Task<CommandReturnValue> Clear()
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
-        int count = 0;
-        if (GuildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
-        {
-            count = player.queue.Count;
-            player.Clear();
-        }
 
-        embed.AddField("Queue cleared", $"`Removed {count} items`");
+        AudioPlayer player = Context.GuildConfig.AudioPlayer;
+
+
+        player.Clear();
+
+
+        embed.AddField("Queue cleared", $"`Removed {player.queue.Count} items`");
         return Task.FromResult(CommandReturnValue.From(embed));
     }
 
     [Command("queue")]
-    [Alias("q","list", "playing")]
+    [Alias("q", "list", "playing")]
     [Summary("Displays the current queue")]
     public Task<CommandReturnValue> Queue()
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
-        if (GuildMaster.TryGetValue(Context.Guild.Id, out AudioPlayer player))
+        AudioPlayer player = Context.GuildConfig.AudioPlayer;
+
+        Video currentSong = player.currentSong;
+
+        List<Video> queue = player.queue;
+
+        if (player.playing && currentSong != null)
         {
-            Video currentSong = player.currentSong;
+            embed.AddField("Currently playing",
+                FormattedVideo(currentSong));
+        }
 
-            List<Video> queue = player.queue;
+        if (queue.Count > 0)
+        {
+            int max_length = 1024; //Discord embedField limit
+            int counter = 0;
 
-            if (player.playing && currentSong != null)
+            int more_hint_len = 50;
+
+            int approxLength = 0 + more_hint_len;
+
+            string queueFormatted = "";
+
+            foreach (var video in queue)
             {
-                embed.AddField("Currently playing",
-                    FormattedVideo(currentSong));
-            }
+                string content =
+                    $"\n\n[`{video.Title} - {video.Author} ({FormattedVideoDuration(video)})`]({video.Url})";
 
-            if (queue.Count > 0)
-            {
-                int max_length = 1024; //Discord embedField limit
-                int counter = 0;
-
-                int more_hint_len = 50;
-
-                int approxLength = 0 + more_hint_len;
-
-                string queueFormatted = "";
-
-                foreach (var video in queue)
+                if (content.Length + approxLength > max_length)
                 {
-                    string content =
-                        $"\n\n[`{video.Title} - {video.Author} ({FormattedVideoDuration(video)})`]({video.Url})";
-
-                    if (content.Length + approxLength > max_length)
-                    {
-                        queueFormatted += $"\n\n `And {queue.Count - counter} more...`";
-                        break;
-                    }
-
-                    approxLength += content.Length;
-                    queueFormatted += content;
-                    counter++;
+                    queueFormatted += $"\n\n `And {queue.Count - counter} more...`";
+                    break;
                 }
 
-                embed.AddField($"Queue ({queue.Count})", queueFormatted);
+                approxLength += content.Length;
+                queueFormatted += content;
+                counter++;
             }
-            else
-            {
-                embed.AddField("Queue is empty", "Nothing to show.");
-            }
+
+            embed.AddField($"Queue ({queue.Count})", queueFormatted);
         }
         else
         {
             embed.AddField("Queue is empty", "Nothing to show.");
         }
 
+
         return Task.FromResult(CommandReturnValue.From(embed));
     }
-    
+
     [Command("google")]
     [Alias("gl")]
     [Summary("Google something")]
-    public Task<CommandReturnValue> Google([Summary("query")]params string[] q)
+    public Task<CommandReturnValue> Google([Summary("query")] params string[] q)
     {
         string query = String.Join(' ', q);
         if (query.Length <= 0)
         {
-            return Task.FromResult(CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Please add a search term.")));
+            return Task.FromResult(CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp()
+                .WithTitle("Please add a search term.")));
         }
 
         Search result = FetchGoogleQuery(String.Join(' ', query));
@@ -262,8 +245,10 @@ public class Commands
         string title = $"Search results for __**{query}**__";
         string footer =
             $"[`See approx. {result.SearchInformation.FormattedTotalResults} results on google.com 🡕`](https://goo.gl/search?{String.Join("%20", q)})";
-        
-        string reqTimeFormatted = result.SearchInformation.SearchTime != null ? $"{Math.Round((double)result.SearchInformation.SearchTime * 100) / 100}s" : "";
+
+        string reqTimeFormatted = result.SearchInformation.SearchTime != null
+            ? $"{Math.Round((double)result.SearchInformation.SearchTime * 100) / 100}s"
+            : "";
 
         EmbedBuilder embed = new EmbedBuilder
         {
@@ -310,8 +295,6 @@ public class Commands
     }
 
 
-
-
     [Command("help")]
     [Alias("h", "?")]
     [Summary("Shows a help dialog with all available commands")]
@@ -322,20 +305,17 @@ public class Commands
         {
             Title = "Here's a list of commands and their description:"
         };
-    
+
         foreach (CommandInfo command in CommandMaster.CommandsList)
         {
-            
             // Get the command Summary attribute information
             string embedFieldText = command.Summary ?? "No description available\n";
-        
+
             embedBuilder.AddField(
                 $"{String.Join(" / ", command.Aliases)}  {String.Join(" ", command.Parameters.AsParallel().ToList().ConvertAll(param => $"<{param.Summary ?? param.Name}>"))}",
                 embedFieldText);
         }
-    
+
         return Task.FromResult(CommandReturnValue.From(embedBuilder));
     }
-
-
 }

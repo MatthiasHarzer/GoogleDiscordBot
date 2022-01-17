@@ -1,12 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.Interactions;
+using Discord.Net;
 using Discord.WebSocket;
 using static GoogleBot.Util;
 using GoogleBot.Interactions;
+using Newtonsoft.Json;
+using CommandInfo = GoogleBot.Interactions.CommandInfo;
+using ParameterInfo = GoogleBot.Interactions.ParameterInfo;
 
 
 namespace GoogleBot
@@ -59,44 +65,43 @@ namespace GoogleBot
             
             // Console.WriteLine(string.Join(", ", CommandHandler._coms.Commands.ToList().ConvertAll(c=>c.Name)));
 
-            //InitSlashCommandsAsync();
+            // InitSlashCommandsAsync();
             // Console.WriteLine(string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>String.Join(" / ", c.Aliases))));
         }
 
-        // private async Task InitSlashCommandsAsync()
-        // {
-        //     List<ApplicationCommandProperties> applicationCommandProperties = new();
-        //     foreach (CommandInfo command in CommandHandler._coms.Commands)  
-        //     {
-        //         SlashCommandBuilder builder = new SlashCommandBuilder();
-        //     
-        //         builder.WithName(command.Aliases[0]);
-        //         builder.WithDescription(command.Summary ?? "No description available");
-        //         if (command.Parameters.Count > 0)
-        //         {
-        //             foreach (ParameterInfo parameter in command.Parameters)
-        //             {
-        //                 builder.AddOption(parameter.Summary ?? parameter.Name, ApplicationCommandOptionType.String,
-        //                     parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
-        //             }
-        //         }
-        //         applicationCommandProperties.Add(builder.Build());
-        //         
-        //         
-        //     }
-        //     try
-        //     {
-        //         await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
-        //     }
-        //     catch(ApplicationCommandException exception)
-        //     {
-        //         var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
-        //         
-        //         // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
-        //         Console.WriteLine(json);
-        //     }
-        //     // Console.WriteLine("Available slash commands: \n" + string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>c.Aliases[0].ToString())));
-        // }
+        private async Task InitSlashCommandsAsync()
+        {
+            List<ApplicationCommandProperties> applicationCommandProperties = new();
+            foreach (CommandInfo command in CommandMaster.CommandsList)  
+            {
+                SlashCommandBuilder builder = new SlashCommandBuilder();
+            
+                builder.WithName(command.Aliases[0]);
+                builder.WithDescription(command.Summary ?? "No description available");
+      
+                foreach (ParameterInfo parameter in command.Parameters)
+                {
+                    builder.AddOption(parameter.Summary ?? parameter.Name, ApplicationCommandOptionType.String,
+                        parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
+                }
+                
+                applicationCommandProperties.Add(builder.Build());
+                
+                
+            }
+            try
+            {
+                await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
+            }
+            catch(ApplicationCommandException exception)
+            {
+                var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
+                
+                // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+                Console.WriteLine(json);
+            }
+            Console.WriteLine("Available slash commands: \n" + string.Join(", ",CommandMaster.CommandsList.AsParallel().ToList().ConvertAll(c=>c.Aliases[0].ToString())));
+        }
     }
 
     public class CommandHandler

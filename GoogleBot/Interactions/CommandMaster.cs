@@ -23,6 +23,7 @@ public class ExecuteContext
         VoiceChannel = guildUser?.VoiceChannel;
         Guild = socketCommandContext.Guild;
         User = socketCommandContext.User;
+        GuildConfig = GuildConfig.Get(socketCommandContext.Guild.Id);
     }
 
     public ExecuteContext(SocketSlashCommand socketSlashCommand)
@@ -33,6 +34,7 @@ public class ExecuteContext
         VoiceChannel = guildUser?.VoiceChannel;
         Guild = (SocketGuild)guildUser?.Guild;
         User = socketSlashCommand.User;
+        if (guildUser?.Guild?.Id != null) GuildConfig = GuildConfig.Get((ulong)guildUser?.Guild?.Id);
     }
     
     public ISocketMessageChannel Channel { get; set; }
@@ -41,6 +43,8 @@ public class ExecuteContext
     public SocketGuild Guild { get; set; }
 
     public SocketUser User { get; set; }
+    
+    public GuildConfig GuildConfig { get; }
     
     public IVoiceChannel VoiceChannel { get; set; }
     
@@ -108,7 +112,7 @@ public class CommandMaster
         {
             return res.First();
         }
-
+        
         return null;
     }
 
@@ -179,6 +183,7 @@ public class CommandMaster
     /// <returns>A CommandReturnValue with an embed or text message</returns>
     public static async Task<CommandReturnValue> Execute(ExecuteContext context, params object[] args)
     {
+        
         if (context.Command != null)
         {
             // Console.WriteLine(string.Join(", ", args));
@@ -194,7 +199,7 @@ public class CommandMaster
             }
         }
      
-
+        
         return null;
     }
 }
