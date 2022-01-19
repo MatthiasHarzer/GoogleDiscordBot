@@ -191,6 +191,7 @@ public class CommandMaster
             Console.WriteLine($"Executing {context.Command.Name} with args {string.Join(", ", args)}");
             try
             {
+                // Console.WriteLine(RandomColor());
                 return await ((Task<CommandReturnValue>)context.Command.Method.Invoke(new Commands(context),
                     args.ToArray()))!;
             }catch (Exception e)

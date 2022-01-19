@@ -3,6 +3,7 @@ using YoutubeExplode.Videos;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1;
@@ -45,6 +46,22 @@ namespace GoogleBot
     /// </summary>
     public static class Util
     {
+        /// <summary>
+        /// Returns a random color that should be not too distracting. See <a  href="http://blog.functionalfun.net/2008/07/random-pastel-colour-generator.html">Random Pastel Colour Generator</a >
+        /// </summary>
+        /// <returns>The newly generated color</returns>
+        public static Color RandomColor(){
+            
+            Random random = new Random();
+
+            byte[] colorBytes = new byte[3];
+            colorBytes[0] = (byte)(random.Next(128) + 127);
+            colorBytes[1] = (byte)(random.Next(128) + 127);
+            colorBytes[2] = (byte)(random.Next(128) + 127);
+
+            return new Color(colorBytes[0], colorBytes[1], colorBytes[2]);
+            
+        }
         /// <summary>
         /// Fetch data from the Google custom search api
         /// </summary>
