@@ -63,6 +63,8 @@ namespace GoogleBot
             // Commands.testing();
             CommandMaster.InstantiateCommands();
             
+            
+            
             // Console.WriteLine(string.Join(", ", CommandHandler._coms.Commands.ToList().ConvertAll(c=>c.Name)));
 
             // InitSlashCommandsAsync();
