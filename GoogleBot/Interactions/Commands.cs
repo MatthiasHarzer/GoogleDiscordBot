@@ -28,6 +28,7 @@ public class CommandReturnValue
     public static CommandReturnValue From(EmbedBuilder embed)
     {
         embed.WithColor(RandomColor());
+    
         return new CommandReturnValue
         {
             IsEmbed = true,
@@ -316,7 +317,7 @@ public class Commands
                 $"{String.Join(" / ", command.Aliases)}  {String.Join(" ", command.Parameters.AsParallel().ToList().ConvertAll(param => $"<{param.Summary ?? param.Name}>"))}",
                 embedFieldText);
         }
-        embedBuilder.WithFooter("The first command can always be used as a slash command (/<command>).");
+        embedBuilder.WithFooter("The first command can always be used as a slash command (/<command>, e. g. /help)");
         return Task.FromResult(CommandReturnValue.From(embedBuilder));
     }
 }
