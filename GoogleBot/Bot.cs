@@ -213,8 +213,9 @@ namespace GoogleBot
             {
 
                 // Console.WriteLine("command.Data.Name " + command.Data.Name);
-                await command.DeferAsync(true);
-
+                await command.DeferAsync(false);
+                // command.
+                
                 // Console.WriteLine(command.CommandName);
 
                 ExecuteSlashCommandAsync(command);
@@ -224,6 +225,11 @@ namespace GoogleBot
             {
                 Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
+                await command.ModifyOriginalResponseAsync(properties =>
+                {
+                    properties.Content = $"Something went wrong ({e.Message})";
+
+                });
             }
 
             // SocketMessage m =  (client, command.Data.Id, command.Channel, command.User, MessageSource.User);
@@ -296,6 +302,7 @@ namespace GoogleBot
                 await command.ModifyOriginalResponseAsync(properties =>
                 {
                     properties.Content = "Something went wrong. Please try again.";
+                    
                 });
             }
             
