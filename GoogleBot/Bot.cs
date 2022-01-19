@@ -95,7 +95,7 @@ namespace GoogleBot
             {
                 await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
             }
-            catch(ApplicationCommandException exception)
+            catch(HttpException exception)
             {
                 var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
                 
@@ -154,58 +154,79 @@ namespace GoogleBot
 
         private async Task ExecuteCommandAsync(SocketUserMessage message)
         {
-            var (context, info) = ExecuteContext.From(new SocketCommandContext(client, message));
-
-            EmbedBuilder embed = new EmbedBuilder();
-            string m = null;
-            bool isEmbed = false;
-
             IDisposable typing = null;
-   
             
-            switch (info.State)
+            // Just to be sure, the typing will be dismissed, try catch
+            try
             {
-                case CommandConversionState.Success:
-                    typing = context.Channel?.EnterTypingState();
-                    CommandReturnValue retval = await CommandMaster.Execute(context, info.Arguments.ToArray());
-                    if (retval == null)
-                    {
+                var (context, info) = ExecuteContext.From(new SocketCommandContext(client, message));
+                
+                EmbedBuilder embed = new EmbedBuilder();
+                string m = null;
+                bool isEmbed = false;
+
+                switch (info.State)
+                {
+                    case CommandConversionState.Success:
+                        if(!info.Command.IsPrivate)
+                            typing = context.Channel?.EnterTypingState();
+                        CommandReturnValue retval = await CommandMaster.Execute(context, info.Arguments.ToArray());
+                        if (retval == null)
+                        {
+                            isEmbed = true;
+                            embed = new EmbedBuilder().WithTitle("Something went wrong.");
+                        }
+                        else
+                        {
+                            isEmbed = retval.IsEmbed;
+                            embed = retval.Embed;
+                            m = retval.Message;
+                        }
+
+                        break;
+                    case CommandConversionState.Failed:
+                        // embed = new EmbedBuilder().WithTitle("")
+                        return;
+                    case CommandConversionState.MissingArg:
                         isEmbed = true;
-                        embed = new EmbedBuilder().WithTitle("Something went wrong.");
-                    }
+                        embed.AddField("Missing args",
+                            string.Join(" ", info.MissingArgs.ToList().ConvertAll(a => $"<{a.Summary ?? a.Name}>")));
+                        break;
+                    case CommandConversionState.InvalidArgType:
+                        isEmbed = true;
+                        embed.AddField("Invalid argument type provided",
+                            string.Join("\n",
+                                info.TargetTypeParam.ToList()
+                                    .ConvertAll(tp => $"`{tp.Item1}` should be from type `{tp.Item2}`")));
+                        break;
+                }
+
+
+                if (context.Command.IsPrivate)
+                {
+                    await message.ReplyAsync("Replied in DMs");
+                }
+                if (isEmbed)
+                {
+                    if (context.Command.IsPrivate)
+                        await message.Author.SendMessageAsync(embed: embed.Build());
                     else
-                    {
-                        isEmbed = retval.IsEmbed;
-                        embed = retval.Embed;
-                        m = retval.Message;
-                    }
-                    
-                    break;
-                case CommandConversionState.Failed:
-                    // embed = new EmbedBuilder().WithTitle("")
-                    return;
-                case CommandConversionState.MissingArg:
-                    isEmbed = true;
-                    embed.AddField("Missing args",
-                        string.Join(" ", info.MissingArgs.ToList().ConvertAll(a => $"<{a.Summary ?? a.Name}>")));
-                    break;
-                case CommandConversionState.InvalidArgType:
-                    isEmbed = true;
-                    embed.AddField("Invalid argument type provided",
-                        string.Join("\n",
-                            info.TargetTypeParam.ToList()
-                                .ConvertAll(tp => $"`{tp.Item1}` should be from type `{tp.Item2}`")));
-                    break;
+                        await message.ReplyAsync(embed: embed.Build());
+                }
+                else if (m != null)
+                {
+                    if (context.Command.IsPrivate)
+                        await message.Author.SendMessageAsync(m);
+                    else
+                        await message.ReplyAsync(m);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
             }
 
-            if (isEmbed)
-            {
-                await message.ReplyAsync(embed: embed.Build());
-            }
-            else if(m != null)
-            {
-                await message.ReplyAsync(m);
-            }
             typing?.Dispose();
         }
 
@@ -215,7 +236,7 @@ namespace GoogleBot
             {
 
                 // Console.WriteLine("command.Data.Name " + command.Data.Name);
-                await command.DeferAsync(false);
+                
                 // command.
                 
                 // Console.WriteLine(command.CommandName);
@@ -269,6 +290,8 @@ namespace GoogleBot
             {
                 CommandConversionInfo info = GetCommandInfoFromSlashCommand(command);
                 
+                await command.DeferAsync(info.Command.IsPrivate);
+                
                 // Console.WriteLine(string.Join(", " , command.Data.Options.ToList().ConvertAll(option=>option.Value)));
                 switch (info.State)
                 {
@@ -280,7 +303,8 @@ namespace GoogleBot
                         CommandReturnValue retval = await CommandMaster.Execute(new ExecuteContext(command), info.Arguments.ToArray());
                         if (retval.IsEmbed)
                         {
-                    
+                      
+                                
                             await command.ModifyOriginalResponseAsync(properties => { properties.Embed = retval.Embed.Build(); });
                         }
                         else

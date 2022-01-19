@@ -6,94 +6,16 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using GoogleBot.Interactions.CustomAttributes;
 using static GoogleBot.Util;
 
 namespace GoogleBot.Interactions;
 
-/// <summary>
-/// Keeps context of currently executed command, such as the guild, user, channel etc..
-/// </summary>
-public class ExecuteContext
-{
-    public ExecuteContext(string command, SocketCommandContext socketCommandContext)
-    {
-        IGuildUser guildUser = socketCommandContext.User as IGuildUser;
-        Command = CommandMaster.GetCommandFromName(command);
-        Channel = socketCommandContext.Channel;
-        VoiceChannel = guildUser?.VoiceChannel;
-        Guild = socketCommandContext.Guild;
-        User = socketCommandContext.User;
-        GuildConfig = GuildConfig.Get(socketCommandContext.Guild.Id);
-    }
-
-    public ExecuteContext(SocketSlashCommand socketSlashCommand)
-    {
-        IGuildUser guildUser = socketSlashCommand.User as IGuildUser;
-        Command = CommandMaster.GetCommandFromName(socketSlashCommand.CommandName);
-        Channel = socketSlashCommand.Channel;
-        VoiceChannel = guildUser?.VoiceChannel;
-        Guild = (SocketGuild)guildUser?.Guild;
-        User = socketSlashCommand.User;
-        if (guildUser?.Guild?.Id != null) GuildConfig = GuildConfig.Get((ulong)guildUser?.Guild?.Id);
-    }
-    
-    public ISocketMessageChannel Channel { get; set; }
-    public CommandInfo Command { get; set; }
-
-    public SocketGuild Guild { get; set; }
-
-    public SocketUser User { get; set; }
-    
-    public GuildConfig GuildConfig { get; }
-    
-    public IVoiceChannel VoiceChannel { get; set; }
-    
-    public object[] CommandArgs { get; set; }
-    
-
-    public static (ExecuteContext, CommandConversionInfo) From(SocketCommandContext socketCommandContext)
-    {
-        CommandConversionInfo conversionInfo = GetCommandInfoFromMessage(socketCommandContext.Message);
-        Console.WriteLine("Conversion State: " + conversionInfo.State + " (" + conversionInfo.Command + ")");
-        return (new ExecuteContext(conversionInfo.Command, socketCommandContext), conversionInfo);
-    }
-}
-
-/// <summary>
-/// Describes a parameter of a command
-/// </summary>
-public class ParameterInfo
-{
-    public string Name { get; set; }
-    public string Summary { get; set; }
-    public Type Type { get; set; }
-    public bool IsMultiple { get; set; }
-    
-    public bool IsOptional { get; set; }
-
-    public override string ToString()
-    {
-        return $"{Name} - {Summary}\n Multiple: {IsMultiple}, Optional: {IsOptional}, Type: {Type}";
-    }
-}
-
-/// <summary>
-/// Describes a command
-/// </summary>
-public class CommandInfo
-{
-    public string Name { get; set; }
-    public string[] Aliases { get; set; }
-    public string Summary { get; set; }
-    public ParameterInfo[] Parameters { get; set; }
-    
-    public MethodInfo Method { get; set; }
-}
 
 /// <summary>
 /// Keeps track of commands and executes them
 /// </summary>
-public class CommandMaster
+public static class CommandMaster
 {
     /// <summary>
     /// Stores all commands with name, aliases, summary and execute methode
@@ -135,6 +57,7 @@ public class CommandMaster
     /// </summary>
     public static void InstantiateCommands()
     {
+     
         // Console.WriteLine("Instantiating");
         // commands = new Commands();
         foreach (MethodInfo method in typeof(Commands).GetMethods())
@@ -142,6 +65,7 @@ public class CommandMaster
             CommandAttribute commandAttribute = method.GetCustomAttribute<CommandAttribute>();
             SummaryAttribute summaryAttribute = method.GetCustomAttribute<SummaryAttribute>();
             AliasAttribute aliasAttribute = method.GetCustomAttribute<AliasAttribute>();
+            PrivateAttribute privateAttribute = method.GetCustomAttribute<PrivateAttribute>();
             ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p => new ParameterInfo
             {
                 Summary = p.GetCustomAttribute<SummaryAttribute>()?.Text,
@@ -149,13 +73,13 @@ public class CommandMaster
                 Name = p.Name,
                 IsMultiple = p.IsDefined(typeof(ParamArrayAttribute), false),
                 IsOptional = p.HasDefaultValue,
-
             }).ToArray();
 
             // Console.WriteLine(method.Name + "\n Method -> " + method.ReturnType + "\n W´Type ->" + typeof(Task<CommandReturnValue>) +"\n = " +
             //                   (method.ReturnType == typeof(Task<CommandReturnValue>)) + "\n-----");
             if (commandAttribute != null && method.ReturnType == typeof(Task<CommandReturnValue>))
             {
+                bool isEphemeral = privateAttribute?.IsEphemeral != null && privateAttribute.IsEphemeral;
                 List<string> aliases = aliasAttribute?.Aliases?.ToList() ?? new List<string>();
                 aliases.Insert(0, commandAttribute.Text);
 
@@ -165,7 +89,8 @@ public class CommandMaster
                         Summary = summaryAttribute?.Text,
                         Aliases = aliases.ToArray(),
                         Parameters = parameterInfo,
-                        Method = method
+                        Method = method,
+                        IsPrivate = isEphemeral,
                     }))
                 {
                     Console.WriteLine($"Command {commandAttribute.Text} already exists! -> no new command was added");

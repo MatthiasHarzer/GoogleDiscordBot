@@ -26,28 +26,14 @@ namespace GoogleBot
         InvalidArgType,
     }
 
-    /// <summary>
-    /// Simple return value for converting a message into its parts (command, args)
-    /// </summary>
-    public class CommandConversionInfo
-    {
-        public string Command { get; set; }
-        public object[] Arguments { get; set; }
-        public CommandConversionState State { get; set; }
-
-        public (string, Type)[] TargetTypeParam { get; set; }
-
-
-        public ParameterInfo[] MissingArgs { get; set; }
-    }
-
+    
     /// <summary>
     /// Some utility function 
     /// </summary>
     public static class Util
     {
         /// <summary>
-        /// Returns a random color that should be not too distracting. See <a  href="http://blog.functionalfun.net/2008/07/random-pastel-colour-generator.html">Random Pastel Colour Generator</a >
+        /// Returns a random color that should be not too distracting See <a  href="http://blog.functionalfun.net/2008/07/random-pastel-colour-generator.html">Random Pastel Colour Generator</a >
         /// </summary>
         /// <returns>The newly generated color</returns>
         public static Color RandomColor(){
@@ -206,7 +192,7 @@ namespace GoogleBot
                                     return new CommandConversionInfo
                                     {
                                         State = CommandConversionState.InvalidArgType,
-                                        Command = command,
+                                        Command = CommandMaster.GetCommandFromName(command),
                                         TargetTypeParam = wrongTypes.ToArray()
                                     };
                                 }
@@ -227,7 +213,7 @@ namespace GoogleBot
                             return new CommandConversionInfo
                             {
                                 State = CommandConversionState.MissingArg,
-                                Command = command,
+                                Command = CommandMaster.GetCommandFromName(command),
                                 MissingArgs = missingArgs.ToArray(),
                             };
                         }
@@ -238,7 +224,7 @@ namespace GoogleBot
                         return new CommandConversionInfo
                         {
                             State = CommandConversionState.Success,
-                            Command = command,
+                            Command = CommandMaster.GetCommandFromName(command),
                             Arguments = args.ToArray(),
                         };
                     }
@@ -340,7 +326,7 @@ namespace GoogleBot
                         return new CommandConversionInfo
                         {
                             State = CommandConversionState.InvalidArgType,
-                            Command = cmd.Name,
+                            Command = CommandMaster.GetCommandFromName(cmd.Name) ,
                             TargetTypeParam = wrongTypes.ToArray()
                         };
                     }
@@ -353,7 +339,7 @@ namespace GoogleBot
             return new CommandConversionInfo
             {
                 State = CommandConversionState.Success,
-                Command = command.CommandName,
+                Command = CommandMaster.GetCommandFromName(command.CommandName),
                 Arguments = args.ToArray(),
             };
         }

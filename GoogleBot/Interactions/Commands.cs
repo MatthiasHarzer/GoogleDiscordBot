@@ -8,48 +8,10 @@ using Discord.Commands;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using YoutubeExplode.Videos;
 using static GoogleBot.Util;
+using GoogleBot.Interactions.CustomAttributes;
 
 namespace GoogleBot.Interactions;
 
-/// <summary>
-/// Return value of executed command. Can be embed or string.
-/// </summary>
-public class CommandReturnValue
-{
-    public bool IsEmbed { get; set; }
-    public EmbedBuilder Embed { get; set; }
-    public string Message { get; set; }
-
-    /// <summary>
-    /// Configures a new CommandReturnValue with the given embed
-    /// </summary>
-    /// <param name="embed">The embed to return (that should be displayed)</param>
-    /// <returns>Configured CommandReturnValue for embeds</returns>
-    public static CommandReturnValue From(EmbedBuilder embed)
-    {
-        embed.WithColor(RandomColor());
-    
-        return new CommandReturnValue
-        {
-            IsEmbed = true,
-            Embed = embed,
-        };
-    }
-
-    /// <summary>
-    /// Configures a new CommandReturnValue with the given message
-    /// </summary>
-    /// <param name="message">The string message to return (that should be displayed)</param>
-    /// <returns>Configured CommandReturnValue for a simple text message</returns>
-    public static CommandReturnValue From(string message)
-    {
-        return new CommandReturnValue
-        {
-            IsEmbed = false,
-            Message = message,
-        };
-    }
-}
 
 /// <summary>
 /// Represents all active commands
@@ -136,6 +98,7 @@ public class Commands
     [Command("skip")]
     [Alias("s")]
     [Summary("Skips the current song")]
+    
     public Task<CommandReturnValue> Skip()
     {
         Context.GuildConfig.AudioPlayer.Skip();
@@ -300,6 +263,7 @@ public class Commands
     [Command("help")]
     [Alias("h", "?")]
     [Summary("Shows a help dialog with all available commands")]
+    [Private(false)]
     public Task<CommandReturnValue> Help()
     {
         // List<CommandInfo> _commands = CommandHandler._coms.Commands.ToList();
