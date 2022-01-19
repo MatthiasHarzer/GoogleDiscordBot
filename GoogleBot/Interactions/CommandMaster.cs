@@ -113,7 +113,7 @@ public static class CommandMaster
         {
             // Console.WriteLine(string.Join(", ", args));
             // Console.WriteLine(args.GetType());
-            Console.WriteLine($"Executing {context.Command.Name} with args {string.Join(", ", args)}");
+            Console.WriteLine($"Executing '{context.Command.Name}' with args <{string.Join(", ", args)}>");
             try
             {
                 // Console.WriteLine(RandomColor());

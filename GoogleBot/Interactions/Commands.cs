@@ -38,7 +38,15 @@ public class Commands
         Console.WriteLine("In test command");
         // EmbedBuilder embed = await CommandExecutor.Execute(Context);
 
-        return Task.FromResult(CommandReturnValue.From(new EmbedBuilder().WithTitle("TEST SUCCESS")));
+        return Task.FromResult(new CommandReturnValue(new EmbedBuilder().WithTitle("TEST SUCCESS")));
+    }
+
+    // Test CMD for text only response
+    [Command("echo")]
+    [Summary("echoes given text")]
+    private Task<CommandReturnValue> Echo(params string[] text)
+    {
+        return Task.FromResult(new CommandReturnValue(string.Join(" ", text)));
     }
 
     [Command("play")]
@@ -55,7 +63,7 @@ public class Commands
         if (channel == null)
         {
             embed.AddField("No voice channel", "`Please connect to voice channel first!`");
-            return CommandReturnValue.From(embed);
+            return new CommandReturnValue(embed);
         }
         
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
@@ -92,7 +100,7 @@ public class Commands
                 break;
         }
 
-        return CommandReturnValue.From(embed);
+        return new CommandReturnValue(embed);
     }
 
     [Command("skip")]
@@ -105,7 +113,7 @@ public class Commands
 
 
         return Task.FromResult(
-            CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Skipping...")));
+            new CommandReturnValue(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Skipping...")));
     }
 
     [Command("stop")]
@@ -116,8 +124,8 @@ public class Commands
         Context.GuildConfig.AudioPlayer.Stop();
 
 
-        return Task.FromResult(
-            CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Disconnecting")));
+        return Task.FromResult(new 
+            CommandReturnValue(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Disconnecting")));
     }
 
     [Command("clear")]
@@ -134,7 +142,7 @@ public class Commands
 
 
         embed.AddField("Queue cleared", $"`Removed {player.queue.Count} items`");
-        return Task.FromResult(CommandReturnValue.From(embed));
+        return Task.FromResult(new CommandReturnValue(embed));
     }
 
     [Command("queue")]
@@ -190,7 +198,7 @@ public class Commands
         }
 
 
-        return Task.FromResult(CommandReturnValue.From(embed));
+        return Task.FromResult(new CommandReturnValue(embed));
     }
 
     [Command("google")]
@@ -201,13 +209,13 @@ public class Commands
         string query = String.Join(' ', q);
         if (query.Length <= 0)
         {
-            return Task.FromResult(CommandReturnValue.From(new EmbedBuilder().WithCurrentTimestamp()
+            return Task.FromResult(new CommandReturnValue(new EmbedBuilder().WithCurrentTimestamp()
                 .WithTitle("Please add a search term.")));
         }
 
         Search result = FetchGoogleQuery(String.Join(' ', query));
 
-        string title = $"Search results for __**{query}**__";
+        string title = $"Search results for __**{query}**__:";
         string footer =
             $"[`See approx. {result.SearchInformation.FormattedTotalResults} results on google.com 🡕`](https://goo.gl/search?{String.Join("%20", q)})";
 
@@ -256,7 +264,7 @@ public class Commands
             embed.AddField("\n⠀", footer);
         }
 
-        return Task.FromResult(CommandReturnValue.From(embed));
+        return Task.FromResult(new CommandReturnValue(embed));
     }
 
 
@@ -282,6 +290,6 @@ public class Commands
                 embedFieldText);
         }
         embedBuilder.WithFooter("The first command can always be used as a slash command (/<command>, e. g. /help)");
-        return Task.FromResult(CommandReturnValue.From(embedBuilder));
+        return Task.FromResult(new CommandReturnValue(embedBuilder));
     }
 }

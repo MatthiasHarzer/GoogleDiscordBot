@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Reflection;
 using Discord;
 using Discord.Commands;
@@ -50,7 +51,7 @@ public class ExecuteContext
     public static (ExecuteContext, CommandConversionInfo) From(SocketCommandContext socketCommandContext)
     {
         CommandConversionInfo conversionInfo = GetCommandInfoFromMessage(socketCommandContext.Message);
-        Console.WriteLine("Conversion State: " + conversionInfo.State + " (" + conversionInfo.Command + ")");
+        Console.WriteLine("Conversion State: " + conversionInfo.State + " (" + conversionInfo.Command.Name + ")");
         return (new ExecuteContext(conversionInfo.Command, socketCommandContext), conversionInfo);
     }
 }
@@ -108,38 +109,27 @@ public class CommandInfo
 /// </summary>
 public class CommandReturnValue
 {
-    public bool IsEmbed { get; set; }
-    public EmbedBuilder Embed { get; set; }
-    public string Message { get; set; }
+    public EmbedBuilder? Embed { get; } = null;
+    public string? Message { get; } = null;
 
     /// <summary>
     /// Configures a new CommandReturnValue with the given embed
     /// </summary>
     /// <param name="embed">The embed to return (that should be displayed)</param>
-    /// <returns>Configured CommandReturnValue for embeds</returns>
-    public static CommandReturnValue From(EmbedBuilder embed)
+    public CommandReturnValue(EmbedBuilder embed)
     {
-        embed.WithColor(RandomColor());
-    
-        return new CommandReturnValue
-        {
-            IsEmbed = true,
-            Embed = embed,
-        };
+        embed.WithColor(RandomColor()); // Add a nice color to the embed
+        Embed = embed;
     }
 
+    
     /// <summary>
     /// Configures a new CommandReturnValue with the given message
     /// </summary>
     /// <param name="message">The string message to return (that should be displayed)</param>
-    /// <returns>Configured CommandReturnValue for a simple text message</returns>
-    public static CommandReturnValue From(string message)
+    public CommandReturnValue (string message)
     {
-        return new CommandReturnValue
-        {
-            IsEmbed = false,
-            Message = message,
-        };
+        Message = message;
     }
 }
 
