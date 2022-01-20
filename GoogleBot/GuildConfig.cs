@@ -25,9 +25,11 @@ public class GuildConfig
     /// </summary>
     /// <param name="guildId">The guilds ID</param>
     /// <returns>New or existing guild object</returns>
-    public static GuildConfig Get(ulong guildId)
+    public static GuildConfig Get(ulong? guildId)
     {
-        return GuildMaster.Find(guild => guild.Id.Equals(guildId)) ?? new GuildConfig(guildId);
+        if (guildId == null)
+            return null;
+        return GuildMaster.Find(guild => guild.Id.Equals(guildId)) ?? new GuildConfig((ulong)guildId);
     }
 }
 

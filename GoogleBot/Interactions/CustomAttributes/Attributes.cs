@@ -17,3 +17,19 @@ public class PrivateAttribute : Attribute
         IsEphemeral = isEphemeral;
     }
 }
+
+/// <summary>
+/// Defines, whether the command can only be used as a slash command
+/// </summary>
+public class SlashOnlyCommandAttribute : Attribute
+{
+    /// <summary>
+    /// If true, the command is only accessible as a slash command
+    /// </summary>
+    public bool IsSlashOnlyCommand { get; }
+
+    public SlashOnlyCommandAttribute(bool isSlashOnlyCommand)
+    {
+        IsSlashOnlyCommand = isSlashOnlyCommand;
+    }
+}

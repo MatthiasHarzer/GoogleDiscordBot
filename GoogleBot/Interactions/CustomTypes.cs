@@ -32,7 +32,7 @@ public class ExecuteContext
         VoiceChannel = guildUser?.VoiceChannel;
         Guild = (SocketGuild?)guildUser?.Guild;
         User = socketSlashCommand.User;
-        if (guildUser?.Guild?.Id != null) GuildConfig = GuildConfig.Get((ulong)guildUser?.Guild?.Id!);
+        GuildConfig = GuildConfig.Get(guildUser?.Guild?.Id);
     }
     
     public ISocketMessageChannel Channel { get; set; }
@@ -82,6 +82,8 @@ public class ParameterInfo
     public Type Type { get; init; }
     public bool IsMultiple { get; init; }
     public bool IsOptional { get; init; }
+    
+    
 
     public override string ToString()
     {
@@ -95,6 +97,7 @@ public class ParameterInfo
 public class CommandInfo
 {
     public bool IsPrivate { get; set; } = false;
+    public bool IsSlashOnlyCommand { get; init; } = false;
     public string Name { get;  init;}
     public string[] Aliases { get; init; }
     public string Summary { get; init; }

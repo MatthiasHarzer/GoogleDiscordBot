@@ -66,6 +66,8 @@ public static class CommandMaster
             SummaryAttribute summaryAttribute = method.GetCustomAttribute<SummaryAttribute>();
             AliasAttribute aliasAttribute = method.GetCustomAttribute<AliasAttribute>();
             PrivateAttribute privateAttribute = method.GetCustomAttribute<PrivateAttribute>();
+            SlashOnlyCommandAttribute slashOnlyCommandAttribute =
+                method.GetCustomAttribute<SlashOnlyCommandAttribute>();
             ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p => new ParameterInfo
             {
                 Summary = p.GetCustomAttribute<SummaryAttribute>()?.Text,
@@ -80,6 +82,8 @@ public static class CommandMaster
             if (commandAttribute != null && method.ReturnType == typeof(Task<CommandReturnValue>))
             {
                 bool isEphemeral = privateAttribute?.IsEphemeral != null && privateAttribute.IsEphemeral;
+                bool isSlashOnly = slashOnlyCommandAttribute?.IsSlashOnlyCommand != null &&
+                                   slashOnlyCommandAttribute.IsSlashOnlyCommand;
                 List<string> aliases = aliasAttribute?.Aliases?.ToList() ?? new List<string>();
                 aliases.Insert(0, commandAttribute.Text);
 
@@ -91,6 +95,7 @@ public static class CommandMaster
                         Parameters = parameterInfo,
                         Method = method,
                         IsPrivate = isEphemeral,
+                        IsSlashOnlyCommand = isSlashOnly,
                     }))
                 {
                     Console.WriteLine($"Command {commandAttribute.Text} already exists! -> no new command was added");
