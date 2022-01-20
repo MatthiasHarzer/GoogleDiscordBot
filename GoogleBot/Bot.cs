@@ -64,7 +64,7 @@ namespace GoogleBot
 
             // Console.WriteLine(string.Join(", ", CommandHandler._coms.Commands.ToList().ConvertAll(c=>c.Name)));
 
-            // InitSlashCommandsAsync();
+            InitSlashCommandsAsync();
             // Console.WriteLine(string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>String.Join(" / ", c.Aliases))));
         }
 
@@ -166,7 +166,7 @@ namespace GoogleBot
                 {
                     case CommandConversionState.Success:
                         if (!info.Command.IsPrivate)
-                            typing = context.Channel?.EnterTypingState();
+                            typing = context.Channel.EnterTypingState();
                         CommandReturnValue retval = await CommandMaster.Execute(context, info.Arguments.ToArray());
                         embed = retval.Embed;
                         textMessage = retval.Message;
@@ -187,6 +187,10 @@ namespace GoogleBot
                                 info.TargetTypeParam.ToList()
                                     .ConvertAll(tp => $"`{tp.Item1}` should be from type `{tp.Item2}`")));
                         break;
+                    case CommandConversionState.SlashCommandExecutedAsTextCommand:
+                        embed = null;
+                        textMessage = $"This command is slash-only! Please use `/{context.Command?.Name} {string.Join(" ", context.Command?.Parameters.ToList().ConvertAll(param => $"<{param.Summary ?? param.Name}>")!)}`";
+                        break;
                 }
 
 
@@ -194,7 +198,7 @@ namespace GoogleBot
 
 
 
-                if (context.Command.IsPrivate)
+                if (context.Command?.IsPrivate == true && info.State != CommandConversionState.SlashCommandExecutedAsTextCommand)
                 {
                     await message.Author.SendMessageAsync(textMessage, embed: embed?.Build());  // Reply in DMs 
                     await message.ReplyAsync("Replied in DMs");                             // Reply in channel
@@ -271,7 +275,10 @@ namespace GoogleBot
             {
                 CommandConversionInfo info = GetCommandInfoFromSlashCommand(command);
 
+              
                 await command.DeferAsync(info.Command.IsPrivate);
+                
+                Console.WriteLine(info.Command.Name + " " + info.State);
 
                 // Console.WriteLine(string.Join(", " , command.Data.Options.ToList().ConvertAll(option=>option.Value)));
                 switch (info.State)
@@ -284,7 +291,6 @@ namespace GoogleBot
                     case CommandConversionState.Success:
                         CommandReturnValue retval =
                             await CommandMaster.Execute(new ExecuteContext(command), info.Arguments.ToArray());
-
                         await command.ModifyOriginalResponseAsync(properties =>
                         {
                             properties.Embed = retval.Embed?.Build();
@@ -303,10 +309,18 @@ namespace GoogleBot
                 Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
                 Console.WriteLine(e.Source);
-                await command.ModifyOriginalResponseAsync(properties =>
+                try
                 {
-                    properties.Content = "Something went wrong. Please try again.";
-                });
+
+                    await command.ModifyOriginalResponseAsync(properties =>
+                    {
+                        properties.Content = "Something went wrong. Please try again.";
+                    });
+                }
+                catch (Exception ee)
+                {
+                    //* if the command doesnt exist, it throws an exception -> ignore
+                }
             }
         }
     }

@@ -95,7 +95,7 @@ public static class CommandMaster
                         Parameters = parameterInfo,
                         Method = method,
                         IsPrivate = isEphemeral,
-                        IsSlashOnlyCommand = isSlashOnly,
+                        IsSlashOnly = isSlashOnly,
                     }))
                 {
                     Console.WriteLine($"Command {commandAttribute.Text} already exists! -> no new command was added");
@@ -121,6 +121,7 @@ public static class CommandMaster
             Console.WriteLine($"Executing '{context.Command.Name}' with args <{string.Join(", ", args)}>");
             try
             {
+       
                 // Console.WriteLine(RandomColor());
                 return await ((Task<CommandReturnValue>)context.Command.Method.Invoke(new Commands(context),
                     args.ToArray()))!;

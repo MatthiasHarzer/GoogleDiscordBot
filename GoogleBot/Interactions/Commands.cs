@@ -102,6 +102,15 @@ public class Commands
 
         return new CommandReturnValue(embed);
     }
+    
+    [Command("play-hidden")]
+    [Summary("Plays music in the current voice channel from an url or query, but without posting a public message")]
+    [Private(true)]
+    [SlashOnlyCommand(true)]
+    public async Task<CommandReturnValue> PlayHidden([Summary("query")] params string[] q)
+    {
+        return await Play(q);
+    }
 
     [Command("skip")]
     [Alias("s")]

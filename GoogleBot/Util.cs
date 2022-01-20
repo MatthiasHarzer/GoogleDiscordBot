@@ -89,6 +89,7 @@ namespace GoogleBot
         NotFound,
         MissingArg,
         InvalidArgType,
+        SlashCommandExecutedAsTextCommand,
     }
 
     

@@ -22,6 +22,7 @@ public class ExecuteContext
         Guild = socketCommandContext.Guild;
         User = socketCommandContext.User;
         GuildConfig = GuildConfig.Get(socketCommandContext.Guild.Id);
+        IsSlashExecuted = false;
     }
 
     public ExecuteContext(SocketSlashCommand socketSlashCommand)
@@ -33,6 +34,7 @@ public class ExecuteContext
         Guild = (SocketGuild?)guildUser?.Guild;
         User = socketSlashCommand.User;
         GuildConfig = GuildConfig.Get(guildUser?.Guild?.Id);
+        IsSlashExecuted = true;
     }
     
     public ISocketMessageChannel Channel { get; set; }
@@ -45,6 +47,8 @@ public class ExecuteContext
     public GuildConfig GuildConfig { get; }
     
     public IVoiceChannel? VoiceChannel { get; set; }
+
+    public bool IsSlashExecuted { get; set; } = false;
     
     
 
@@ -52,7 +56,12 @@ public class ExecuteContext
     {
         CommandConversionInfo conversionInfo = GetCommandInfoFromMessage(socketCommandContext.Message);
         Console.WriteLine("Conversion State: " + conversionInfo.State + " (" + conversionInfo?.Command?.Name + ")");
-        return (new ExecuteContext(conversionInfo?.Command, socketCommandContext), conversionInfo)!;
+        if (conversionInfo?.Command?.IsSlashOnly == true)
+        {
+            conversionInfo.State = CommandConversionState.SlashCommandExecutedAsTextCommand;
+            Console.WriteLine("Changing to SlashCommandExecutedAsTextCommand");
+        }
+        return (new ExecuteContext(conversionInfo.Command, socketCommandContext), conversionInfo)!;
     }
 }
 
@@ -77,9 +86,9 @@ public class CommandConversionInfo
 /// </summary>
 public class ParameterInfo
 {
-    public string Name { get; init; }
-    public string Summary { get; init; }
-    public Type Type { get; init; }
+    public string? Name { get; init; }
+    public string? Summary { get; init; }
+    public Type? Type { get; init; }
     public bool IsMultiple { get; init; }
     public bool IsOptional { get; init; }
     
@@ -97,13 +106,13 @@ public class ParameterInfo
 public class CommandInfo
 {
     public bool IsPrivate { get; set; } = false;
-    public bool IsSlashOnlyCommand { get; init; } = false;
-    public string Name { get;  init;}
-    public string[] Aliases { get; init; }
-    public string Summary { get; init; }
-    public ParameterInfo[] Parameters { get; init; }
-    
-    public MethodInfo Method { get; init; }
+    public bool IsSlashOnly { get; init; } = false;
+    public string? Name { get; init; }
+    public string[] Aliases { get; init; } = {};
+    public string? Summary { get; init; }
+    public ParameterInfo[] Parameters { get; init; } = { };
+
+    public MethodInfo? Method { get; init; }
 }
 
 
