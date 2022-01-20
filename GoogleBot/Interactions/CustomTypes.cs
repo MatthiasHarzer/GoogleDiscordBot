@@ -13,9 +13,9 @@ namespace GoogleBot.Interactions;
 /// </summary>
 public class ExecuteContext
 {
-    public ExecuteContext(CommandInfo command, SocketCommandContext socketCommandContext)
+    public ExecuteContext(CommandInfo? command, SocketCommandContext socketCommandContext)
     {
-        IGuildUser guildUser = socketCommandContext.User as IGuildUser;
+        IGuildUser? guildUser = socketCommandContext.User as IGuildUser;
         Command = command;
         Channel = socketCommandContext.Channel;
         VoiceChannel = guildUser?.VoiceChannel;
@@ -26,33 +26,33 @@ public class ExecuteContext
 
     public ExecuteContext(SocketSlashCommand socketSlashCommand)
     {
-        IGuildUser guildUser = socketSlashCommand.User as IGuildUser;
+        IGuildUser? guildUser = socketSlashCommand.User as IGuildUser;
         Command = CommandMaster.GetCommandFromName(socketSlashCommand.CommandName);
         Channel = socketSlashCommand.Channel;
         VoiceChannel = guildUser?.VoiceChannel;
-        Guild = (SocketGuild)guildUser?.Guild;
+        Guild = (SocketGuild?)guildUser?.Guild;
         User = socketSlashCommand.User;
-        if (guildUser?.Guild?.Id != null) GuildConfig = GuildConfig.Get((ulong)guildUser?.Guild?.Id);
+        if (guildUser?.Guild?.Id != null) GuildConfig = GuildConfig.Get((ulong)guildUser?.Guild?.Id!);
     }
     
     public ISocketMessageChannel Channel { get; set; }
-    public CommandInfo Command { get; set; }
+    public CommandInfo? Command { get; set; }
 
-    public SocketGuild Guild { get; set; }
+    public SocketGuild? Guild { get; set; }
 
     public SocketUser User { get; set; }
     
     public GuildConfig GuildConfig { get; }
     
-    public IVoiceChannel VoiceChannel { get; set; }
+    public IVoiceChannel? VoiceChannel { get; set; }
     
     
 
     public static (ExecuteContext, CommandConversionInfo) From(SocketCommandContext socketCommandContext)
     {
         CommandConversionInfo conversionInfo = GetCommandInfoFromMessage(socketCommandContext.Message);
-        Console.WriteLine("Conversion State: " + conversionInfo.State + " (" + conversionInfo.Command.Name + ")");
-        return (new ExecuteContext(conversionInfo.Command, socketCommandContext), conversionInfo);
+        Console.WriteLine("Conversion State: " + conversionInfo.State + " (" + conversionInfo?.Command?.Name + ")");
+        return (new ExecuteContext(conversionInfo?.Command, socketCommandContext), conversionInfo)!;
     }
 }
 
