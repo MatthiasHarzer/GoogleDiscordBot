@@ -104,7 +104,7 @@ public class Commands
     }
     
     [Command("play-hidden")]
-    [Summary("Plays music in the current voice channel from an url or query, but without posting a public message")]
+    [Summary("Plays music in the current voice channel from an url or query, but without posting a public message o((>ω< ))o. Can only be used as a slash-command!")]
     [Private(true)]
     [SlashOnlyCommand(true)]
     public async Task<CommandReturnValue> PlayHidden([Summary("query")] params string[] q)
