@@ -13,7 +13,7 @@ namespace GoogleBot.Interactions;
 /// </summary>
 public class ExecuteContext
 {
-    public ExecuteContext(CommandInfo? command, SocketCommandContext socketCommandContext)
+    public ExecuteContext(CommandInfo command, SocketCommandContext socketCommandContext)
     {
         IGuildUser? guildUser = socketCommandContext.User as IGuildUser;
         Command = command;
@@ -38,7 +38,7 @@ public class ExecuteContext
     }
     
     public ISocketMessageChannel Channel { get; set; }
-    public CommandInfo? Command { get; set; }
+    public CommandInfo Command { get; set; }
 
     public SocketGuild? Guild { get; set; }
 
@@ -50,19 +50,6 @@ public class ExecuteContext
 
     public bool IsSlashExecuted { get; set; } = false;
     
-    
-
-    public static (ExecuteContext, CommandConversionInfo) From(SocketCommandContext socketCommandContext)
-    {
-        CommandConversionInfo conversionInfo = GetCommandInfoFromMessage(socketCommandContext.Message);
-        Console.WriteLine("Conversion State: " + conversionInfo.State + " (" + conversionInfo?.Command?.Name + ")");
-        if (conversionInfo?.Command?.IsSlashOnly == true)
-        {
-            conversionInfo.State = CommandConversionState.SlashCommandExecutedAsTextCommand;
-            Console.WriteLine("Changing to SlashCommandExecutedAsTextCommand");
-        }
-        return (new ExecuteContext(conversionInfo.Command, socketCommandContext), conversionInfo)!;
-    }
 }
 
 /// <summary>

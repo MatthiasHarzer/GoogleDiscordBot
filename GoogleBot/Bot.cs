@@ -152,22 +152,27 @@ namespace GoogleBot
         private async Task ExecuteCommandAsync(SocketUserMessage message)
         {
             IDisposable typing = null;
+            SocketCommandContext socketCommandContext = new SocketCommandContext(client, message);
 
             // Just to be sure, the typing will be dismissed, try catch
             try
             {
-                var (context, info) = ExecuteContext.From(new SocketCommandContext(client, message));
+                CommandConversionInfo convertedCommandInfo = GetCommandInfoFromMessage(socketCommandContext.Message);
+                
+
 
                 EmbedBuilder embed = new EmbedBuilder();
                 string textMessage = null;
    
 
-                switch (info.State)
+                switch (convertedCommandInfo.State)
                 {
                     case CommandConversionState.Success:
-                        if (!info.Command.IsPrivate)
-                            typing = context.Channel.EnterTypingState();
-                        CommandReturnValue retval = await CommandMaster.Execute(context, info.Arguments.ToArray());
+                        ExecuteContext executeContext = new ExecuteContext(convertedCommandInfo.Command, socketCommandContext);
+                        
+                        if (!convertedCommandInfo.Command.IsPrivate)
+                            typing = executeContext.Channel.EnterTypingState();
+                        CommandReturnValue retval = await CommandMaster.Execute(executeContext, convertedCommandInfo.Arguments.ToArray());
                         embed = retval.Embed;
                         textMessage = retval.Message;
 
@@ -178,27 +183,25 @@ namespace GoogleBot
                     case CommandConversionState.MissingArg:
                     
                         embed.AddField("Missing args",
-                            string.Join(" ", info.MissingArgs.ToList().ConvertAll(a => $"<{a.Summary ?? a.Name}>")));
+                            string.Join(" ", convertedCommandInfo.MissingArgs.ToList().ConvertAll(a => $"<{a.Summary ?? a.Name}>")));
                         break;
                     case CommandConversionState.InvalidArgType:
                   
                         embed.AddField("Invalid argument type provided",
                             string.Join("\n",
-                                info.TargetTypeParam.ToList()
+                                convertedCommandInfo.TargetTypeParam.ToList()
                                     .ConvertAll(tp => $"`{tp.Item1}` should be from type `{tp.Item2}`")));
                         break;
                     case CommandConversionState.SlashCommandExecutedAsTextCommand:
                         embed = null;
-                        textMessage = $"This command is slash-only! Please use `/{context.Command?.Name} {string.Join(" ", context.Command?.Parameters.ToList().ConvertAll(param => $"<{param.Summary ?? param.Name}>")!)}`";
+                        textMessage = $"This command is slash-only! Please use `/{convertedCommandInfo.Command?.Name} {string.Join(" ", convertedCommandInfo.Command?.Parameters.ToList().ConvertAll(param => $"<{param.Summary ?? param.Name}>")!)}`";
                         break;
                 }
 
+                
 
 
-
-
-
-                if (context.Command?.IsPrivate == true && info.State != CommandConversionState.SlashCommandExecutedAsTextCommand)
+                if (convertedCommandInfo.Command?.IsPrivate == true && convertedCommandInfo.State != CommandConversionState.SlashCommandExecutedAsTextCommand)
                 {
                     await message.Author.SendMessageAsync(textMessage, embed: embed?.Build());  // Reply in DMs 
                     await message.ReplyAsync("Replied in DMs");                             // Reply in channel
@@ -273,15 +276,15 @@ namespace GoogleBot
         {
             try
             {
-                CommandConversionInfo info = GetCommandInfoFromSlashCommand(command);
+                CommandConversionInfo convertedCommandInfo = GetCommandInfoFromSlashCommand(command);
 
               
-                await command.DeferAsync(info.Command.IsPrivate);
+                await command.DeferAsync(convertedCommandInfo.Command?.IsPrivate == true);
                 
-                Console.WriteLine(info.Command.Name + " " + info.State);
+                Console.WriteLine(convertedCommandInfo.Command.Name + " " + convertedCommandInfo.State);
 
                 // Console.WriteLine(string.Join(", " , command.Data.Options.ToList().ConvertAll(option=>option.Value)));
-                switch (info.State)
+                switch (convertedCommandInfo.State)
                 {
                     case CommandConversionState.NotFound:
                         await command.ModifyOriginalResponseAsync(properties =>
@@ -290,14 +293,13 @@ namespace GoogleBot
 
                     case CommandConversionState.Success:
                         CommandReturnValue retval =
-                            await CommandMaster.Execute(new ExecuteContext(command), info.Arguments.ToArray());
+                            await CommandMaster.Execute(new ExecuteContext(command), convertedCommandInfo.Arguments.ToArray());
                         await command.ModifyOriginalResponseAsync(properties =>
                         {
                             properties.Embed = retval.Embed?.Build();
                             properties.Content = retval.Message;
                         });
-
-
+                        
                         break;
                 }
 
