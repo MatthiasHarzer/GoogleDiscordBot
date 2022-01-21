@@ -72,9 +72,9 @@ namespace GoogleBot
                         }
                     }
                 }
-                catch (Exception ee)
+                catch (Exception)
                 {
-                    
+                    // ignored
                 }
 
                 return Color.FromArgb((int)(t[0] * 255), (int)(t[1] * 255), (int)(t[2] * 255));

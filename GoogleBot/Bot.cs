@@ -64,7 +64,7 @@ namespace GoogleBot
 
             // Console.WriteLine(string.Join(", ", CommandHandler._coms.Commands.ToList().ConvertAll(c=>c.Name)));
 
-            InitSlashCommandsAsync();
+            _ = InitSlashCommandsAsync();
             // Console.WriteLine(string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>String.Join(" / ", c.Aliases))));
         }
 
@@ -319,7 +319,7 @@ namespace GoogleBot
                         properties.Content = "Something went wrong. Please try again.";
                     });
                 }
-                catch (Exception ee)
+                catch (Exception)
                 {
                     //* if the command doesnt exist, it throws an exception -> ignore
                 }

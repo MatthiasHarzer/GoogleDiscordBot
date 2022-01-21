@@ -100,12 +100,12 @@ namespace GoogleBot
                         await discord.WriteAsync(memoryStream.ToArray().AsMemory(0, memoryStream.ToArray().Length),
                             taskCanceller.Token);
                     }
-                    catch (OperationCanceledException e)
+                    catch (OperationCanceledException)
                     {
                         // Console.WriteLine("OperationCanceledException " + e.Message + e.StackTrace);
                     }
                 }
-                catch (TaskCanceledException e)
+                catch (TaskCanceledException)
                 {
                     //* If failed 
                     
@@ -192,7 +192,8 @@ namespace GoogleBot
                                 if (v.Duration != null && v.Id != video.Id && v.Duration.Value.TotalHours <= 1)
                                 {
 
-                                   AddToQueueAsync(v.Id);
+                                    //* no warning
+                                   _ = AddToQueueAsync(v.Id);
 
                                 }
                             }
@@ -334,7 +335,7 @@ namespace GoogleBot
                     {
                         audioClient = await this.voiceChannel.ConnectAsync();
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         Playing = false;
                         CurrentSong = null;
@@ -383,7 +384,7 @@ namespace GoogleBot
             {
                 Video video = Queue[0];
                 Queue.Remove(video);
-                Play(video.Id);
+                _ = Play(video.Id);
             }
             else
             {
