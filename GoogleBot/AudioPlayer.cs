@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -20,11 +21,16 @@ using Video = YoutubeExplode.Videos.Video;
 
 namespace GoogleBot
 {
-    public class IPlayReturnValue
+    public class PlayReturnValue
     {
         public AudioPlayState AudioPlayState { get; set; }
         public Video Video { get; set; }
         public string[] Videos { get; set; }
+
+        /// <summary>
+        /// Space for some notes ¬_¬
+        /// </summary>
+        public string Note { get; set; } = null;
     }
     
     public enum AudioPlayState
@@ -35,20 +41,24 @@ namespace GoogleBot
         Queued,
         InvalidQuery,
         TooLong,
-        NoVoiceChannel
+        NoVoiceChannel,
+        JoiningChannelFailed,
+        DifferentVoiceChannels,
     }
 
 
 
+    /// <summary>
+    /// An audio module responsible of playing music from a query in the given voice channel 
+    /// </summary>
     public class AudioPlayer
     {
         public bool playing;
         private IAudioClient audioClient;
-        public List<Video> queue = new List<Video>();
-        public Video currentSong;
+        public readonly List<Video> Queue = new List<Video>();
+        public Video CurrentSong;
         private IVoiceChannel voiceChannel;
-        private ISocketMessageChannel messageChannel;
-        private YoutubeClient youtube = new YoutubeClient();
+        private readonly YoutubeClient youtube = new YoutubeClient();
 
 
         private CancellationTokenSource taskCanceller = new CancellationTokenSource();
@@ -57,7 +67,7 @@ namespace GoogleBot
         {
             if (youtube == null) return;
             Video video = await youtube.Videos.GetAsync(id);
-            queue.Add(video);
+            Queue.Add(video);
         }
 
         private async void PlaySoundFromMemoryStream(IAudioClient audioClient, MemoryStream memoryStream,
@@ -83,14 +93,14 @@ namespace GoogleBot
                     }
                     catch (OperationCanceledException e)
                     {
-                        Console.WriteLine("OperationCanceledException " + e.Message + e.StackTrace);
+                        // Console.WriteLine("OperationCanceledException " + e.Message + e.StackTrace);
                     }
                 }
                 catch (TaskCanceledException e)
                 {
                     //* If failed 
                     
-                    Console.WriteLine("TaskCanceledException " + e.Message + e.StackTrace);
+                    // Console.WriteLine("TaskCanceledException " + e.Message + e.StackTrace);
                 }
                 finally
                 {
@@ -103,23 +113,27 @@ namespace GoogleBot
             }
         }
 
-        public async Task<IPlayReturnValue> Play(string query, IVoiceChannel voiceChannel = null,
-            ISocketMessageChannel messageChannel = null)
+        public async Task<PlayReturnValue> Play(string query, IVoiceChannel voiceChannel = null)
         {
             
                 if (voiceChannel != null)
                 {
-                    this.voiceChannel = voiceChannel;
+                    if(this.voiceChannel == null)
+                        this.voiceChannel = voiceChannel;
+                    else if (!voiceChannel.Equals(this.voiceChannel))
+                    {
+                        return new PlayReturnValue
+                        {
+                            AudioPlayState = AudioPlayState.DifferentVoiceChannels,
+                            Note = this.voiceChannel.Name
+                        };
+                    }
                 }
 
-                if (messageChannel != null)
-                {
-                    this.messageChannel = messageChannel;
-                }
-
+             
                 if (this.voiceChannel == null)
                 {
-                    return new IPlayReturnValue
+                    return new PlayReturnValue
                     {
                         AudioPlayState = AudioPlayState.NoVoiceChannel,
                     };
@@ -127,7 +141,7 @@ namespace GoogleBot
 
                 if (query.Length <= 0)
                 {
-                    return new IPlayReturnValue
+                    return new PlayReturnValue
                     {
                         AudioPlayState = AudioPlayState.InvalidQuery
                     };
@@ -226,7 +240,7 @@ namespace GoogleBot
                     }
                     catch
                     {
-                        return new IPlayReturnValue
+                        return new PlayReturnValue
                         {
                             AudioPlayState = AudioPlayState.InvalidQuery,
                         };
@@ -236,7 +250,7 @@ namespace GoogleBot
 
                 if (video.Duration is { TotalHours: > 1 })
                 {
-                    return new IPlayReturnValue
+                    return new PlayReturnValue
                     {
                         AudioPlayState = AudioPlayState.TooLong,
                     };
@@ -246,10 +260,10 @@ namespace GoogleBot
                 //* If a song is already playing -> add new one to queue
                 if (playing)
                 {
-                    queue.Add(video);
+                    Queue.Add(video);
                     if (isNewPlaylist)
                     {
-                        return new IPlayReturnValue
+                        return new PlayReturnValue
                         {
                             AudioPlayState = AudioPlayState.QueuedAsPlaylist,
                             Video = video,
@@ -258,7 +272,7 @@ namespace GoogleBot
 
                     }
 
-                    return new IPlayReturnValue
+                    return new PlayReturnValue
                     {
                         AudioPlayState = AudioPlayState.Queued,
                         Video = video,
@@ -267,7 +281,7 @@ namespace GoogleBot
 
 
                 playing = true;
-                currentSong = video;
+                CurrentSong = video;
 
                 //* get stream from youtube
                 var manifest = await youtube.Videos.Streams.GetManifestAsync(video.Id);
@@ -301,7 +315,19 @@ namespace GoogleBot
                 if (audioClient is not { ConnectionState: ConnectionState.Connected })
                 {
                     Console.WriteLine("Connecting to voicechannel");
-                    audioClient = await this.voiceChannel.ConnectAsync();
+                    try
+                    {
+                        audioClient = await this.voiceChannel.ConnectAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        playing = false;
+                        CurrentSong = null;
+                        return new PlayReturnValue
+                        {
+                            AudioPlayState = AudioPlayState.JoiningChannelFailed
+                        };
+                    }
                 }
 
                 Console.WriteLine("Starting audio stream");
@@ -311,7 +337,7 @@ namespace GoogleBot
 
                 if (isNewPlaylist)
                 {
-                    return new IPlayReturnValue
+                    return new PlayReturnValue
                     {
                         AudioPlayState = AudioPlayState.PlayingAsPlaylist,
                         Video = video,
@@ -320,7 +346,7 @@ namespace GoogleBot
                 }
 
 
-                return new IPlayReturnValue
+                return new PlayReturnValue
                 {
                     AudioPlayState = AudioPlayState.Success,
                     Video = video,
@@ -335,29 +361,29 @@ namespace GoogleBot
             if (!taskCanceller.IsCancellationRequested)
                 taskCanceller?.Cancel();
             playing = false;
-            if (queue.Count > 0)
+            if (Queue.Count > 0)
             {
-                Video video = queue[0];
-                queue.Remove(video);
+                Video video = Queue[0];
+                Queue.Remove(video);
                 Play(video.Id);
             }
             else
             {
                 audioClient.StopAsync();
                 voiceChannel = null;
-                messageChannel = null;
+                
             }
         }
 
         public void Stop()
         {
-            queue.Clear();
+            Queue.Clear();
             taskCanceller.Cancel();
 
             if (audioClient != null)
                 audioClient.StopAsync();
             voiceChannel = null;
-            currentSong = null;
+            CurrentSong = null;
             playing = false;
         }
 
@@ -369,7 +395,7 @@ namespace GoogleBot
 
         public void Clear()
         {
-            queue.Clear();
+            Queue.Clear();
         }
     }
 }

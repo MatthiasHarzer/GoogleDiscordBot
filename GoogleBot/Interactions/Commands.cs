@@ -67,7 +67,7 @@ public class Commands
         }
         
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
-        IPlayReturnValue returnValue = await player.Play(query, channel);
+        PlayReturnValue returnValue = await player.Play(query, channel);
 
 
         //* User response
@@ -97,6 +97,12 @@ public class Commands
                 break;
             case AudioPlayState.TooLong:
                 embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
+                break;
+            case AudioPlayState.JoiningChannelFailed:
+                embed.AddField("Couldn't join voice channel", "`Try checking the channels user limit and the bots permission.`");
+                break;
+            case AudioPlayState.DifferentVoiceChannels:
+                embed.AddField("Invalid voice channel", $"You have to be connect to the same voice channel `{returnValue.Note}` as the bot.");
                 break;
         }
 
@@ -150,7 +156,7 @@ public class Commands
         player.Clear();
 
 
-        embed.AddField("Queue cleared", $"`Removed {player.queue.Count} items`");
+        embed.AddField("Queue cleared", $"`Removed {player.Queue.Count} items`");
         return Task.FromResult(new CommandReturnValue(embed));
     }
 
@@ -162,9 +168,9 @@ public class Commands
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
 
-        Video currentSong = player.currentSong;
+        Video currentSong = player.CurrentSong;
 
-        List<Video> queue = player.queue;
+        List<Video> queue = player.Queue;
 
         if (player.playing && currentSong != null)
         {
