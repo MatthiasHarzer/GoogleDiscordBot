@@ -92,7 +92,7 @@ public class Commands
                 embed.AddField("Query invalid", "`Couldn't find any results`");
                 break;
             case AudioPlayState.NoVoiceChannel:
-                embed.AddField("No voice channel", "`Please connect to voice channel first!`");
+                embed.AddField("No voice channel", "`Please connect to a voice channel first!`");
                 break;
             case AudioPlayState.TooLong:
                 embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
