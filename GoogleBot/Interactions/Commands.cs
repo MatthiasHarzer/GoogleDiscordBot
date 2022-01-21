@@ -12,7 +12,6 @@ using GoogleBot.Interactions.CustomAttributes;
 
 namespace GoogleBot.Interactions;
 
-
 /// <summary>
 /// Represents all active commands
 /// </summary>
@@ -65,7 +64,7 @@ public class Commands
             embed.AddField("No voice channel", "`Please connect to voice channel first!`");
             return new CommandReturnValue(embed);
         }
-        
+
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
         PlayReturnValue returnValue = await player.Play(query, channel);
 
@@ -99,18 +98,21 @@ public class Commands
                 embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
                 break;
             case AudioPlayState.JoiningChannelFailed:
-                embed.AddField("Couldn't join voice channel", "`Try checking the channels user limit and the bots permission.`");
+                embed.AddField("Couldn't join voice channel",
+                    "`Try checking the channels user limit and the bots permission.`");
                 break;
             case AudioPlayState.DifferentVoiceChannels:
-                embed.AddField("Invalid voice channel", $"You have to be connect to the same voice channel `{returnValue.Note}` as the bot.");
+                embed.AddField("Invalid voice channel",
+                    $"You have to be connect to the same voice channel `{returnValue.Note}` as the bot.");
                 break;
         }
 
         return new CommandReturnValue(embed);
     }
-    
+
     [Command("play-hidden")]
-    [Summary("Plays music in the current voice channel from an url or query, but without posting a public message o((>ω< ))o. Can only be used as a slash-command!")]
+    [Summary(
+        "Plays music in the current voice channel from an url or query, but without posting a public message o((>ω< ))o. Can only be used as a slash-command!")]
     [Private(true)]
     [SlashOnlyCommand(true)]
     public async Task<CommandReturnValue> PlayHidden([Summary("query")] params string[] q)
@@ -121,14 +123,22 @@ public class Commands
     [Command("skip")]
     [Alias("s")]
     [Summary("Skips the current song")]
-    
     public Task<CommandReturnValue> Skip()
     {
+        EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+        if (Context.GuildConfig.AudioPlayer.Playing)
+        {
+            embed.AddField("Skipping", $"Song {FormattedVideo(Context.GuildConfig.AudioPlayer.CurrentSong)} skipped");
+        }
+        else
+        {
+            embed.AddField("Nothing to skip", "The queue is empty.");
+        }
+
         Context.GuildConfig.AudioPlayer.Skip();
 
 
-        return Task.FromResult(
-            new CommandReturnValue(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Skipping...")));
+        return Task.FromResult(new CommandReturnValue(embed));
     }
 
     [Command("stop")]
@@ -136,11 +146,22 @@ public class Commands
     [Summary("Disconnects the bot from the current voice channel")]
     public Task<CommandReturnValue> Stop()
     {
+        EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+
+
+        if (Context.GuildConfig.AudioPlayer.Playing)
+        {
+            embed.AddField("Disconnecting", "Stopping audio an disconnecting from voice channel");
+        }
+        else
+        {
+            embed.AddField("Bot not connect", "No channel to disconnect from");
+        }
+
         Context.GuildConfig.AudioPlayer.Stop();
 
 
-        return Task.FromResult(new 
-            CommandReturnValue(new EmbedBuilder().WithCurrentTimestamp().WithTitle("Disconnecting")));
+        return Task.FromResult(new CommandReturnValue(embed));
     }
 
     [Command("clear")]
@@ -156,7 +177,7 @@ public class Commands
         player.Clear();
 
 
-        embed.AddField("Queue cleared", $"`Removed {player.Queue.Count} items`");
+        embed.AddField("Queue cleared", $"Removed `{player.Queue.Count}` items");
         return Task.FromResult(new CommandReturnValue(embed));
     }
 
@@ -172,7 +193,7 @@ public class Commands
 
         List<Video> queue = player.Queue;
 
-        if (player.playing && currentSong != null)
+        if (player.Playing && currentSong != null)
         {
             embed.AddField("Currently playing",
                 FormattedVideo(currentSong));
@@ -304,6 +325,7 @@ public class Commands
                 $"{String.Join(" / ", command.Aliases)}  {String.Join(" ", command.Parameters.AsParallel().ToList().ConvertAll(param => $"<{param.Summary ?? param.Name}>"))}",
                 embedFieldText);
         }
+
         embedBuilder.WithFooter("The first command can always be used as a slash command (/<command>, e. g. /help)");
         return Task.FromResult(new CommandReturnValue(embedBuilder));
     }

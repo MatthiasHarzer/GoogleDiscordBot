@@ -57,14 +57,14 @@ public class ExecuteContext
 /// </summary>
 public class CommandConversionInfo
 {
-    public CommandInfo Command { get; set; }
-    public object[] Arguments { get; set; }
+    public CommandInfo Command { get; set; } = null!;
+    public object[] Arguments { get; set; } = null!;
     public CommandConversionState State { get; set; }
 
-    public (string, Type)[] TargetTypeParam { get; set; }
+    public (string, Type)[] TargetTypeParam { get; set; } = null!;
 
 
-    public ParameterInfo[] MissingArgs { get; set; }
+    public ParameterInfo[] MissingArgs { get; set; } = null!;
 }
 
 

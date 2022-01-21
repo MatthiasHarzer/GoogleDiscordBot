@@ -23,14 +23,14 @@ namespace GoogleBot
 {
     public class PlayReturnValue
     {
-        public AudioPlayState AudioPlayState { get; set; }
-        public Video Video { get; set; }
-        public string[] Videos { get; set; }
+        public AudioPlayState AudioPlayState { get; init; }
+        public Video Video { get; init; }
+        public string[] Videos { get; init; }
 
         /// <summary>
         /// Space for some notes ¬_¬
         /// </summary>
-        public string Note { get; set; } = null;
+        public string Note { get; init; } = null;
     }
     
     public enum AudioPlayState
@@ -53,16 +53,19 @@ namespace GoogleBot
     /// </summary>
     public class AudioPlayer
     {
-        public bool playing;
+        public bool Playing = false;
         private IAudioClient audioClient;
         public readonly List<Video> Queue = new List<Video>();
         public Video CurrentSong;
         private IVoiceChannel voiceChannel;
         private readonly YoutubeClient youtube = new YoutubeClient();
-
-
+        
         private CancellationTokenSource taskCanceller = new CancellationTokenSource();
 
+        /// <summary>
+        /// Add an youtube video to the queue without blocking the main thread
+        /// </summary>
+        /// <param name="id">The id of the video</param>
         private async Task AddToQueueAsync(string id)
         {
             if (youtube == null) return;
@@ -70,6 +73,12 @@ namespace GoogleBot
             Queue.Add(video);
         }
 
+        /// <summary>
+        /// Plays streams sound to an audio client from a memory stream
+        /// </summary>
+        /// <param name="audioClient">The Discord audio client</param>
+        /// <param name="memoryStream">The audio as a memory stream</param>
+        /// <param name="onFinished">Callback when memory stream ends</param>
         private async void PlaySoundFromMemoryStream(IAudioClient audioClient, MemoryStream memoryStream,
             Action onFinished = null)
         {
@@ -104,7 +113,7 @@ namespace GoogleBot
                 }
                 finally
                 {
-                    playing = false;
+                    Playing = false;
                     await discord.FlushAsync();
                     // Console.WriteLine("Ending");
                     // Console.WriteLine("failed " + failed);
@@ -113,6 +122,12 @@ namespace GoogleBot
             }
         }
 
+        /// <summary>
+        /// Tries to play some audio from youtube in a given voice channel
+        /// </summary>
+        /// <param name="query">A Youtube link or id or some search terms </param>
+        /// <param name="voiceChannel">The voice channel of the user</param>
+        /// <returns>An PlayReturnValue containing a State</returns>
         public async Task<PlayReturnValue> Play(string query, IVoiceChannel voiceChannel = null)
         {
             
@@ -258,7 +273,7 @@ namespace GoogleBot
                 }
 
                 //* If a song is already playing -> add new one to queue
-                if (playing)
+                if (Playing)
                 {
                     Queue.Add(video);
                     if (isNewPlaylist)
@@ -280,7 +295,7 @@ namespace GoogleBot
                 }
 
 
-                playing = true;
+                Playing = true;
                 CurrentSong = video;
 
                 //* get stream from youtube
@@ -321,7 +336,7 @@ namespace GoogleBot
                     }
                     catch (Exception ex)
                     {
-                        playing = false;
+                        Playing = false;
                         CurrentSong = null;
                         return new PlayReturnValue
                         {
@@ -355,12 +370,15 @@ namespace GoogleBot
         
         }
 
+        /// <summary>
+        /// Plays the next song in the queue or stops the audio client (disconnects bot)
+        /// </summary>
         private void NextSong()
         {
             // Console.WriteLine("Next Song");
             if (!taskCanceller.IsCancellationRequested)
                 taskCanceller?.Cancel();
-            playing = false;
+            Playing = false;
             if (Queue.Count > 0)
             {
                 Video video = Queue[0];
@@ -375,24 +393,37 @@ namespace GoogleBot
             }
         }
 
+        /// <summary>
+        /// Stops all sounds from playing, disconnects the bot from the VC and clears the queue
+        /// </summary>
+        /// 
         public void Stop()
         {
             Queue.Clear();
             taskCanceller.Cancel();
+            
+            voiceChannel = null;
+            CurrentSong = null;
+            Playing = false;
 
             if (audioClient != null)
                 audioClient.StopAsync();
-            voiceChannel = null;
-            CurrentSong = null;
-            playing = false;
+           
         }
 
+        /// <summary>
+        /// Skips the currently playing sound 
+        /// </summary>
         public void Skip()
         {
             taskCanceller?.Cancel();
-            playing = false;
+            Playing = false;
+         
         }
 
+        /// <summary>
+        /// Clears the queue
+        /// </summary>
         public void Clear()
         {
             Queue.Clear();
