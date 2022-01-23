@@ -4,9 +4,10 @@ using System.Reflection;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using GoogleBot.Interactions;
 using static GoogleBot.Util;
 
-namespace GoogleBot.Interactions;
+namespace GoogleBot;
 
 /// <summary>
 /// Keeps context of currently executed command, such as the guild, user, channel etc..
@@ -28,7 +29,7 @@ public class ExecuteContext
     public ExecuteContext(SocketSlashCommand socketSlashCommand)
     {
         IGuildUser? guildUser = socketSlashCommand.User as IGuildUser;
-        Command = CommandMaster.GetCommandFromName(socketSlashCommand.CommandName);
+        Command = CommandMaster.GetLegacyCommandFromName(socketSlashCommand.CommandName);
         Channel = socketSlashCommand.Channel;
         VoiceChannel = guildUser?.VoiceChannel;
         Guild = (SocketGuild?)guildUser?.Guild;
@@ -44,6 +45,8 @@ public class ExecuteContext
 
     public SocketUser User { get; set; }
     
+    public SocketMessageComponent Component { get; set; }
+    
     public GuildConfig GuildConfig { get; }
     
     public IVoiceChannel? VoiceChannel { get; set; }
@@ -51,6 +54,8 @@ public class ExecuteContext
     public bool IsSlashExecuted { get; set; } = false;
     
 }
+
+
 
 /// <summary>
 /// Simple return value for converting a message into its parts (command, args)
@@ -73,8 +78,9 @@ public class CommandConversionInfo
 /// </summary>
 public class ParameterInfo
 {
-    public string? Name { get; init; }
-    public string? Summary { get; init; }
+
+    public string Name { get; init; } = null!;
+    public string Summary { get; init; } = null!;
     public Type? Type { get; init; }
     public bool IsMultiple { get; init; }
     public bool IsOptional { get; init; }
@@ -106,10 +112,17 @@ public class CommandInfo
 /// <summary>
 /// Return value of executed command. Can be embed or string.
 /// </summary>
-public class CommandReturnValue
+public class CommandReturnValue : IDisposable
 {
-    public EmbedBuilder? Embed { get; } = null;
-    public string? Message { get; } = null;
+    public EmbedBuilder? Embed { get; set; } = null;
+    
+    public ComponentBuilder? Components { get; set; }
+    public string? Message { get; set; } = null;
+
+    public CommandReturnValue()
+    {
+        
+    }
 
     /// <summary>
     /// Configures a new CommandReturnValue with the given embed
@@ -117,10 +130,8 @@ public class CommandReturnValue
     /// <param name="embed">The embed to return (that should be displayed)</param>
     public CommandReturnValue(EmbedBuilder embed)
     {
-        embed.WithColor(RandomColor()); // Add a nice color to the embed
-        Embed = embed;
+        WithEmbed(embed);
     }
-
     
     /// <summary>
     /// Configures a new CommandReturnValue with the given message
@@ -128,7 +139,84 @@ public class CommandReturnValue
     /// <param name="message">The string message to return (that should be displayed)</param>
     public CommandReturnValue (string message)
     {
+        WithText(message);
+    }
+
+    public CommandReturnValue WithComponents(ComponentBuilder components)
+    {
+        Components = components;
+        return this;
+    }
+
+    public CommandReturnValue WithText(string message)
+    {
         Message = message;
+        return this;
+    }
+
+    public CommandReturnValue WithEmbed(EmbedBuilder embed)
+    {
+        embed.WithColor(RandomColor()); // Add a nice color to the embed
+        Embed = embed;
+        return this;
+    }
+
+
+    public void Dispose()
+    {
+        Components = null;
+        Message = null;
+        Embed = null;
     }
 }
 
+
+public class FormattedMessage
+{
+    public EmbedBuilder? Embed { get; set; } = null;
+
+    public ComponentBuilder? Components { get; set; } = null;
+    public string? Message { get; set; } = null;
+
+    public FormattedMessage()
+    {
+        
+    }
+
+    /// <summary>
+    /// Configures a new CommandReturnValue with the given embed
+    /// </summary>
+    /// <param name="embed">The embed to return (that should be displayed)</param>
+    public FormattedMessage(EmbedBuilder embed)
+    {
+        WithEmbed(embed);
+    }
+    
+    /// <summary>
+    /// Configures a new CommandReturnValue with the given message
+    /// </summary>
+    /// <param name="message">The string message to return (that should be displayed)</param>
+    public FormattedMessage (string message)
+    {
+        WithText(message);
+    }
+
+    public FormattedMessage WithComponents(ComponentBuilder components)
+    {
+        Components = components;
+        return this;
+    }
+
+    public FormattedMessage WithText(string message)
+    {
+        Message = message;
+        return this;
+    }
+
+    public FormattedMessage WithEmbed(EmbedBuilder embed)
+    {
+        embed.WithColor(RandomColor()); // Add a nice color to the embed
+        Embed = embed;
+        return this;
+    }
+}

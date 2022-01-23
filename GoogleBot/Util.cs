@@ -1,18 +1,17 @@
 ﻿using System;
 using YoutubeExplode.Videos;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using Google.Apis.Services;
 using GoogleBot.Interactions;
+using Color = System.Drawing.Color;
 using DiscordColor = Discord.Color;
-using ParameterInfo = GoogleBot.Interactions.ParameterInfo;
-using CommandInfo = GoogleBot.Interactions.CommandInfo;
 
 // using CommandInfo = Discord.Commands.CommandInfo;
 
@@ -262,7 +261,7 @@ namespace GoogleBot
             {
                 string raw_command = message.ToString().Split(" ")[0].Substring(argPos);
 
-                foreach (CommandInfo ctx in CommandMaster.CommandsList)
+                foreach (CommandInfo ctx in CommandMaster.LegacyCommandsList)
                 {
                     if (ctx.Name.Equals(raw_command) || ctx.Aliases.Contains(raw_command))
                     {
@@ -343,7 +342,7 @@ namespace GoogleBot
                                     return new CommandConversionInfo
                                     {
                                         State = CommandConversionState.InvalidArgType,
-                                        Command = CommandMaster.GetCommandFromName(command),
+                                        Command = CommandMaster.GetLegacyCommandFromName(command),
                                         TargetTypeParam = wrongTypes.ToArray()
                                     };
                                 }
@@ -364,7 +363,7 @@ namespace GoogleBot
                             return new CommandConversionInfo
                             {
                                 State = CommandConversionState.MissingArg,
-                                Command = CommandMaster.GetCommandFromName(command),
+                                Command = CommandMaster.GetLegacyCommandFromName(command),
                                 MissingArgs = missingArgs.ToArray(),
                             };
                         }
@@ -375,7 +374,7 @@ namespace GoogleBot
                         return new CommandConversionInfo
                         {
                             State = CommandConversionState.Success,
-                            Command = CommandMaster.GetCommandFromName(command),
+                            Command = CommandMaster.GetLegacyCommandFromName(command),
                             Arguments = args.ToArray(),
                         };
                     }
@@ -396,7 +395,7 @@ namespace GoogleBot
         /// <returns>Information about the command conversion</returns>
         public static CommandConversionInfo GetCommandInfoFromSlashCommand(SocketSlashCommand command)
         {
-            CommandInfo cmd = CommandMaster.GetCommandFromName(command.CommandName);
+            CommandInfo cmd = CommandMaster.GetLegacyCommandFromName(command.CommandName);
 
             if (cmd == null)
             {
@@ -477,7 +476,7 @@ namespace GoogleBot
                         return new CommandConversionInfo
                         {
                             State = CommandConversionState.InvalidArgType,
-                            Command = CommandMaster.GetCommandFromName(cmd.Name) ,
+                            Command = CommandMaster.GetLegacyCommandFromName(cmd.Name) ,
                             TargetTypeParam = wrongTypes.ToArray()
                         };
                     }
@@ -490,9 +489,26 @@ namespace GoogleBot
             return new CommandConversionInfo
             {
                 State = CommandConversionState.Success,
-                Command = CommandMaster.GetCommandFromName(command.CommandName),
+                Command = CommandMaster.GetLegacyCommandFromName(command.CommandName),
                 Arguments = args.ToArray(),
             };
+        }
+
+        public static ApplicationCommandOptionType ToApplicationCommandOptionType(Type origin)
+        {
+            
+            switch (origin)
+            {
+                case Type _ when origin == typeof(string):
+                    return ApplicationCommandOptionType.String;
+                case Type _ when origin == typeof(int):
+                    return ApplicationCommandOptionType.Integer;
+                case Type _ when origin == typeof(float):
+                case Type _ when origin == typeof(double):
+                    return ApplicationCommandOptionType.Number;
+                default:
+                    return ApplicationCommandOptionType.String;
+            }
         }
     }
 }

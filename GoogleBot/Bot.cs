@@ -11,8 +11,6 @@ using Discord.WebSocket;
 using static GoogleBot.Util;
 using GoogleBot.Interactions;
 using Newtonsoft.Json;
-using CommandInfo = GoogleBot.Interactions.CommandInfo;
-using ParameterInfo = GoogleBot.Interactions.ParameterInfo;
 
 
 namespace GoogleBot
@@ -59,19 +57,21 @@ namespace GoogleBot
             await client.SetGameAsync("with Google", type: ActivityType.Playing);
 
             // Commands.testing();
-            CommandMaster.InstantiateCommands();
+            // CommandMaster.InstantiateCommands();
+            CommandMaster.AddApplicationCommands();
 
+            RegisterCommandsAsync();
 
             // Console.WriteLine(string.Join(", ", CommandHandler._coms.Commands.ToList().ConvertAll(c=>c.Name)));
 
-            _ = InitSlashCommandsAsync();
+            // _ = InitSlashCommandsAsync();
             // Console.WriteLine(string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>String.Join(" / ", c.Aliases))));
         }
 
         private async Task InitSlashCommandsAsync()
         {
             List<ApplicationCommandProperties> applicationCommandProperties = new();
-            foreach (CommandInfo command in CommandMaster.CommandsList)
+            foreach (CommandInfo command in CommandMaster.LegacyCommandsList)
             {
                 SlashCommandBuilder builder = new SlashCommandBuilder();
 
@@ -90,6 +90,45 @@ namespace GoogleBot
             try
             {
                 await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
+            }
+            catch (HttpException exception)
+            {
+                var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
+
+                // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+                Console.WriteLine(json);
+            }
+
+            Console.WriteLine("Available slash commands: \n" + string.Join(", ",
+                CommandMaster.LegacyCommandsList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
+        }
+
+        private async Task RegisterCommandsAsync()
+        {
+            ulong guildId = Secrets.DevGuildID;
+            var guild = client.GetGuild(guildId);
+            
+            List<ApplicationCommandProperties> applicationCommandProperties = new();
+            
+            foreach (CommandInfo command in CommandMaster.CommandsList)
+            {
+                SlashCommandBuilder builder = new SlashCommandBuilder();
+
+                builder.WithName(command.Name);
+                builder.WithDescription(command.Summary ?? "No description available");
+
+                foreach (ParameterInfo parameter in command.Parameters)
+                {
+                    builder.AddOption(parameter.Name, ToApplicationCommandOptionType(parameter.Type),
+                        parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
+                }
+
+                applicationCommandProperties.Add(builder.Build());
+            }
+
+            try
+            {
+                await guild.BulkOverwriteApplicationCommandAsync(applicationCommandProperties.ToArray());
             }
             catch (HttpException exception)
             {
@@ -158,35 +197,38 @@ namespace GoogleBot
             try
             {
                 CommandConversionInfo convertedCommandInfo = GetCommandInfoFromMessage(socketCommandContext.Message);
-                
 
 
                 EmbedBuilder embed = new EmbedBuilder();
-                string textMessage = null;
-   
+
+
+                CommandReturnValue returnValue = new CommandReturnValue();
+
 
                 switch (convertedCommandInfo.State)
                 {
                     case CommandConversionState.Success:
-                        ExecuteContext executeContext = new ExecuteContext(convertedCommandInfo.Command, socketCommandContext);
-                        
+                        ExecuteContext executeContext =
+                            new ExecuteContext(convertedCommandInfo.Command, socketCommandContext);
+
                         if (!convertedCommandInfo.Command.IsPrivate)
                             typing = executeContext.Channel.EnterTypingState();
-                        CommandReturnValue retval = await CommandMaster.Execute(executeContext, convertedCommandInfo.Arguments.ToArray());
-                        embed = retval.Embed;
-                        textMessage = retval.Message;
+                        returnValue =
+                            await CommandMaster.LegacyExecute(executeContext, convertedCommandInfo.Arguments.ToArray());
+
 
                         break;
                     case CommandConversionState.Failed:
                         // embed = new EmbedBuilder().WithTitle("")
                         return;
                     case CommandConversionState.MissingArg:
-                    
+
                         embed.AddField("Missing args",
-                            string.Join(" ", convertedCommandInfo.MissingArgs.ToList().ConvertAll(a => $"<{a.Summary ?? a.Name}>")));
+                            string.Join(" ",
+                                convertedCommandInfo.MissingArgs.ToList().ConvertAll(a => $"<{a.Summary ?? a.Name}>")));
                         break;
                     case CommandConversionState.InvalidArgType:
-                  
+
                         embed.AddField("Invalid argument type provided",
                             string.Join("\n",
                                 convertedCommandInfo.TargetTypeParam.ToList()
@@ -194,21 +236,25 @@ namespace GoogleBot
                         break;
                     case CommandConversionState.SlashCommandExecutedAsTextCommand:
                         embed = null;
-                        textMessage = $"This command is slash-only! Please use `/{convertedCommandInfo.Command?.Name} {string.Join(" ", convertedCommandInfo.Command?.Parameters.ToList().ConvertAll(param => $"<{param.Summary ?? param.Name}>")!)}`";
+                        returnValue.WithText(
+                            $"This command is slash-only! Please use `/{convertedCommandInfo.Command?.Name} {string.Join(" ", convertedCommandInfo.Command?.Parameters.ToList().ConvertAll(param => $"<{param.Summary ?? param.Name}>")!)}`");
                         break;
                 }
 
-                
+                if (embed != null) returnValue.WithEmbed(embed);
 
 
-                if (convertedCommandInfo.Command?.IsPrivate == true && convertedCommandInfo.State != CommandConversionState.SlashCommandExecutedAsTextCommand)
+                if (convertedCommandInfo.Command?.IsPrivate == true && convertedCommandInfo.State !=
+                    CommandConversionState.SlashCommandExecutedAsTextCommand)
                 {
-                    await message.Author.SendMessageAsync(textMessage, embed: embed?.Build());  // Reply in DMs 
-                    await message.ReplyAsync("Replied in DMs");                             // Reply in channel
+                    await message.Author.SendMessageAsync(returnValue.Message, embed: returnValue.Embed?.Build(),
+                        components: returnValue.Components?.Build()); // Reply in DMs 
+                    await message.ReplyAsync("Replied in DMs"); // Reply in channel
                 }
                 else
-                    await message.ReplyAsync(textMessage, embed: embed?.Build());
-                
+                    await message.ReplyAsync(returnValue.Message, embed: returnValue.Embed?.Build(),
+                        components: returnValue.Components?.Build());
+
                 // else if (textMessage != null)
                 // {
                 //     if (context.Command.IsPrivate)
@@ -236,7 +282,8 @@ namespace GoogleBot
 
                 // Console.WriteLine(command.CommandName);
 
-                ExecuteSlashCommandAsync(command);
+                // ExecuteSlashCommandAsync(command);
+                _ = CommandMaster.ExecuteAsync(command);
             }
             catch (Exception e)
             {
@@ -278,10 +325,11 @@ namespace GoogleBot
             {
                 CommandConversionInfo convertedCommandInfo = GetCommandInfoFromSlashCommand(command);
 
-              
+
                 await command.DeferAsync(convertedCommandInfo.Command?.IsPrivate == true);
-                
+
                 Console.WriteLine(convertedCommandInfo.Command.Name + " " + convertedCommandInfo.State);
+
 
                 // Console.WriteLine(string.Join(", " , command.Data.Options.ToList().ConvertAll(option=>option.Value)));
                 switch (convertedCommandInfo.State)
@@ -292,14 +340,18 @@ namespace GoogleBot
                         break;
 
                     case CommandConversionState.Success:
-                        CommandReturnValue retval =
-                            await CommandMaster.Execute(new ExecuteContext(command), convertedCommandInfo.Arguments.ToArray());
-                        await command.ModifyOriginalResponseAsync(properties =>
+                        using (CommandReturnValue returnValue = await CommandMaster.LegacyExecute(new ExecuteContext(command),
+                                   convertedCommandInfo.Arguments.ToArray()))
                         {
-                            properties.Embed = retval.Embed?.Build();
-                            properties.Content = retval.Message;
-                        });
-                        
+                            await command.ModifyOriginalResponseAsync(properties =>
+                            {
+                                properties.Embed = returnValue.Embed?.Build();
+                                properties.Components = returnValue.Components?.Build();
+                                properties.Content = returnValue.Message;
+                            });
+                        }
+
+
                         break;
                 }
 
@@ -313,7 +365,6 @@ namespace GoogleBot
                 Console.WriteLine(e.Source);
                 try
                 {
-
                     await command.ModifyOriginalResponseAsync(properties =>
                     {
                         properties.Content = "Something went wrong. Please try again.";

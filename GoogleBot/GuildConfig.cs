@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using Discord;
+using Discord.WebSocket;
 
 namespace GoogleBot;
 
@@ -19,6 +21,8 @@ public class GuildConfig
         Id = id;
         GuildMaster.Add(this);
     }
+
+
     
     /// <summary>
     /// Creates or gets existing Guild object with the ID
@@ -31,5 +35,11 @@ public class GuildConfig
             return null;
         return GuildMaster.Find(guild => guild.Id.Equals(guildId)) ?? new GuildConfig((ulong)guildId);
     }
+
+    // public static GuildConfig Get(SocketGuild guild)
+    // {
+    //     
+    //     return GuildMaster.Find(g => g.Id.Equals(guild.Id)) ?? new GuildConfig((ulong)guildId);
+    // }
 }
 
