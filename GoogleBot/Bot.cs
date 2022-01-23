@@ -60,7 +60,7 @@ namespace GoogleBot
             // CommandMaster.InstantiateCommands();
             CommandMaster.AddApplicationCommands();
 
-            RegisterCommandsAsync();
+            // RegisterCommandsAsync();
 
             // Console.WriteLine(string.Join(", ", CommandHandler._coms.Commands.ToList().ConvertAll(c=>c.Name)));
 
@@ -158,6 +158,7 @@ namespace GoogleBot
         {
             client.MessageReceived += HandleCommandAsync;
             client.SlashCommandExecuted += HandleSlashCommandAsync;
+            client.ButtonExecuted += CommandModuleHelper.InteractionHandler;
             await commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
             // await commands.AddModuleAsync(typeof(GoogleModule), null);
         }

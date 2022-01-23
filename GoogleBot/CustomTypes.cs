@@ -220,3 +220,30 @@ public class FormattedMessage
         return this;
     }
 }
+
+
+public class Context
+{
+    public Context(){}
+    public Context(SocketSlashCommand command)
+    {
+       
+        IGuildUser? guildUser = command.User as IGuildUser;
+        Channel = command.Channel;
+        CommandInfo = CommandMaster.GetCommandFromName(command.CommandName);
+        Command = command;
+        Guild = (SocketGuild?)guildUser?.Guild;
+        User = command.User;
+        GuildConfig = GuildConfig.Get(guildUser?.GuildId);
+        VoiceChannel = guildUser?.VoiceChannel;
+    }
+    public SocketSlashCommand? Command {get;}
+    public ISocketMessageChannel? Channel { get; }
+    public CommandInfo? CommandInfo { get;  }
+    public SocketGuild? Guild { get;  }
+    public SocketUser? User { get;  }
+    public SocketMessageComponent? Component { get; set; } = null;
+    public GuildConfig? GuildConfig { get; }
+    public IVoiceChannel? VoiceChannel { get;  }
+
+}
