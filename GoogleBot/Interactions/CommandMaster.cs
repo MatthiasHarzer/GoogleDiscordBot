@@ -57,7 +57,7 @@ public static class CommandMaster
             Helpers.Add(new ApplicationModuleHelper(module));
         }
         
-        ExportCommands();
+        
     }
 
     /// <summary>

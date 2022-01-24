@@ -149,6 +149,7 @@ namespace GoogleBot
 
             // Console.WriteLine("Available slash commands: \n" + string.Join(", ",
             // CommandMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
+            CommandMaster.ExportCommands();
         }
     }
 

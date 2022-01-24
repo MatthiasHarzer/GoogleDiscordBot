@@ -19,6 +19,7 @@ namespace GoogleBot.Interactions.Modules;
 public class TestModule : ApplicationModuleBase
 {
     [Command("component-test")]
+    [Summary("Used for testing with buttons and drop downs")]
     public async Task Play([Multiple] [Summary("multiple word")] [Name("input")] string query = "abc")
     {
         ComponentBuilder builder = new ComponentBuilder().WithButton("Cool button", "button");
