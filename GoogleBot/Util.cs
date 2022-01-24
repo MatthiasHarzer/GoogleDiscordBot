@@ -250,20 +250,20 @@ namespace GoogleBot
         }
 
         /// <summary>
-        /// Get the used command and given arguments from the message
+        /// Get the used text-only command and given arguments from the message
         /// </summary>
         /// <param name="message">The message provided from the Discord API</param>
         /// <returns>The command and an array including the arguments</returns>
-        public static CommandConversionInfo GetCommandInfoFromMessage(SocketUserMessage message)
+        public static CommandConversionInfo GetTextCommandInfoFromMessage(SocketUserMessage message)
         {
             int argPos = 0;
             if (message.ToString().Length > 1 && message.HasCharPrefix('!', ref argPos))
             {
                 string raw_command = message.ToString().Split(" ")[0].Substring(argPos);
 
-                foreach (CommandInfo ctx in CommandMaster.LegacyCommandsList)
+                foreach (CommandInfo ctx in CommandMaster.CommandList)
                 {
-                    if (ctx.Name.Equals(raw_command) || ctx.Aliases.Contains(raw_command))
+                    if (ctx.Name.Equals(raw_command))
                     {
                         string command = ctx.Name;
                         string[] raw_args = message.ToString().Substring(argPos + raw_command.Length).Split(" ")
@@ -342,7 +342,7 @@ namespace GoogleBot
                                     return new CommandConversionInfo
                                     {
                                         State = CommandConversionState.InvalidArgType,
-                                        Command = CommandMaster.GetLegacyCommandFromName(command),
+                                        Command = CommandMaster.GetCommandFromName(command),
                                         TargetTypeParam = wrongTypes.ToArray()
                                     };
                                 }
@@ -363,7 +363,7 @@ namespace GoogleBot
                             return new CommandConversionInfo
                             {
                                 State = CommandConversionState.MissingArg,
-                                Command = CommandMaster.GetLegacyCommandFromName(command),
+                                Command = CommandMaster.GetCommandFromName(command),
                                 MissingArgs = missingArgs.ToArray(),
                             };
                         }
@@ -374,7 +374,7 @@ namespace GoogleBot
                         return new CommandConversionInfo
                         {
                             State = CommandConversionState.Success,
-                            Command = CommandMaster.GetLegacyCommandFromName(command),
+                            Command = CommandMaster.GetCommandFromName(command),
                             Arguments = args.ToArray(),
                         };
                     }
@@ -387,113 +387,7 @@ namespace GoogleBot
             };
         }
 
-
-        /// <summary>
-        /// Primarily used to bring the slash commands options into to for the command executor understandable format  
-        /// </summary>
-        /// <param name="command">The SocketSlashCommand provided by discord</param>
-        /// <returns>Information about the command conversion</returns>
-        public static CommandConversionInfo GetCommandInfoFromSlashCommand(SocketSlashCommand command)
-        {
-            CommandInfo cmd = CommandMaster.GetLegacyCommandFromName(command.CommandName);
-
-            if (cmd == null)
-            {
-                return new CommandConversionInfo
-                {
-                    State = CommandConversionState.NotFound,
-                };
-            }
-
-            string[] raw_args = command.Data.Options.ToList().ConvertAll(o =>(string) o.Value).ToArray();
-
-            List<object> args = new List<object>();
-
-            int index = 0;
-
-            foreach (ParameterInfo param in cmd.Parameters)
-            {
-                if (index < raw_args.Length)
-                {
-                    List<(string, Type)> wrongTypes = new();
-
-                    if (!param.IsMultiple)
-                    {
-                        try
-                        {
-                            object c = Convert.ChangeType(raw_args[index], param.Type);
-
-                            if (c != null)
-                            {
-                                args.Add(c);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e.StackTrace);
-                            wrongTypes.Add((raw_args[index], param.Type));
-                        }
-                    }
-                    else
-                    {
-                        List<dynamic> multiple = new();
-                        //* Get all additional params if it has multiple words
-                        for (int i = index; i < raw_args.Length; i++)
-                        {
-                            try
-                            {
-                                dynamic c = Convert.ChangeType(raw_args[i], param.Type);
-
-                                if (c != null)
-                                {
-                                    multiple.Add(c);
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                Console.WriteLine(e.StackTrace);
-                                wrongTypes.Add((raw_args[i], param.Type));
-                            }
-                        }
-
-                        //* Convert dynamic array to explicit array of type <param.Type>
-                        //* I dont understand what the heck heppens here, but it works
-                        //* ->https://stackoverflow.com/a/51654220/11664234
-                        var typeConvertedEnumerable = typeof(System.Linq.Enumerable)
-                            .GetMethod("Cast", BindingFlags.Static | BindingFlags.Public)
-                            ?.MakeGenericMethod(new Type[] { param.Type })
-                            .Invoke(null, new object[] { multiple.ToArray() });
-                        var typeConvertedArray = typeof(System.Linq.Enumerable)
-                            .GetMethod("ToArray", BindingFlags.Static | BindingFlags.Public)
-                            ?.MakeGenericMethod(new Type[] { param.Type })
-                            .Invoke(null, new object[] { typeConvertedEnumerable });
-                        args.Add(typeConvertedArray);
-                    }
-
-
-                    if (wrongTypes.Count > 0)
-                    {
-                        return new CommandConversionInfo
-                        {
-                            State = CommandConversionState.InvalidArgType,
-                            Command = CommandMaster.GetLegacyCommandFromName(cmd.Name) ,
-                            TargetTypeParam = wrongTypes.ToArray()
-                        };
-                    }
-                }
-
-
-                index++;
-            }
-
-            return new CommandConversionInfo
-            {
-                State = CommandConversionState.Success,
-                Command = CommandMaster.GetLegacyCommandFromName(command.CommandName),
-                Arguments = args.ToArray(),
-            };
-        }
-
+        
         public static ApplicationCommandOptionType ToApplicationCommandOptionType(Type origin)
         {
             
@@ -509,6 +403,48 @@ namespace GoogleBot
                 default:
                     return ApplicationCommandOptionType.String;
             }
+        }
+
+        public static Type ToGenericType(ApplicationCommandOptionType applicationCommandOptionType)
+        {
+            switch (applicationCommandOptionType)
+            {
+                case ApplicationCommandOptionType.Boolean:
+                    return typeof(bool);
+                case ApplicationCommandOptionType.String:
+                    return typeof(string);
+                case ApplicationCommandOptionType.Integer:
+                    return typeof(int);
+                case ApplicationCommandOptionType.Number:
+                    return typeof(double);
+                default:
+                    return typeof(string);
+            }
+        }
+
+        public static bool ApproximatelyEqual(CommandInfo command1, CommandInfo command2)
+        {
+            if (command1.Name != command2.Name || command1.Summary != command2.Summary || command1.Parameters.Length != command2.Parameters.Length) return false;
+
+            int pos = 0;
+            for (pos = 0; pos < command1.Parameters.Length; pos++)
+            {
+                // Console.WriteLine(pos);
+                if (pos > command2.Parameters.Length)
+                {
+                    return false; 
+                }
+                ParameterInfo p1 = command1.Parameters[pos];
+                ParameterInfo p2 = command2.Parameters[pos];
+
+                if (p1.Name != p2.Name || p1.Summary != p2.Summary || p1.Type != p2.Type ||
+                    p1.IsOptional != p2.IsOptional) return false;
+            }
+
+            if (command2.Parameters.Length > pos) return false;
+
+            return true;
+
         }
     }
 }

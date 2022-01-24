@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
+using Discord;
 
 namespace GoogleBot.Interactions;
 
@@ -20,6 +22,7 @@ public abstract class ApplicationModuleBase
     /// <param name="message">The message</param>
     protected async Task ReplyAsync(FormattedMessage message)
     {
+        // Console.WriteLine($"Replying with message {message}");
         if (Context.Command != null)
             await Context.Command.ModifyOriginalResponseAsync(properties =>
             {
@@ -27,5 +30,14 @@ public abstract class ApplicationModuleBase
                 properties.Components = message.Components?.Build();
                 properties.Content = message.Message;
             });
+    }
+
+    protected async Task ReplyAsync(EmbedBuilder embed)
+    {
+        await ReplyAsync(new FormattedMessage(embed));
+    }
+    protected async Task ReplyAsync(string embed)
+    {
+        await ReplyAsync(new FormattedMessage(embed));
     }
 }

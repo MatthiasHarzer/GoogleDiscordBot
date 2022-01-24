@@ -17,34 +17,20 @@ namespace GoogleBot.Interactions;
 /// </summary>
 public static class CommandMaster
 {
-    /// <summary>
-    /// Stores all commands with name, aliases, summary and execute methode
-    /// </summary>
-    public static readonly List<CommandInfo> LegacyCommandsList = new();
+    public static readonly List<CommandInfo> CommandList = new();
 
-    public static readonly List<CommandInfo> CommandsList = new();
-    
     public static readonly List<ApplicationModuleHelper> Helpers = new();
 
-    /// <summary>
-    /// Gets the command with the name or null
-    /// </summary>
-    /// <param name="commandName">Command name (primary)</param>
-    /// <returns>The CommandInfo object or null if not found</returns>
-    public static CommandInfo GetLegacyCommandFromName(string commandName)
-    {
-        var res = LegacyCommandsList.FindAll(c => c.Name == commandName);
-        if (res.Count != 0)
-        {
-            return res.First();
-        }
-        
-        return null;
-    }
+
     
+    /// <summary>
+    /// Gets the application command with the given name
+    /// </summary>
+    /// <param name="commandName"></param>
+    /// <returns>The command or null if not found</returns>
     public static CommandInfo GetCommandFromName(string commandName)
     {
-        var res = CommandsList.FindAll(c => c.Name == commandName);
+        var res = CommandList.FindAll(c =>c.Name == commandName);
         if (res.Count != 0)
         {
             return res.First();
@@ -54,73 +40,9 @@ public static class CommandMaster
     }
 
     /// <summary>
-    /// Add a command to the commands list if it does not exist yet 
+    /// Get all modules with base class <see cref="ApplicationModuleBase"/> an create their <see cref="ApplicationModuleHelper"/> 
     /// </summary>
-    /// <param name="commandInfo">The command to add</param>
-    /// <returns>True if the command where added</returns>
-    private static bool AddCommand(CommandInfo commandInfo)
-    {
-        if (LegacyCommandsList.FindAll(com => com.Name == commandInfo.Name).Count != 0) return false;
-        //* The command does not exist yet -> add
-        LegacyCommandsList.Add(commandInfo);
-        return true;
-
-    }
-
-    /// <summary>
-    /// Get all commands and add there info (name, aliases, summery, params)
-    /// </summary>
-    public static void InstantiateCommands()
-    {
-        AddApplicationCommands();
-        // Console.WriteLine("Instantiating");
-        // commands = new Commands();
-        foreach (MethodInfo method in typeof(LegacyCommands).GetMethods())
-        {
-            CommandAttribute commandAttribute = method.GetCustomAttribute<CommandAttribute>();
-            SummaryAttribute summaryAttribute = method.GetCustomAttribute<SummaryAttribute>();
-            AliasAttribute aliasAttribute = method.GetCustomAttribute<AliasAttribute>();
-            PrivateAttribute privateAttribute = method.GetCustomAttribute<PrivateAttribute>();
-            SlashOnlyCommandAttribute slashOnlyCommandAttribute =
-                method.GetCustomAttribute<SlashOnlyCommandAttribute>();
-            ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p => new ParameterInfo
-            {
-                Summary = p.GetCustomAttribute<SummaryAttribute>()?.Text,
-                Type = p.ParameterType.IsArray ? p.ParameterType.GetElementType() : p.ParameterType,
-                Name = p.Name,
-                IsMultiple = p.IsDefined(typeof(ParamArrayAttribute), false),
-                IsOptional = p.HasDefaultValue,
-            }).ToArray();
-
-            // Console.WriteLine(method.Name + "\n Method -> " + method.ReturnType + "\n W´Type ->" + typeof(Task<CommandReturnValue>) +"\n = " +
-            //                   (method.ReturnType == typeof(Task<CommandReturnValue>)) + "\n-----");
-            if (commandAttribute != null && method.ReturnType == typeof(Task<CommandReturnValue>))
-            {
-                bool isEphemeral = privateAttribute?.IsEphemeral != null && privateAttribute.IsEphemeral;
-                bool isSlashOnly = slashOnlyCommandAttribute?.IsSlashOnlyCommand != null &&
-                                   slashOnlyCommandAttribute.IsSlashOnlyCommand;
-                List<string> aliases = aliasAttribute?.Aliases?.ToList() ?? new List<string>();
-                aliases.Insert(0, commandAttribute.Text);
-
-                if (!AddCommand(new CommandInfo
-                    {
-                        Name = commandAttribute.Text,
-                        Summary = summaryAttribute?.Text,
-                        Aliases = aliases.ToArray(),
-                        Parameters = parameterInfo,
-                        Method = method,
-                        IsPrivate = isEphemeral,
-                        IsSlashOnly = isSlashOnly,
-                    }))
-                {
-                    Console.WriteLine($"Command {commandAttribute.Text} already exists! -> no new command was added");
-                }
-            }
-
-        }
-    }
-
-    public static void AddApplicationCommands()
+    public static void MountModules()
     {
         IEnumerable<ApplicationModuleBase> commandModules = typeof(ApplicationModuleBase).Assembly.GetTypes()
             .Where(t => t.IsSubclassOf(typeof(ApplicationModuleBase)) && !t.IsAbstract)
@@ -132,54 +54,74 @@ public static class CommandMaster
         }
     }
 
-    public static void Execute(SocketSlashCommand command)
+    /// <summary>
+    /// Execute a given slash command
+    /// </summary>
+    /// <param name="command">The command</param>
+    public static async Task Execute(SocketSlashCommand command)
     {
         object[] args = command.Data.Options.ToList().ConvertAll(option => option.Value).ToArray();
 
-        ApplicationModuleHelper helper = Helpers.Find(helper => helper.GetCommandsAsText().Contains(command.CommandName));
+        ApplicationModuleHelper helper = Helpers.Find(helper =>helper.GetCommandsAsText().Contains(command.CommandName));
         Context commandContext = new Context(command);
         CommandInfo commandInfo = commandContext.CommandInfo;
         
+        Console.WriteLine($"Found {commandInfo?.Name} in {helper?.Module}");
+        
+        commandContext.Command?.DeferAsync(ephemeral: commandInfo is {IsPrivate: true});
+        
         if (helper != null && commandInfo is {Method: not null})
         {
-            commandContext.Command?.DeferAsync(ephemeral: commandInfo is {IsPrivate: true});
+            Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
+            
             helper.SetContext(commandContext);
-            commandInfo.Method.Invoke(helper.Module, args);
-        }
-    }
-
-    public static async Task ExecuteAsync(SocketSlashCommand command)
-    {
-        Execute(command);
-    }
-
-    /// <summary>
-    /// Executes an command depending on the ExecuteContext
-    /// </summary>
-    /// <param name="context">The ExecuteContext with User, Guild, Command etc...</param>
-    /// <param name="args">The arguments for the command</param>
-    /// <returns>A CommandReturnValue with an embed or text message</returns>
-    public static async Task<CommandReturnValue> LegacyExecute(ExecuteContext context, params object[] args)
-    {
-        
-        if (context.Command != null)
-        {
-            // Console.WriteLine(string.Join(", ", args));
-            // Console.WriteLine(args.GetType());
-            Console.WriteLine($"Executing '{context.Command.Name}' with args <{string.Join(", ", args)}>");
             try
             {
-       
-                // Console.WriteLine(RandomColor());
-                return await ((Task<CommandReturnValue>)context.Command.Method.Invoke(new LegacyCommands(context),
-                    args.ToArray()))!;
-            }catch (Exception e)
+
+                await ((Task)commandInfo.Method.Invoke(helper.Module, args))!;
+            }
+            catch(Exception e)
             {
-                Console.WriteLine(e.Message + " " + e.StackTrace);
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
             }
         }
-     
-        
-        return null;
+        else
+        {
+            commandContext.Command?.ModifyOriginalResponseAsync(properties =>
+            {
+                properties.Content = "`Looks like that command doesn't exist. Sorry :/`";
+            });
+        }
     }
+    
+    
+    
+
+    /// <summary>
+    /// Check if the message is a text command and reply with an message to use the application command
+    /// </summary>
+    /// <param name="socketCommandContext">The command context</param>
+    public static void CheckTextCommand(SocketCommandContext socketCommandContext)
+    {
+        
+        CommandConversionInfo commandContext = GetTextCommandInfoFromMessage(socketCommandContext.Message);
+        IDisposable typing = null;
+        
+        ApplicationModuleHelper helper = Helpers.Find(helper => helper.GetCommandsAsText().Contains(commandContext.Command.Name));
+
+        if (helper != null)
+        {
+            typing = socketCommandContext.Channel.EnterTypingState();
+            EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+            embed.AddField("Text commands are deprecated! Please use the application command.",
+                $"Consider using `/{commandContext.Command.Name} {string.Join(" ", commandContext.Command.Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}` instead.");
+            FormattedMessage message = new FormattedMessage(embed);
+            socketCommandContext.Message?.ReplyAsync(message.Message, embed: message.Embed?.Build());
+        }
+        
+        typing?.Dispose();
+        
+    }
+    
 }

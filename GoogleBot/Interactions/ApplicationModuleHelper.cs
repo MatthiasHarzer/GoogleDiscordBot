@@ -50,6 +50,7 @@ public class ApplicationModuleHelper
         // Console.WriteLine("new CommandModuleHelper for " + module.ToString());
         Module = module;
         
+
         //* Get all methods in the module
         foreach (MethodInfo method in Module.GetType().GetMethods())
         {
@@ -76,7 +77,7 @@ public class ApplicationModuleHelper
                 if (!AddCommand(new CommandInfo
                     {
                         Name = commandAttribute.Text,
-                        Summary = summaryAttribute?.Text,
+                        Summary = summaryAttribute?.Text ?? "No description available",
                         Parameters = parameterInfo,
                         Method = method,
                         IsPrivate = isEphemeral,
@@ -118,9 +119,9 @@ public class ApplicationModuleHelper
     /// <returns>True if the command where added</returns>
     private bool AddCommand(CommandInfo commandInfo)
     {
-        if (CommandMaster.CommandsList.FindAll(com => com.Name == commandInfo.Name).Count != 0) return false;
+        if (CommandMaster.CommandList.FindAll(com => com.Name == commandInfo.Name).Count != 0) return false;
         //* The command does not exist yet -> add
-        CommandMaster.CommandsList.Add(commandInfo);
+        CommandMaster.CommandList.Add(commandInfo);
         Commands.Add(commandInfo);
         return true;
 
