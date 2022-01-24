@@ -66,11 +66,17 @@ public static class CommandMaster
     /// <param name="command">The command</param>
     public static async Task Execute(SocketSlashCommand command)
     {
-        object[] args = command.Data.Options.ToList().ConvertAll(option => option.Value).ToArray();
+        foreach (var o in command.Data.Options)
+        {
+            Console.WriteLine(o.Value);
+        }
 
         ApplicationModuleHelper helper = Helpers.Find(helper =>helper.GetCommandsAsText().Contains(command.CommandName));
         Context commandContext = new Context(command);
         CommandInfo commandInfo = commandContext.CommandInfo;
+
+        
+        
         
         Console.WriteLine($"Found {commandInfo?.Name} in {helper?.Module}");
         
@@ -78,12 +84,35 @@ public static class CommandMaster
         
         if (helper != null && commandInfo is {Method: not null})
         {
-            Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
+            
+            object[] args = new object[commandInfo.Method.GetParameters().Length];
+        
+            object[] options =   command.Data.Options.ToList().ConvertAll(option => option.Value).ToArray();
+
+            if (options.Length > args.Length)
+            {
+                throw new ArgumentException("Too many arguments for that command");
+            }
+
+            int i = 0;
+            for (i = 0; i < options.Length; i++)
+            {
+                args[i] = options[i];
+            }
+
+            for (; i < args.Length; i++)
+            {
+                args[i] = commandInfo.Method.GetParameters()[i].DefaultValue;
+            }
+            
+            // Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
+            
+            
             
             helper.SetContext(commandContext);
             try
             {
-
+                // Console.WriteLine(args.Length);
                 await ((Task)commandInfo.Method.Invoke(helper.Module, args))!;
             }
             catch(Exception e)

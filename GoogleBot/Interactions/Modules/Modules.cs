@@ -29,7 +29,6 @@ public class TestModule : ApplicationModuleBase
 
     [Command("ping")]
     [Summary("Ping a user with an optional message.")]
-    [Private]
     public async Task Ping([Name("user")] [OptionType(ApplicationCommandOptionType.User)] SocketUser user,
         [Name("message")] [Summary("The message to append")] string message = "")
     {
