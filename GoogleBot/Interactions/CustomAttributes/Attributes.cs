@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Diagnostics.CodeAnalysis;
+using Discord;
 
 namespace GoogleBot.Interactions.CustomAttributes;
 
@@ -84,5 +85,20 @@ public class MultipleAttribute : Attribute
     public MultipleAttribute(bool isMultiple)
     {
         IsMultiple = isMultiple;
+    }
+}
+
+
+/// <summary>
+/// Sets the applicationOptionType of a parameter 
+/// </summary>
+[AttributeUsage(AttributeTargets.Parameter)]
+public class OptionTypeAttribute : Attribute
+{
+    public ApplicationCommandOptionType Type { get; }
+
+    public OptionTypeAttribute(ApplicationCommandOptionType t)
+    {
+        Type = t;
     }
 }

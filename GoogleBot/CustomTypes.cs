@@ -36,9 +36,10 @@ public class ParameterInfo
 
     public string Name { get; init; } = null!;
     public string Summary { get; init; } = null!;
-    public Type? Type { get; init; }
+    public ApplicationCommandOptionType Type { get; init; }
     public bool IsMultiple { get; init; }
     public bool IsOptional { get; init; }
+    
     
     
 
@@ -63,7 +64,7 @@ public class CommandInfo
         {
             Name = o.Name,
             Summary = o.Description,
-            Type = ToGenericType(o.Type),
+            Type = o.Type,
             IsOptional = o is { IsRequired: false }
         }).ToArray();
     }

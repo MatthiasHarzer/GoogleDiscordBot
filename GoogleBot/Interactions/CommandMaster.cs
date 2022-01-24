@@ -7,7 +7,9 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using GoogleBot.Interactions.CustomAttributes;
+using Newtonsoft.Json;
 using static GoogleBot.Util;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace GoogleBot.Interactions;
 
@@ -20,8 +22,6 @@ public static class CommandMaster
     public static readonly List<CommandInfo> CommandList = new();
 
     public static readonly List<ApplicationModuleHelper> Helpers = new();
-
-
     
     /// <summary>
     /// Gets the application command with the given name
@@ -95,9 +95,6 @@ public static class CommandMaster
         }
     }
     
-    
-    
-
     /// <summary>
     /// Check if the message is a text command and reply with an message to use the application command
     /// </summary>
@@ -105,17 +102,18 @@ public static class CommandMaster
     public static void CheckTextCommand(SocketCommandContext socketCommandContext)
     {
         
-        CommandConversionInfo commandContext = GetTextCommandInfoFromMessage(socketCommandContext.Message);
+        CommandInfo command = GetTextCommandFromMessage(socketCommandContext.Message);
+  
         IDisposable typing = null;
         
-        ApplicationModuleHelper helper = Helpers.Find(helper => helper.GetCommandsAsText().Contains(commandContext.Command.Name));
+        ApplicationModuleHelper helper = Helpers.Find(helper => helper.GetCommandsAsText().Contains(command.Name));
 
         if (helper != null)
         {
             typing = socketCommandContext.Channel.EnterTypingState();
             EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
             embed.AddField("Text commands are deprecated! Please use the application command.",
-                $"Consider using `/{commandContext.Command.Name} {string.Join(" ", commandContext.Command.Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}` instead.");
+                $"Consider using `/{command.Name} {string.Join(" ", command.Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}` instead.");
             FormattedMessage message = new FormattedMessage(embed);
             socketCommandContext.Message?.ReplyAsync(message.Message, embed: message.Embed?.Build());
         }
@@ -123,5 +121,14 @@ public static class CommandMaster
         typing?.Dispose();
         
     }
-    
+
+    public static void ExportCommands()
+    {
+        // foreach (CommandInfo info in CommandList)
+        // {
+        //     string jsonString = JsonSerializer.Serialize<CommandInfo>(info);
+        //     
+        //     Console.WriteLine(jsonString);
+        // }
+    }
 }

@@ -105,6 +105,7 @@ namespace GoogleBot
                 }
             }
 
+            CommandMaster.ExportCommands();
             if (newOrChangedCommands.Count <= 0)
             {
                 return;
@@ -129,7 +130,7 @@ namespace GoogleBot
 
                 foreach (ParameterInfo parameter in command.Parameters)
                 {
-                    builder.AddOption(parameter.Name, ToApplicationCommandOptionType(parameter.Type),
+                    builder.AddOption(parameter.Name, parameter.Type,
                         parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
                 }
 

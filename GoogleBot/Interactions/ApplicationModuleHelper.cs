@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
 using GoogleBot.Interactions.CustomAttributes;
+using static GoogleBot.Util;
 
 namespace GoogleBot.Interactions;
 
@@ -62,7 +63,7 @@ public class ApplicationModuleHelper
             ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p => new ParameterInfo
             {
                 Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
-                Type = p.ParameterType,
+                Type = p.GetCustomAttribute<OptionTypeAttribute>()?.Type ?? ToOptionType(p.ParameterType),
                 Name = p.Name ?? string.Empty,
                 IsMultiple = p.GetCustomAttribute<MultipleAttribute>()?.IsMultiple ?? false,
                 IsOptional = p.HasDefaultValue,
