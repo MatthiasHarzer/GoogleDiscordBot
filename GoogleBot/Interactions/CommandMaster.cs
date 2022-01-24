@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -9,6 +12,7 @@ using Discord.WebSocket;
 using GoogleBot.Interactions.CustomAttributes;
 using Newtonsoft.Json;
 using static GoogleBot.Util;
+using JsonException = System.Text.Json.JsonException;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace GoogleBot.Interactions;
@@ -52,6 +56,8 @@ public static class CommandMaster
         {
             Helpers.Add(new ApplicationModuleHelper(module));
         }
+        
+        ExportCommands();
     }
 
     /// <summary>
@@ -122,13 +128,74 @@ public static class CommandMaster
         
     }
 
+    
+    /// <summary>
+    /// Convert all commands into json and save them in a file
+    /// </summary>
     public static void ExportCommands()
     {
-        // foreach (CommandInfo info in CommandList)
-        // {
-        //     string jsonString = JsonSerializer.Serialize<CommandInfo>(info);
-        //     
-        //     Console.WriteLine(jsonString);
-        // }
+        JsonObject savable = new JsonObject();
+        JsonArray commands = new JsonArray();
+        foreach (CommandInfo cmd in CommandList)
+        {
+            commands.Add(cmd.ToJson());
+        }
+        savable.Add("commands", commands);
+        // Console.WriteLine(JsonSerializer.Serialize(savable));
+        
+        File.WriteAllText("./commands.json", JsonSerializer.Serialize(savable));
+    }
+
+    
+    /// <summary>
+    /// Read local file and try converting the json to valid command infos
+    /// </summary>
+    /// <returns></returns>
+    public static List<CommandInfo> ImportCommands()
+    {
+        List<CommandInfo> commandInfos = new();
+        try
+        {
+            string content = File.ReadAllText("./commands.json");
+
+            JsonObject json = JsonSerializer.Deserialize<JsonObject>(content);
+
+            JsonArray jsonCommands = null;
+            if (json != null && json.TryGetPropertyValue("commands", out var jn))
+            {
+                if (jn != null) jsonCommands = jn.AsArray();
+            }
+
+            if (jsonCommands != null)
+            {
+                foreach (JsonNode jsonCommand in jsonCommands)
+                {
+                    if (jsonCommand != null)
+                    {
+                        try
+                        {
+                            commandInfos.Add(new CommandInfo().FromJson((JsonObject)jsonCommand));
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                            Console.WriteLine(e.StackTrace);
+                            // ignored
+                        }
+                    }
+                }
+            }
+
+        }
+
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            Console.WriteLine(e.StackTrace);
+            // -> something's fishy with the file or json
+            
+        }
+        return commandInfos;
+        
     }
 }

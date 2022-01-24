@@ -80,7 +80,7 @@ public class MultipleAttribute : Attribute
 
     public MultipleAttribute()
     {
-        IsMultiple = false;
+        IsMultiple = true;
     }
     public MultipleAttribute(bool isMultiple)
     {

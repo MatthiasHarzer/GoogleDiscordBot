@@ -2,6 +2,9 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions;
@@ -11,6 +14,11 @@ using static GoogleBot.Util;
 
 namespace GoogleBot;
 
+internal interface IJsonSerializable<out T>
+{
+    JsonObject ToJson();
+    T FromJson(JsonObject jsonObject);
+}
 
 /// <summary>
 /// Simple return value for converting a message into its parts (command, args)
@@ -28,10 +36,11 @@ public class CommandConversionInfo
 }
 
 
+
 /// <summary>
 /// Describes a parameter of a command
 /// </summary>
-public class ParameterInfo
+public class ParameterInfo : IJsonSerializable<ParameterInfo>
 {
 
     public string Name { get; init; } = null!;
@@ -47,12 +56,66 @@ public class ParameterInfo
     {
         return $"{Name} - {Summary}\n Multiple: {IsMultiple}, Optional: {IsOptional}, Type: {Type}";
     }
+
+    public JsonObject ToJson()
+    {
+        return new JsonObject
+        {
+            { "name", Name },
+            { "summery", Summary },
+            { "multiple", IsMultiple },
+            { "optional", IsOptional },
+            { "type", OptionTypeToString(Type) }
+        };
+    }
+
+    public ParameterInfo FromJson(JsonObject jsonObject)
+    {
+        string name = null, summery = null;
+        bool isMultiple = false, isOptional = false;
+        ApplicationCommandOptionType type = (ApplicationCommandOptionType)0;
+
+        if (jsonObject.TryGetPropertyValue("name", out var n))
+        {
+            name = n?.ToString() ?? throw new InvalidOperationException();
+        }
+        if (jsonObject.TryGetPropertyValue("summery", out var s))
+        {
+            summery = s?.ToString() ?? "";
+        }
+        if (jsonObject.TryGetPropertyValue("multiple", out var m))
+        {
+            isMultiple = m?.GetValue<bool>() ?? false;
+        }
+        if (jsonObject.TryGetPropertyValue("optional", out var o))
+        {
+            isOptional = o?.GetValue<bool>() ?? false;
+        }
+        if (jsonObject.TryGetPropertyValue("type", out var t))
+        {
+            type = ToOptionType(t?.ToString());
+        }
+
+        if (name == null || summery == null)
+        {
+            throw new SerializationException("Name or summery invalid");
+        }
+
+        return new ParameterInfo
+        {
+            Name = name,
+            Summary = summery,
+            IsMultiple = isMultiple,
+            IsOptional = isOptional,
+            Type = type,
+        };
+    }
 }
 
 /// <summary>
 /// Describes a command
 /// </summary>
-public class CommandInfo
+public class CommandInfo : IJsonSerializable<CommandInfo>
 {
     public CommandInfo(){}
 
@@ -80,7 +143,59 @@ public class CommandInfo
         return
             $"{Name} {string.Join(" ", Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))} : {Summary}";
     }
+
+    public JsonObject ToJson()
+    {
+        JsonObject json = new JsonObject
+        {
+            { "name", Name },
+            { "summery", Summary },
+            { "private", IsPrivate },
+            { "parameters", new JsonArray(Parameters.ToList().ConvertAll(p=>(JsonNode)p.ToJson()).ToArray()) }
+        };
+
+        return json;
+    }
     
+    public CommandInfo FromJson(JsonObject jsonObject)
+    {
+        string name = null, summery = null;
+        bool isPrivate = false;
+        JsonArray parameters = new JsonArray();
+        ApplicationCommandOptionType type = (ApplicationCommandOptionType)0;
+
+        if (jsonObject.TryGetPropertyValue("name", out var n))
+        {
+            name = n?.ToString() ?? throw new InvalidOperationException();
+        }
+        if (jsonObject.TryGetPropertyValue("summery", out var s))
+        {
+            summery = s?.ToString() ?? "";
+        }
+        if (jsonObject.TryGetPropertyValue("private", out var ip))
+        {
+            isPrivate = ip?.GetValue<bool>() ?? false;
+        }
+        if (jsonObject.TryGetPropertyValue("parameters", out var pa))
+        {
+
+            parameters = pa?.AsArray() ?? new JsonArray();
+        }
+
+
+        if (name == null || summery == null)
+        {
+            throw new SerializationException("Name or summery invalid");
+        }
+
+        return new CommandInfo
+        {
+            Name = name,
+            Summary = summery,
+            IsPrivate = isPrivate,
+            Parameters = parameters.ToList().OfType<JsonNode>().ToList().ConvertAll(p=>new ParameterInfo().FromJson((JsonObject)p)).ToArray(),
+        };
+    }
 }
 
 

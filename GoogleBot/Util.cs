@@ -292,23 +292,50 @@ namespace GoogleBot
             }
         }
 
-        public static Type ToGenericType(ApplicationCommandOptionType applicationCommandOptionType)
+        public static ApplicationCommandOptionType ToOptionType(string type)
         {
-            switch (applicationCommandOptionType)
+            switch (type)
             {
-                case ApplicationCommandOptionType.Boolean:
-                    return typeof(bool);
-                case ApplicationCommandOptionType.String:
-                    return typeof(string);
-                case ApplicationCommandOptionType.Integer:
-                    return typeof(int);
-                case ApplicationCommandOptionType.Number:
-                    return typeof(double);
+                case "string":
+                    return ApplicationCommandOptionType.String;
+                case "integer":
+                    return ApplicationCommandOptionType.Integer;
+                case "number":
+                    return ApplicationCommandOptionType.Number;
+                case "user":
+                    return ApplicationCommandOptionType.User;
+                case "role":
+                    return ApplicationCommandOptionType.Role;
+                case "channel":
+                    return ApplicationCommandOptionType.Channel;
+                case "mentionable":
+                    return ApplicationCommandOptionType.Mentionable;
                 default:
-                    return typeof(string);
+                    return ApplicationCommandOptionType.String;
             }
         }
 
+        public static string OptionTypeToString(ApplicationCommandOptionType type)
+        {
+            switch (type)
+            {
+                case ApplicationCommandOptionType.String:
+                    return "string";
+                case ApplicationCommandOptionType.Integer:
+                    return "integer";
+                case ApplicationCommandOptionType.Number:
+                    return "number";
+                case ApplicationCommandOptionType.User:
+                    return "user";
+                case ApplicationCommandOptionType.Role:
+                    return "role";
+                case ApplicationCommandOptionType.Channel:
+                    return "channel";
+                default:
+                    return "string";
+                
+            }
+        }
         public static bool ApproximatelyEqual(CommandInfo command1, CommandInfo command2)
         {
             if (command1.Name != command2.Name || command1.Summary != command2.Summary || command1.Parameters.Length != command2.Parameters.Length) return false;
