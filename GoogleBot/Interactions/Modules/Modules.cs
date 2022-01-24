@@ -32,7 +32,7 @@ public class TestModule : ApplicationModuleBase
     public async Task Ping([Name("user")] [OptionType(ApplicationCommandOptionType.User)] SocketUser user,
         [Name("message")] [Summary("The message to append")] string message = "")
     {
-        await ReplyAsync($"<@{user.Id}> \n {message}");
+        await SendMessage($"<@{user.Id}> \n {message}");
     }
 
     [LinkComponentInteraction]

@@ -4,7 +4,6 @@ using Discord;
 
 namespace GoogleBot.Interactions;
 
-
 /// <summary>
 /// Defines a class as an application module
 /// </summary>
@@ -36,8 +35,42 @@ public abstract class ApplicationModuleBase
     {
         await ReplyAsync(new FormattedMessage(embed));
     }
-    protected async Task ReplyAsync(string embed)
+
+    protected async Task ReplyAsync(string text)
     {
-        await ReplyAsync(new FormattedMessage(embed));
+        await ReplyAsync(new FormattedMessage(text));
     }
-}
+
+    /// <summary>
+    /// Send a new message in the channel of context
+    /// </summary>
+    /// <param name="message">The formatted message</param>
+    protected async Task SendMessage(FormattedMessage message)
+    {
+        if (Context is { Channel: not null })
+        {
+            try
+            {
+                await Context.Command?.ModifyOriginalResponseAsync(properties => properties.Content = "`Pinged`")!;
+            }
+            catch (Exception)
+            {
+                //ignored}
+
+            }
+
+            await Context.Channel.SendMessageAsync(message.Message, embed: message.Embed?.Build(),
+                components: message.Components?.Build());
+        }
+    }
+
+    protected async Task SendMessage(string text)
+        {
+            await SendMessage(new FormattedMessage(text));
+        }
+
+        protected async Task SendMessage(EmbedBuilder embed)
+        {
+            await SendMessage(new FormattedMessage(embed));
+        }
+    }
