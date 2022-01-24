@@ -14,30 +14,18 @@ public class PrivateAttribute : Attribute
     /// <summary>
     /// Gets, whether the commands reply should be private or public, if set
     /// </summary>
-    public bool IsEphemeral { get; }
+    public bool IsPrivate { get; }
 
-    public PrivateAttribute(bool isEphemeral)
+    public PrivateAttribute()
     {
-        IsEphemeral = isEphemeral;
+        IsPrivate = true;
+    }
+    public PrivateAttribute(bool isPrivate)
+    {
+        IsPrivate = isPrivate;
     }
 }
 
-/// <summary>
-/// Defines, whether the command can only be used as a slash command
-/// </summary>
-[AttributeUsage(AttributeTargets.Method)]
-public class SlashOnlyCommandAttribute : Attribute
-{
-    /// <summary>
-    /// If true, the command is only accessible as a slash command
-    /// </summary>
-    public bool IsSlashOnlyCommand { get; }
-
-    public SlashOnlyCommandAttribute(bool isSlashOnlyCommand)
-    {
-        IsSlashOnlyCommand = isSlashOnlyCommand;
-    }
-}
 
 
 

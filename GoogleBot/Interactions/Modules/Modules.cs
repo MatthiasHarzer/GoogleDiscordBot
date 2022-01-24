@@ -27,6 +27,15 @@ public class TestModule : ApplicationModuleBase
         await ReplyAsync(new FormattedMessage("POG???").WithComponents(builder));
     }
 
+    [Command("ping")]
+    [Summary("Ping a user with an optional message.")]
+    [Private]
+    public async Task Ping([Name("user")] [OptionType(ApplicationCommandOptionType.User)] SocketUser user,
+        [Name("message")] [Summary("The message to append")] string message = "")
+    {
+        await ReplyAsync($"<@{user.Id}> \n {message}");
+    }
+
     [LinkComponentInteraction]
     public async Task ComponentInteraction(SocketMessageComponent component)
     {
@@ -50,7 +59,6 @@ public class TestModule : ApplicationModuleBase
         // Console.WriteLine("ComponentInteration linked method called AT COOLD ID 2!!!!");
     }
 }
-
 
 /// <summary>
 /// A general use module
@@ -285,7 +293,7 @@ public class GoogleModule : ApplicationModuleBase
 {
     [Command("google")]
     [Summary("Google something")]
-    public async Task Google([Multiple][Summary("A search term")][Name("query")]string query)
+    public async Task Google([Multiple] [Summary("A search term")] [Name("query")] string query)
     {
         if (query.Length <= 0)
         {

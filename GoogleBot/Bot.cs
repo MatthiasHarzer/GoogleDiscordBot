@@ -92,10 +92,12 @@ namespace GoogleBot
 
             foreach (CommandInfo command in CommandMaster.CommandList)
             {
+                bool isNew = true;
                 foreach (CommandInfo existingCommand in existingCommands)
                 {
                     if (command.Name.Equals(existingCommand.Name))
                     {
+                        isNew = false;
                         // Console.WriteLine("comparing " + command + " vs " + existingCommand);
                         if (!ApproximatelyEqual(command, existingCommand))
                         {
@@ -103,6 +105,11 @@ namespace GoogleBot
                             newOrChangedCommands.Add(command);
                         }
                     }
+                }
+
+                if (isNew)
+                {
+                    newOrChangedCommands.Add(command);
                 }
             }
 

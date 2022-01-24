@@ -77,7 +77,7 @@ public class ApplicationModuleHelper
                 if (commandAttribute != null)
                 {
                     //* -> is command 
-                    bool isEphemeral = privateAttribute?.IsEphemeral != null && privateAttribute.IsEphemeral;
+                    bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
 
                     if (!AddCommand(new CommandInfo
                         {
