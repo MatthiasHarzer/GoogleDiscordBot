@@ -20,14 +20,12 @@ public class PrivateAttribute : Attribute
     {
         IsPrivate = true;
     }
+
     public PrivateAttribute(bool isPrivate)
     {
         IsPrivate = isPrivate;
     }
 }
-
-
-
 
 /// <summary>
 /// Links the method to a componentInteraction. If not id is provided, all interactions will be linked
@@ -38,8 +36,8 @@ public class LinkComponentInteractionAttribute : Attribute
     /// <summary>
     /// The custom id of the interaction
     /// </summary>
-    public string CustomId { get;} 
-    
+    public string CustomId { get; }
+
     /// <summary>
     /// Sets the CustomId to * which stands for any id
     /// </summary>
@@ -70,12 +68,12 @@ public class MultipleAttribute : Attribute
     {
         IsMultiple = true;
     }
+
     public MultipleAttribute(bool isMultiple)
     {
         IsMultiple = isMultiple;
     }
 }
-
 
 /// <summary>
 /// Sets the applicationOptionType of a parameter 

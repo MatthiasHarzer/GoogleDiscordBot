@@ -11,7 +11,6 @@ using static GoogleBot.Util;
 
 namespace GoogleBot.Interactions;
 
-
 /// <summary>
 /// Each instance of <see cref="ApplicationModuleHelper"/> refers to one module
 /// </summary>
@@ -20,7 +19,7 @@ public class ApplicationModuleHelper
     /// <summary>
     /// An instance of the derived module-class 
     /// </summary>
-    public ApplicationModuleBase Module { get;  }
+    public ApplicationModuleBase Module { get; }
 
     /// <summary>
     /// All command in the module, marked with <see cref="CommandAttribute"/>
@@ -51,7 +50,7 @@ public class ApplicationModuleHelper
     {
         // Console.WriteLine("new CommandModuleHelper for " + module.ToString());
         Module = module;
-        
+
 
         //* Get all methods in the module
         foreach (MethodInfo method in Module.GetType().GetMethods())
@@ -60,7 +59,8 @@ public class ApplicationModuleHelper
             SummaryAttribute? summaryAttribute = method.GetCustomAttribute<SummaryAttribute>();
             // AliasAttribute aliasAttribute = method.GetCustomAttribute<AliasAttribute>();
             PrivateAttribute? privateAttribute = method.GetCustomAttribute<PrivateAttribute>();
-            LinkComponentInteractionAttribute? linkComponentAttribute = method.GetCustomAttribute<LinkComponentInteractionAttribute>();
+            LinkComponentInteractionAttribute? linkComponentAttribute =
+                method.GetCustomAttribute<LinkComponentInteractionAttribute>();
             ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p => new ParameterInfo
             {
                 Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
@@ -93,7 +93,6 @@ public class ApplicationModuleHelper
                         Console.WriteLine(
                             $"Command {commandAttribute.Text} in {Module} already exists somewhere else! -> no new command was added");
                     }
-
                 }
                 else if (linkComponentAttribute != null)
                 {
@@ -121,7 +120,7 @@ public class ApplicationModuleHelper
     {
         Module.Context = context;
     }
-    
+
     /// <summary>
     /// Add a command to the commands list if it does not exist yet 
     /// </summary>
@@ -134,7 +133,6 @@ public class ApplicationModuleHelper
         CommandMaster.CommandList.Add(commandInfo);
         Commands.Add(commandInfo);
         return true;
-
     }
 
     /// <summary>
@@ -148,19 +146,18 @@ public class ApplicationModuleHelper
         {
             //* Key = the components custom id or * for any id
             //* Value = List of methods to call when the custom id appears
-            
+
             // Console.WriteLine($"{componentCallback.Key}: {string.Join(", ", componentCallback.Value.ConvertAll(m=>m.Name))}");
 
             if (componentCallback.Key == component.Data.CustomId || componentCallback.Key == "*")
             {
                 // Console.WriteLine($"FOUND {string.Join(", ", componentCallback.Value.ConvertAll(m=>m.Name))}");
-                foreach(MethodInfo method in componentCallback.Value)
+                foreach (MethodInfo method in componentCallback.Value)
                 {
                     Module.Context.Component = component;
-                    await (Task)method.Invoke(Module, new object?[]{component})!;
+                    await (Task)method.Invoke(Module, new object?[] { component })!;
                 }
             }
-            
         }
     }
 
@@ -176,4 +173,3 @@ public class ApplicationModuleHelper
         }
     }
 }
-

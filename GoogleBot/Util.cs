@@ -19,7 +19,7 @@ namespace GoogleBot
 {
     public class HSL
     {
-        public double Hue{get; init; }
+        public double Hue { get; init; }
         public double Saturation { get; init; }
         public double Brightness { get; init; }
 
@@ -60,11 +60,9 @@ namespace GoogleBot
 
                             if (t[i] * 6.0 < 1.0)
                                 t[i] = p + ((q - p) * 6 * t[i]);
-                            else
-                            if (t[i] * 2.0 < 1.0)
+                            else if (t[i] * 2.0 < 1.0)
                                 t[i] = q;
-                            else
-                            if (t[i] * 3.0 < 2.0)
+                            else if (t[i] * 3.0 < 2.0)
                                 t[i] = p + ((q - p) * 6 * ((2.0 / 3.0) - t[i]));
                             else
                                 t[i] = p;
@@ -79,8 +77,8 @@ namespace GoogleBot
                 return Color.FromArgb((int)(t[0] * 255), (int)(t[1] * 255), (int)(t[2] * 255));
             }
         }
-
     }
+
     public enum CommandConversionState
     {
         Success,
@@ -91,7 +89,7 @@ namespace GoogleBot
         SlashCommandExecutedAsTextCommand,
     }
 
-    
+
     /// <summary>
     /// Some utility function 
     /// </summary>
@@ -99,7 +97,8 @@ namespace GoogleBot
     {
         private static List<Color> color_pallat = null;
         private static readonly Random Random = new Random();
-        public static  List<Color> ColorPallet
+
+        public static List<Color> ColorPallet
         {
             get
             {
@@ -120,8 +119,8 @@ namespace GoogleBot
         {
             List<Color> colors = new List<Color>();
 
-            double[] saturations = {1.0f, 0.7f};
-            double[] luminances = {0.45f, 0.7f};
+            double[] saturations = { 1.0f, 0.7f };
+            double[] luminances = { 0.45f, 0.7f };
 
             int v = Random.Next(2);
             double saturation = saturations[v];
@@ -131,10 +130,11 @@ namespace GoogleBot
             double currentHue = Random.NextDouble();
 
             int colorCount = 50;
-			
+
             for (int i = 0; i < colorCount; i++)
             {
-                HSL hslColor = new HSL{
+                HSL hslColor = new HSL
+                {
                     Hue = currentHue,
                     Saturation = saturation,
                     Brightness = luminance
@@ -144,27 +144,26 @@ namespace GoogleBot
 
                 currentHue += goldenRatioConjugate;
                 currentHue %= 1.0f;
-				
             }
-       
+
             return colors;
         }
-        
+
         private static Color RandomMix(Color color1, Color color2, Color color3)
         {
             double[] greys = { 0.1, 0.5, 0.9 };
 
             double grey = greys[Random.Next(greys.Length)];
-            
+
             int randomIndex = Random.Next(3);
 
             double mixRatio1 =
                 (randomIndex == 0) ? Random.NextDouble() * grey : Random.NextDouble();
 
-            double mixRatio2 = 
+            double mixRatio2 =
                 (randomIndex == 1) ? Random.NextDouble() * grey : Random.NextDouble();
 
-            double mixRatio3 = 
+            double mixRatio3 =
                 (randomIndex == 2) ? Random.NextDouble() * grey : Random.NextDouble();
 
             double sum = mixRatio1 + mixRatio2 + mixRatio3;
@@ -179,14 +178,15 @@ namespace GoogleBot
                 (byte)(mixRatio1 * color1.G + mixRatio2 * color2.G + mixRatio3 * color3.G),
                 (byte)(mixRatio1 * color1.B + mixRatio2 * color2.B + mixRatio3 * color3.B));
         }
-        
+
         /// <summary>
         /// Returns a random color based on the initial generated color pallet
         /// </summary>
         /// <returns>The newly generated color</returns>
-        public static DiscordColor RandomColor(){
+        public static DiscordColor RandomColor()
+        {
             Color[] colors = new Color[3];
-         
+
             for (int i = 0; i < colors.Length; i++)
             {
                 colors[i] = ColorPallet[Random.Next(ColorPallet.Count)];
@@ -196,8 +196,8 @@ namespace GoogleBot
             Color color = RandomMix(colors[0], colors[1], colors[2]);
             return new DiscordColor(color.R, color.G, color.B);
         }
-        
-        
+
+
         /// <summary>
         /// Fetch data from the Google custom search api
         /// </summary>
@@ -214,13 +214,12 @@ namespace GoogleBot
             var listRequest = service.Cse.List();
             listRequest.Cx = Secrets.SearchEngineID;
             listRequest.Q = query;
-            
+
             listRequest.Start = 10;
 
             return listRequest.Execute();
-
         }
-        
+
         /// <summary>
         /// Format a Videos duration (strip of hours if they are 0)
         /// </summary>
@@ -248,7 +247,7 @@ namespace GoogleBot
         {
             return $"[{video.Title} ({FormattedVideoDuration(video)})]({video.Url})";
         }
-        
+
         public static CommandInfo GetTextCommandFromMessage(SocketUserMessage message)
         {
             int argPos = 0;
@@ -267,10 +266,9 @@ namespace GoogleBot
 
             return new CommandInfo();
         }
-        
+
         public static ApplicationCommandOptionType ToOptionType(Type origin)
         {
-            
             switch (origin)
             {
                 case Type _ when origin == typeof(string):
@@ -282,12 +280,12 @@ namespace GoogleBot
                 case Type _ when origin == typeof(float):
                 case Type _ when origin == typeof(double):
                     return ApplicationCommandOptionType.Number;
-                case Type _ when  origin == typeof(SocketGuildUser):
-                case Type _ when  origin == typeof(SocketUser):
+                case Type _ when origin == typeof(SocketGuildUser):
+                case Type _ when origin == typeof(SocketUser):
                     return ApplicationCommandOptionType.User;
-                case Type _ when  origin == typeof(SocketRole):
+                case Type _ when origin == typeof(SocketRole):
                     return ApplicationCommandOptionType.Role;
-                case Type _ when  origin == typeof(SocketChannel):
+                case Type _ when origin == typeof(SocketChannel):
                     return ApplicationCommandOptionType.Channel;
                 default:
                     return ApplicationCommandOptionType.String;
@@ -339,12 +337,13 @@ namespace GoogleBot
                     return "channel";
                 default:
                     return "string";
-                
             }
         }
+
         public static bool ApproximatelyEqual(CommandInfo command1, CommandInfo command2)
         {
-            if (command1.Name != command2.Name || command1.Summary != command2.Summary || command1.Parameters.Length != command2.Parameters.Length) return false;
+            if (command1.Name != command2.Name || command1.Summary != command2.Summary ||
+                command1.Parameters.Length != command2.Parameters.Length) return false;
 
             int pos = 0;
             for (pos = 0; pos < command1.Parameters.Length; pos++)
@@ -352,8 +351,9 @@ namespace GoogleBot
                 // Console.WriteLine(pos);
                 if (pos > command2.Parameters.Length)
                 {
-                    return false; 
+                    return false;
                 }
+
                 ParameterInfo p1 = command1.Parameters[pos];
                 ParameterInfo p2 = command2.Parameters[pos];
 
@@ -364,7 +364,6 @@ namespace GoogleBot
             if (command2.Parameters.Length > pos) return false;
 
             return true;
-
         }
     }
 }

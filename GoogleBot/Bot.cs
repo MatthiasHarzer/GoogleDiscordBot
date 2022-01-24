@@ -85,10 +85,9 @@ namespace GoogleBot
             List<CommandInfo> newOrChangedCommands = new List<CommandInfo>();
 
             List<CommandInfo> existingCommands = CommandMaster.ImportCommands();
-            
-            
 
-            // Console.WriteLine(existingCommands.Count + " " + CommandMaster.CommandList.Count);
+
+            Console.WriteLine(existingCommands.Count + " " + CommandMaster.CommandList.Count);
 
             foreach (CommandInfo command in CommandMaster.CommandList)
             {
@@ -113,8 +112,8 @@ namespace GoogleBot
                 }
             }
 
-            
-            if (newOrChangedCommands.Count <= 0)
+
+            if (newOrChangedCommands.Count <= 0 && CommandMaster.CommandList.Count == existingCommands.Count)
             {
                 return;
             }
@@ -122,8 +121,8 @@ namespace GoogleBot
             Console.WriteLine("New or changed commands:");
             Console.WriteLine(string.Join(", ", newOrChangedCommands.ConvertAll(c => $"{c.Name} - {c.Summary}")));
             CommandMaster.ExportCommands();
-       
-            var guild = client.GetGuild(guildId);
+
+            // var guild = client.GetGuild(guildId);
 
             List<ApplicationCommandProperties> applicationCommandProperties = new();
 
@@ -145,7 +144,9 @@ namespace GoogleBot
 
             try
             {
-                await guild.BulkOverwriteApplicationCommandAsync(applicationCommandProperties.ToArray());
+                await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
+
+                // await guild.BulkOverwriteApplicationCommandAsync(applicationCommandProperties.ToArray());
             }
             catch (HttpException exception)
             {

@@ -27,8 +27,16 @@ public abstract class ApplicationModuleBase
             //* If (for some reason) a response hasn't started, do so
             if (!Context.Command.HasResponded)
             {
-                await Context.Command.DeferAsync();
+                try
+                {
+                    await Context.Command.DeferAsync();
+                }
+                catch (Exception)
+                {
+                    //Ignored}
+                }
             }
+
             await Context.Command.ModifyOriginalResponseAsync(properties =>
             {
                 properties.Embed = message.Embed?.Build();
@@ -63,7 +71,6 @@ public abstract class ApplicationModuleBase
             catch (Exception)
             {
                 //ignored}
-
             }
 
             await Context.Channel.SendMessageAsync(message.Message, embed: message.Embed?.Build(),
@@ -72,12 +79,12 @@ public abstract class ApplicationModuleBase
     }
 
     protected async Task SendMessage(string text)
-        {
-            await SendMessage(new FormattedMessage(text));
-        }
-
-        protected async Task SendMessage(EmbedBuilder embed)
-        {
-            await SendMessage(new FormattedMessage(embed));
-        }
+    {
+        await SendMessage(new FormattedMessage(text));
     }
+
+    protected async Task SendMessage(EmbedBuilder embed)
+    {
+        await SendMessage(new FormattedMessage(embed));
+    }
+}

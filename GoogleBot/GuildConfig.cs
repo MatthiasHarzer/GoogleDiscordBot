@@ -13,6 +13,7 @@ public class GuildConfig
     private static readonly List<GuildConfig> GuildMaster = new();
     public AudioPlayer AudioPlayer { get; }
     public ulong Id { get; }
+
     public string Prefix
     {
         get => "!";
@@ -26,7 +27,6 @@ public class GuildConfig
     }
 
 
-    
     /// <summary>
     /// Creates or gets existing Guild object with the ID
     /// </summary>
@@ -45,4 +45,3 @@ public class GuildConfig
     //     return GuildMaster.Find(g => g.Id.Equals(guild.Id)) ?? new GuildConfig((ulong)guildId);
     // }
 }
-

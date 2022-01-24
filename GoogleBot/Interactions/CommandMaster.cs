@@ -17,7 +17,6 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace GoogleBot.Interactions;
 
-
 /// <summary>
 /// Keeps track of commands and executes them
 /// </summary>
@@ -26,7 +25,7 @@ public static class CommandMaster
     public static readonly List<CommandInfo> CommandList = new();
 
     public static readonly List<ApplicationModuleHelper> Helpers = new();
-    
+
     /// <summary>
     /// Gets the application command with the given name
     /// </summary>
@@ -34,12 +33,12 @@ public static class CommandMaster
     /// <returns>The command or null if not found</returns>
     public static CommandInfo GetCommandFromName(string commandName)
     {
-        var res = CommandList.FindAll(c =>c.Name == commandName);
+        var res = CommandList.FindAll(c => c.Name == commandName);
         if (res.Count != 0)
         {
             return res.First();
         }
-        
+
         return null;
     }
 
@@ -56,8 +55,6 @@ public static class CommandMaster
         {
             Helpers.Add(new ApplicationModuleHelper(module));
         }
-        
-        
     }
 
     /// <summary>
@@ -66,26 +63,24 @@ public static class CommandMaster
     /// <param name="command">The command</param>
     public static async Task Execute(SocketSlashCommand command)
     {
-        ApplicationModuleHelper helper = Helpers.Find(helper =>helper.GetCommandsAsText().Contains(command.CommandName));
+        ApplicationModuleHelper helper =
+            Helpers.Find(helper => helper.GetCommandsAsText().Contains(command.CommandName));
         Context commandContext = new Context(command);
         CommandInfo commandInfo = commandContext.CommandInfo;
 
-        
-        
-        
+
         Console.WriteLine($"Found {commandInfo?.Name} in {helper?.Module}");
 
         if (commandContext.CommandInfo is not { OverrideDefer: true })
         {
-            commandContext.Command?.DeferAsync(ephemeral: commandInfo is {IsPrivate: true});
+            commandContext.Command?.DeferAsync(ephemeral: commandInfo is { IsPrivate: true });
         }
-        
-        if (helper != null && commandInfo is {Method: not null})
+
+        if (helper != null && commandInfo is { Method: not null })
         {
-            
             object[] args = new object[commandInfo.Method.GetParameters().Length];
-        
-            object[] options =   command.Data.Options.ToList().ConvertAll(option => option.Value).ToArray();
+
+            object[] options = command.Data.Options.ToList().ConvertAll(option => option.Value).ToArray();
 
             if (options.Length > args.Length)
             {
@@ -102,18 +97,17 @@ public static class CommandMaster
             {
                 args[i] = commandInfo.Method.GetParameters()[i].DefaultValue;
             }
-            
+
             // Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
-            
-            
-            
+
+
             helper.SetContext(commandContext);
             try
             {
                 // Console.WriteLine(args.Length);
                 await ((Task)commandInfo.Method.Invoke(helper.Module, args))!;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
@@ -127,35 +121,33 @@ public static class CommandMaster
             });
         }
     }
-    
+
     /// <summary>
     /// Check if the message is a text command and reply with an message to use the application command
     /// </summary>
     /// <param name="socketCommandContext">The command context</param>
     public static void CheckTextCommand(SocketCommandContext socketCommandContext)
     {
-        
         CommandInfo command = GetTextCommandFromMessage(socketCommandContext.Message);
-  
+
         IDisposable typing = null;
-        
+
         ApplicationModuleHelper helper = Helpers.Find(helper => helper.GetCommandsAsText().Contains(command.Name));
 
         if (helper != null)
         {
             typing = socketCommandContext.Channel.EnterTypingState();
             EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
-            embed.AddField("Text commands are deprecated! Please use the application command.",
+            embed.AddField("Text-based commands are deprecated! Please use the application command.",
                 $"Consider using `/{command.Name} {string.Join(" ", command.Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}` instead.");
             FormattedMessage message = new FormattedMessage(embed);
             socketCommandContext.Message?.ReplyAsync(message.Message, embed: message.Embed?.Build());
         }
-        
+
         typing?.Dispose();
-        
     }
 
-    
+
     /// <summary>
     /// Convert all commands into json and save them in a file
     /// </summary>
@@ -167,13 +159,14 @@ public static class CommandMaster
         {
             commands.Add(cmd.ToJson());
         }
+
         savable.Add("commands", commands);
         // Console.WriteLine(JsonSerializer.Serialize(savable));
-        
+
         File.WriteAllText("./commands.json", JsonSerializer.Serialize(savable));
     }
 
-    
+
     /// <summary>
     /// Read local file and try converting the json to valid command infos
     /// </summary>
@@ -212,7 +205,6 @@ public static class CommandMaster
                     }
                 }
             }
-
         }
 
         catch (Exception e)
@@ -220,9 +212,8 @@ public static class CommandMaster
             Console.WriteLine(e.Message);
             Console.WriteLine(e.StackTrace);
             // -> something's fishy with the file or json
-            
         }
+
         return commandInfos;
-        
     }
 }

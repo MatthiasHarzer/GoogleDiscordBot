@@ -9,6 +9,7 @@ using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions;
 using static GoogleBot.Util;
+
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
@@ -35,22 +36,17 @@ public class CommandConversionInfo
     public ParameterInfo[] MissingArgs { get; init; } = global::System.Array.Empty<global::GoogleBot.ParameterInfo>();
 }
 
-
-
 /// <summary>
 /// Describes a parameter of a command
 /// </summary>
 public class ParameterInfo : IJsonSerializable<ParameterInfo>
 {
-
     public string Name { get; init; } = null!;
     public string Summary { get; init; } = null!;
     public ApplicationCommandOptionType Type { get; init; }
     public bool IsMultiple { get; init; }
     public bool IsOptional { get; init; }
-    
-    
-    
+
 
     public override string ToString()
     {
@@ -79,18 +75,22 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
         {
             name = n?.ToString() ?? throw new InvalidOperationException();
         }
+
         if (jsonObject.TryGetPropertyValue("summery", out var s))
         {
             summery = s?.ToString() ?? "";
         }
+
         if (jsonObject.TryGetPropertyValue("multiple", out var m))
         {
             isMultiple = m?.GetValue<bool>() ?? false;
         }
+
         if (jsonObject.TryGetPropertyValue("optional", out var o))
         {
             isOptional = o?.GetValue<bool>() ?? false;
         }
+
         if (jsonObject.TryGetPropertyValue("type", out var t))
         {
             type = ToOptionType(t?.ToString());
@@ -117,7 +117,9 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
 /// </summary>
 public class CommandInfo : IJsonSerializable<CommandInfo>
 {
-    public CommandInfo(){}
+    public CommandInfo()
+    {
+    }
 
     public CommandInfo(SocketApplicationCommand command)
     {
@@ -131,6 +133,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             IsOptional = o is { IsRequired: false }
         }).ToArray();
     }
+
     public bool IsPrivate { get; set; } = false;
     public string Name { get; init; } = string.Empty;
     public string Summary { get; init; } = "No description available";
@@ -153,13 +156,13 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             { "name", Name },
             { "summery", Summary },
             { "private", IsPrivate },
-            {"overrideDefer", OverrideDefer},
-            { "parameters", new JsonArray(Parameters.ToList().ConvertAll(p=>(JsonNode)p.ToJson()).ToArray()) }
+            { "overrideDefer", OverrideDefer },
+            { "parameters", new JsonArray(Parameters.ToList().ConvertAll(p => (JsonNode)p.ToJson()).ToArray()) }
         };
 
         return json;
     }
-    
+
     public CommandInfo FromJson(JsonObject jsonObject)
     {
         string name = null!, summery = null!;
@@ -170,21 +173,24 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
         {
             name = n?.ToString() ?? throw new InvalidOperationException();
         }
+
         if (jsonObject.TryGetPropertyValue("summery", out var s))
         {
             summery = s?.ToString() ?? "";
         }
+
         if (jsonObject.TryGetPropertyValue("private", out var ip))
         {
             isPrivate = ip?.GetValue<bool>() ?? false;
         }
+
         if (jsonObject.TryGetPropertyValue("private", out var d))
         {
             overrideDefer = d?.GetValue<bool>() ?? false;
         }
+
         if (jsonObject.TryGetPropertyValue("parameters", out var pa))
         {
-
             parameters = pa?.AsArray() ?? new JsonArray();
         }
 
@@ -200,11 +206,11 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             Summary = summery,
             IsPrivate = isPrivate,
             OverrideDefer = overrideDefer,
-            Parameters = parameters.ToList().OfType<JsonNode>().ToList().ConvertAll(p=>new ParameterInfo().FromJson((JsonObject)p)).ToArray(),
+            Parameters = parameters.ToList().OfType<JsonNode>().ToList()
+                .ConvertAll(p => new ParameterInfo().FromJson((JsonObject)p)).ToArray(),
         };
     }
 }
-
 
 /// <summary>
 /// A message to send/reply of type text or embed with additional optional Components.
@@ -221,12 +227,12 @@ public class FormattedMessage
     /// The components of the message
     /// </summary>
     public ComponentBuilder? Components { get; set; } = null;
-    
+
     /// <summary>
     /// The text of the message
     /// </summary>
     public string? Message { get; set; } = null;
-    
+
 
     /// <summary>
     /// Configures a new FormattedMessage with the given embed
@@ -236,12 +242,12 @@ public class FormattedMessage
     {
         WithEmbed(embed);
     }
-    
+
     /// <summary>
     /// Configures a new CommandReturnValue with the given message
     /// </summary>
     /// <param name="message">The string message to return (that should be displayed)</param>
-    public FormattedMessage (string message)
+    public FormattedMessage(string message)
     {
         WithText(message);
     }
@@ -282,7 +288,6 @@ public class FormattedMessage
     }
 }
 
-
 /// <summary>
 /// A context to execute a modules methods (command, interaction) in
 /// May include CommandInfo, Guild, User, Channel...
@@ -293,15 +298,14 @@ public class Context
     {
         GuildConfig = GuildConfig.Get(null);
     }
-    
-    
+
+
     /// <summary>
     /// Creates a new instance from a <see cref="SocketSlashCommand"/>
     /// </summary>
     /// <param name="command">The SocketSlashCommand</param>
     public Context(SocketSlashCommand command)
     {
-       
         IGuildUser? guildUser = command.User as IGuildUser;
         Channel = command.Channel;
         CommandInfo = CommandMaster.GetCommandFromName(command.CommandName);
@@ -311,46 +315,45 @@ public class Context
         GuildConfig = GuildConfig.Get(guildUser?.GuildId);
         VoiceChannel = guildUser?.VoiceChannel;
     }
-    
+
     /// <summary>
     /// The original command 
     /// </summary>
-    public SocketSlashCommand? Command {get;}
-    
-    
+    public SocketSlashCommand? Command { get; }
+
+
     /// <summary>
     /// The text channel 
     /// </summary>
     public ISocketMessageChannel? Channel { get; }
-    
+
     /// <summary>
     /// The CommandInfo from a given command
     /// </summary>
-    public CommandInfo? CommandInfo { get;  }
-    
+    public CommandInfo? CommandInfo { get; }
+
     /// <summary>
     /// The Guild
     /// </summary>
-    public SocketGuild? Guild { get;  }
-    
+    public SocketGuild? Guild { get; }
+
     /// <summary>
     /// The user who executed/triggered the interaction
     /// </summary>
-    public SocketUser? User { get;  }
-    
+    public SocketUser? User { get; }
+
     /// <summary>
     /// ?
     /// </summary>
     public SocketMessageComponent? Component { get; set; }
-    
+
     /// <summary>
     /// The GuildConfig for the guild with an AudioPlayer
     /// </summary>
     public GuildConfig GuildConfig { get; }
-    
+
     /// <summary>
     /// The voice channel of the user
     /// </summary>
-    public IVoiceChannel? VoiceChannel { get;  }
-
+    public IVoiceChannel? VoiceChannel { get; }
 }

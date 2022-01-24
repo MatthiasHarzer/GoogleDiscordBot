@@ -20,7 +20,7 @@ public class TestModule : ApplicationModuleBase
 {
     [Command("component-test")]
     [Summary("Used for testing with buttons and drop downs")]
-    public async Task Play([Multiple] [Summary("multiple word")] [Name("input")] string query = "abc")
+    private async Task Play([Multiple] [Summary("multiple word")] [Name("input")] string query = "abc")
     {
         ComponentBuilder builder = new ComponentBuilder().WithButton("Cool button", "button");
 
@@ -28,9 +28,10 @@ public class TestModule : ApplicationModuleBase
     }
 
     [Command("ping")]
-    [Summary("Ping a user with an optional message.")]
+    [Summary("Ping a user")]
     public async Task Ping([Name("user")] [OptionType(ApplicationCommandOptionType.User)] SocketUser user,
-        [Name("message")] [Summary("The message to append")] string message = "")
+        [Name("message")] [Summary("The message to append")]
+        string message = "")
     {
         await SendMessage($"<@{user.Id}> \n {message}");
     }
@@ -98,76 +99,69 @@ public class AudioModule : ApplicationModuleBase
     [Command("play")]
     [Summary("Plays music in the current voice channel from an url or query")]
     [OverrideDeferAttribute(true)]
-    public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query, [Name("hidden")][Summary("Whether the responds should be private ")]bool ephermeral = false)
+    public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query,
+        [Name("hidden")] [Summary("Whether the responds should be private ")]
+        bool ephermeral = false)
     {
         Context.Command?.DeferAsync(ephemeral: ephermeral);
-   
-            IVoiceChannel? channel = Context.VoiceChannel;
-            EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+
+        IVoiceChannel? channel = Context.VoiceChannel;
+        EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
 
 
-            if (channel == null)
-            {
-                embed.AddField("No voice channel", "`Please connect to voice channel first!`");
-
-                await ReplyAsync(embed);
-                return;
-            }
-
-            AudioPlayer player = Context.GuildConfig.AudioPlayer;
-            PlayReturnValue returnValue = await player.Play(query, channel);
-
-
-            //* User response
-            switch (returnValue.AudioPlayState)
-            {
-                case AudioPlayState.Success:
-                    embed.AddField("Now playing",
-                        FormattedVideo(returnValue.Video));
-                    break;
-                case AudioPlayState.PlayingAsPlaylist:
-                    embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
-                    embed.AddField("Now playing",
-                        FormattedVideo(returnValue.Video));
-                    break;
-                case AudioPlayState.Queued:
-                    embed.AddField("Song added to queue",
-                        FormattedVideo(returnValue.Video));
-                    break;
-                case AudioPlayState.QueuedAsPlaylist:
-                    embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
-                    break;
-                case AudioPlayState.InvalidQuery:
-                    embed.AddField("Query invalid", "`Couldn't find any results`");
-                    break;
-                case AudioPlayState.NoVoiceChannel:
-                    embed.AddField("No voice channel", "`Please connect to a voice channel first!`");
-                    break;
-                case AudioPlayState.TooLong:
-                    embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
-                    break;
-                case AudioPlayState.JoiningChannelFailed:
-                    embed.AddField("Couldn't join voice channel",
-                        "`Try checking the channels user limit and the bots permission.`");
-                    break;
-                case AudioPlayState.DifferentVoiceChannels:
-                    embed.AddField("Invalid voice channel",
-                        $"You have to be connect to the same voice channel `{returnValue.Note}` as the bot.");
-                    break;
-            }
+        if (channel == null)
+        {
+            embed.AddField("No voice channel", "`Please connect to voice channel first!`");
 
             await ReplyAsync(embed);
+            return;
+        }
 
+        AudioPlayer player = Context.GuildConfig.AudioPlayer;
+        PlayReturnValue returnValue = await player.Play(query, channel);
+
+
+        //* User response
+        switch (returnValue.AudioPlayState)
+        {
+            case AudioPlayState.Success:
+                embed.AddField("Now playing",
+                    FormattedVideo(returnValue.Video));
+                break;
+            case AudioPlayState.PlayingAsPlaylist:
+                embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
+                embed.AddField("Now playing",
+                    FormattedVideo(returnValue.Video));
+                break;
+            case AudioPlayState.Queued:
+                embed.AddField("Song added to queue",
+                    FormattedVideo(returnValue.Video));
+                break;
+            case AudioPlayState.QueuedAsPlaylist:
+                embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
+                break;
+            case AudioPlayState.InvalidQuery:
+                embed.AddField("Query invalid", "`Couldn't find any results`");
+                break;
+            case AudioPlayState.NoVoiceChannel:
+                embed.AddField("No voice channel", "`Please connect to a voice channel first!`");
+                break;
+            case AudioPlayState.TooLong:
+                embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
+                break;
+            case AudioPlayState.JoiningChannelFailed:
+                embed.AddField("Couldn't join voice channel",
+                    "`Try checking the channels user limit and the bots permission.`");
+                break;
+            case AudioPlayState.DifferentVoiceChannels:
+                embed.AddField("Invalid voice channel",
+                    $"You have to be connect to the same voice channel `{returnValue.Note}` as the bot.");
+                break;
+        }
+
+        await ReplyAsync(embed);
     }
 
-    [Command("play-hidden")]
-    [Summary(
-        "Plays music in the current voice channel from an url or query, but without posting a public message o((>ω< ))o. Can only be used as a slash-command!")]
-    [Private(true)]
-    public async Task PlayHidden([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query)
-    {
-        await Play(query);
-    }
 
     [Command("skip")]
     [Summary("Skips the current song")]
@@ -218,7 +212,8 @@ public class AudioModule : ApplicationModuleBase
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
 
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
-        embed.AddField("Queue cleared", $"Removed `{player.Queue.Count}` items");
+        embed.AddField("Queue cleared", $"Removed `{player.Queue.Count}` " +
+                                        (player.Queue.Count == 1 ? "item" : "items") + ".");
 
         player.Clear();
 
