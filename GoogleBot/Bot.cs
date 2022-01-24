@@ -88,7 +88,7 @@ namespace GoogleBot
             
             
 
-            Console.WriteLine(existingCommands.Count + " " + CommandMaster.CommandList.Count);
+            // Console.WriteLine(existingCommands.Count + " " + CommandMaster.CommandList.Count);
 
             foreach (CommandInfo command in CommandMaster.CommandList)
             {
@@ -121,7 +121,8 @@ namespace GoogleBot
 
             Console.WriteLine("New or changed commands:");
             Console.WriteLine(string.Join(", ", newOrChangedCommands.ConvertAll(c => $"{c.Name} - {c.Summary}")));
-            
+            CommandMaster.ExportCommands();
+       
             var guild = client.GetGuild(guildId);
 
             List<ApplicationCommandProperties> applicationCommandProperties = new();

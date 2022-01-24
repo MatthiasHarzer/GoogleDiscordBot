@@ -300,6 +300,8 @@ namespace GoogleBot
             {
                 case "string":
                     return ApplicationCommandOptionType.String;
+                case "boolean":
+                    return ApplicationCommandOptionType.Boolean;
                 case "integer":
                     return ApplicationCommandOptionType.Integer;
                 case "number":
@@ -323,6 +325,8 @@ namespace GoogleBot
             {
                 case ApplicationCommandOptionType.String:
                     return "string";
+                case ApplicationCommandOptionType.Boolean:
+                    return "boolean";
                 case ApplicationCommandOptionType.Integer:
                     return "integer";
                 case ApplicationCommandOptionType.Number:
