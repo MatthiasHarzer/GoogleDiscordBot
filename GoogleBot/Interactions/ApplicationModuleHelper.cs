@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -55,11 +56,11 @@ public class ApplicationModuleHelper
         //* Get all methods in the module
         foreach (MethodInfo method in Module.GetType().GetMethods())
         {
-            CommandAttribute commandAttribute = method.GetCustomAttribute<CommandAttribute>();
-            SummaryAttribute summaryAttribute = method.GetCustomAttribute<SummaryAttribute>();
+            CommandAttribute? commandAttribute = method.GetCustomAttribute<CommandAttribute>();
+            SummaryAttribute? summaryAttribute = method.GetCustomAttribute<SummaryAttribute>();
             // AliasAttribute aliasAttribute = method.GetCustomAttribute<AliasAttribute>();
-            PrivateAttribute privateAttribute = method.GetCustomAttribute<PrivateAttribute>();
-            LinkComponentInteractionAttribute linkComponentAttribute = method.GetCustomAttribute<LinkComponentInteractionAttribute>();
+            PrivateAttribute? privateAttribute = method.GetCustomAttribute<PrivateAttribute>();
+            LinkComponentInteractionAttribute? linkComponentAttribute = method.GetCustomAttribute<LinkComponentInteractionAttribute>();
             ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p => new ParameterInfo
             {
                 Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
@@ -69,36 +70,42 @@ public class ApplicationModuleHelper
                 IsOptional = p.HasDefaultValue,
             }).ToArray();
 
-            
-            if (commandAttribute != null)
-            {
-                //* -> is command 
-                bool isEphemeral = privateAttribute?.IsEphemeral != null && privateAttribute.IsEphemeral;
 
-                if (!AddCommand(new CommandInfo
+            //* All methods must be async tasks
+            if (method.ReturnType == typeof(Task))
+            {
+                if (commandAttribute != null)
+                {
+                    //* -> is command 
+                    bool isEphemeral = privateAttribute?.IsEphemeral != null && privateAttribute.IsEphemeral;
+
+                    if (!AddCommand(new CommandInfo
+                        {
+                            Name = commandAttribute.Text,
+                            Summary = summaryAttribute?.Text ?? "No description available",
+                            Parameters = parameterInfo,
+                            Method = method,
+                            IsPrivate = isEphemeral,
+                        }))
                     {
-                        Name = commandAttribute.Text,
-                        Summary = summaryAttribute?.Text ?? "No description available",
-                        Parameters = parameterInfo,
-                        Method = method,
-                        IsPrivate = isEphemeral,
-                    }))
-                {
-                    Console.WriteLine($"Command {commandAttribute.Text} in {Module} already exists somewhere else! -> no new command was added");
-                } 
+                        Console.WriteLine(
+                            $"Command {commandAttribute.Text} in {Module} already exists somewhere else! -> no new command was added");
+                    }
 
-            }else if (linkComponentAttribute != null)
-            {
-                //* -> Is component interaction callback
-                string customId = linkComponentAttribute.CustomId;
-
-                if (ComponentCallbacks.Keys.Contains(customId))
-                {
-                    ComponentCallbacks[customId].Add(method);
                 }
-                else
+                else if (linkComponentAttribute != null)
                 {
-                    ComponentCallbacks.Add(customId, new List<MethodInfo> {method});
+                    //* -> Is component interaction callback
+                    string customId = linkComponentAttribute.CustomId;
+
+                    if (ComponentCallbacks.Keys.Contains(customId))
+                    {
+                        ComponentCallbacks[customId].Add(method);
+                    }
+                    else
+                    {
+                        ComponentCallbacks.Add(customId, new List<MethodInfo> { method });
+                    }
                 }
             }
         }
@@ -132,7 +139,7 @@ public class ApplicationModuleHelper
     /// Calls all linked interaction where the components custom-id matches
     /// </summary>
     /// <param name="component">The component </param>
-    public async Task CallLinkedInteractions(SocketMessageComponent component)
+    private async Task CallLinkedInteractions(SocketMessageComponent component)
     {
         // Console.WriteLine($"Searching interations with c id {component.Data.CustomId}");
         foreach (KeyValuePair<string, List<MethodInfo>> componentCallback in ComponentCallbacks)
@@ -148,7 +155,7 @@ public class ApplicationModuleHelper
                 foreach(MethodInfo method in componentCallback.Value)
                 {
                     Module.Context.Component = component;
-                    method.Invoke(Module, new []{component});
+                    await (Task)method.Invoke(Module, new object?[]{component})!;
                 }
             }
             

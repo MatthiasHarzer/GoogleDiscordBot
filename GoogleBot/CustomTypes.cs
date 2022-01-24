@@ -71,7 +71,7 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
 
     public ParameterInfo FromJson(JsonObject jsonObject)
     {
-        string name = null, summery = null;
+        string name = null!, summery = null!;
         bool isMultiple = false, isOptional = false;
         ApplicationCommandOptionType type = (ApplicationCommandOptionType)0;
 
@@ -159,10 +159,9 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     
     public CommandInfo FromJson(JsonObject jsonObject)
     {
-        string name = null, summery = null;
+        string name = null!, summery = null!;
         bool isPrivate = false;
         JsonArray parameters = new JsonArray();
-        ApplicationCommandOptionType type = (ApplicationCommandOptionType)0;
 
         if (jsonObject.TryGetPropertyValue("name", out var n))
         {
