@@ -171,20 +171,29 @@ public class CommandReturnValue : IDisposable
 }
 
 
+/// <summary>
+/// A message to send/reply of type text or embed with additional optional Components
+/// </summary>
 public class FormattedMessage
 {
+    /// <summary>
+    /// The embed of the message
+    /// </summary>
     public EmbedBuilder? Embed { get; set; } = null;
 
+    /// <summary>
+    /// The components of the message
+    /// </summary>
     public ComponentBuilder? Components { get; set; } = null;
+    
+    /// <summary>
+    /// The text of the message
+    /// </summary>
     public string? Message { get; set; } = null;
-
-    public FormattedMessage()
-    {
-        
-    }
+    
 
     /// <summary>
-    /// Configures a new CommandReturnValue with the given embed
+    /// Configures a new FormattedMessage with the given embed
     /// </summary>
     /// <param name="embed">The embed to return (that should be displayed)</param>
     public FormattedMessage(EmbedBuilder embed)
@@ -201,18 +210,33 @@ public class FormattedMessage
         WithText(message);
     }
 
+    /// <summary>
+    /// Adds components to the message
+    /// </summary>
+    /// <param name="components">The components to add</param>
+    /// <returns>The instance with added components</returns>
     public FormattedMessage WithComponents(ComponentBuilder components)
     {
         Components = components;
         return this;
     }
 
+    /// <summary>
+    /// Adds a text to the message
+    /// </summary>
+    /// <param name="message">The text</param>
+    /// <returns></returns>
     public FormattedMessage WithText(string message)
     {
         Message = message;
         return this;
     }
 
+    /// <summary>
+    /// Adds an embed to the message
+    /// </summary>
+    /// <param name="embed">The embed to add</param>
+    /// <returns></returns>
     public FormattedMessage WithEmbed(EmbedBuilder embed)
     {
         embed.WithColor(RandomColor()); // Add a nice color to the embed
@@ -222,9 +246,18 @@ public class FormattedMessage
 }
 
 
+/// <summary>
+/// A context to execute a modules methods (command, interaction) in
+/// May include CommandInfo, Guild, User, Channel...
+/// </summary>
 public class Context
 {
     public Context(){}
+    
+    /// <summary>
+    /// Creates a new instance from an <see cref="SocketSlashCommand"/>
+    /// </summary>
+    /// <param name="command">The SocketSlashCommand</param>
     public Context(SocketSlashCommand command)
     {
        
@@ -237,13 +270,45 @@ public class Context
         GuildConfig = GuildConfig.Get(guildUser?.GuildId);
         VoiceChannel = guildUser?.VoiceChannel;
     }
+    
+    /// <summary>
+    /// The original command 
+    /// </summary>
     public SocketSlashCommand? Command {get;}
+    
+    /// <summary>
+    /// The text channel 
+    /// </summary>
     public ISocketMessageChannel? Channel { get; }
+    
+    /// <summary>
+    /// The CommandInfo from a given command
+    /// </summary>
     public CommandInfo? CommandInfo { get;  }
+    
+    /// <summary>
+    /// The Guild
+    /// </summary>
     public SocketGuild? Guild { get;  }
+    
+    /// <summary>
+    /// The user who executed/triggered the interaction
+    /// </summary>
     public SocketUser? User { get;  }
+    
+    /// <summary>
+    /// ?
+    /// </summary>
     public SocketMessageComponent? Component { get; set; } = null;
+    
+    /// <summary>
+    /// The GuildConfig for the guild with an AudioPlayer
+    /// </summary>
     public GuildConfig? GuildConfig { get; }
+    
+    /// <summary>
+    /// The voice channel of the user
+    /// </summary>
     public IVoiceChannel? VoiceChannel { get;  }
 
 }

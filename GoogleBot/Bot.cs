@@ -158,7 +158,7 @@ namespace GoogleBot
         {
             client.MessageReceived += HandleCommandAsync;
             client.SlashCommandExecuted += HandleSlashCommandAsync;
-            client.ButtonExecuted += CommandModuleHelper.InteractionHandler;
+            client.ButtonExecuted += ApplicationModuleHelper.InteractionHandler;
             await commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
             // await commands.AddModuleAsync(typeof(GoogleModule), null);
         }

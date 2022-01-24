@@ -11,29 +11,46 @@ namespace GoogleBot.Interactions;
 
 
 /// <summary>
-/// Keeps track of different Modules of the <see cref="GoogleBot"/>
+/// Each instance of <see cref="ApplicationModuleHelper"/> refers to one module
 /// </summary>
-public class CommandModuleHelper
+public class ApplicationModuleHelper
 {
-    public CommandModuleBase Module { get;  }
+    /// <summary>
+    /// An instance of the derived module-class 
+    /// </summary>
+    public ApplicationModuleBase Module { get;  }
 
+    /// <summary>
+    /// All command in the module, marked with <see cref="CommandAttribute"/>
+    /// </summary>
     public List<CommandInfo> Commands { get; } = new();
 
+    /// <summary>
+    /// A dictionary, where the Key is a custom id from a component and the Value a list of all methods
+    /// to call, when this key appears. Where Key == * -> all ids
+    /// </summary>
     public Dictionary<string, List<MethodInfo>> ComponentCallbacks { get; } = new();
 
 
+    /// <summary>
+    /// Converts the list of CommandInfos to a string list
+    /// </summary>
+    /// <returns>A list of the modules command names</returns>
     public List<string> GetCommandsAsText()
     {
         return Commands.ConvertAll(c => c.Name);
     }
 
-    public CommandModuleHelper(CommandModuleBase module)
+    /// <summary>
+    /// Creates a new instance from the module
+    /// </summary>
+    /// <param name="module">An instance of the derived module-class</param>
+    public ApplicationModuleHelper(ApplicationModuleBase module)
     {
-        Console.WriteLine("new CommandModuleHelper for " + module.ToString());
+        // Console.WriteLine("new CommandModuleHelper for " + module.ToString());
         Module = module;
-
-
-
+        
+        //* Get all methods in the module
         foreach (MethodInfo method in Module.GetType().GetMethods())
         {
             CommandAttribute commandAttribute = method.GetCustomAttribute<CommandAttribute>();
@@ -50,11 +67,10 @@ public class CommandModuleHelper
                 IsOptional = p.HasDefaultValue,
             }).ToArray();
 
-            // Console.WriteLine(method.Name + "\n Method -> " + method.ReturnType + "\n W´Type ->" + typeof(Task<CommandReturnValue>) +"\n = " +
-            //                   (method.ReturnType == typeof(Task<CommandReturnValue>)) + "\n-----");
+            
             if (commandAttribute != null)
             {
-                //* -> is command trigger method
+                //* -> is command 
                 bool isEphemeral = privateAttribute?.IsEphemeral != null && privateAttribute.IsEphemeral;
 
                 if (!AddCommand(new CommandInfo
@@ -86,11 +102,20 @@ public class CommandModuleHelper
         }
     }
 
+    /// <summary>
+    /// Sets the context of the module
+    /// </summary>
+    /// <param name="context">The new context</param>
     public void SetContext(Context context)
     {
-        Module.SetContext(context);
+        Module.Context = context;
     }
     
+    /// <summary>
+    /// Add a command to the commands list if it does not exist yet 
+    /// </summary>
+    /// <param name="commandInfo">The command to add</param>
+    /// <returns>True if the command where added</returns>
     private bool AddCommand(CommandInfo commandInfo)
     {
         if (CommandMaster.CommandsList.FindAll(com => com.Name == commandInfo.Name).Count != 0) return false;
@@ -101,6 +126,10 @@ public class CommandModuleHelper
 
     }
 
+    /// <summary>
+    /// Calls all linked interaction where the components custom-id matches
+    /// </summary>
+    /// <param name="component">The component </param>
     public async Task CallLinkedInteractions(SocketMessageComponent component)
     {
         // Console.WriteLine($"Searching interations with c id {component.Data.CustomId}");
@@ -124,9 +153,13 @@ public class CommandModuleHelper
         }
     }
 
+    /// <summary>
+    /// Calls every linked method in all modules where the components custom-id matches
+    /// </summary>
+    /// <param name="component">The component</param>
     public static async Task InteractionHandler(SocketMessageComponent component)
     {
-        foreach (CommandModuleHelper helper in CommandMaster.Helpers)
+        foreach (ApplicationModuleHelper helper in CommandMaster.Helpers)
         {
             await helper.CallLinkedInteractions(component);
         }

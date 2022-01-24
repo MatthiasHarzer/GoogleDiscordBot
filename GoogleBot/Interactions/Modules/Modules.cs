@@ -7,22 +7,16 @@ using Discord.Net;
 using Discord.WebSocket;
 using GoogleBot.Interactions.CustomAttributes;
 
-namespace GoogleBot.Interactions;
+namespace GoogleBot.Interactions.Modules;
 
 
-
-
-
-
-
-
-public class TestModule : CommandModuleBase
+public class TestModule : ApplicationModuleBase
 {
     [Command("component-test")]
     public async void Play([Multiple][Summary("multiple word")][Name("input")]string query)
     {
-        ComponentBuilder builder = new ComponentBuilder().WithButton("Cool button", "cool-id4");
-
+        ComponentBuilder builder = new ComponentBuilder().WithButton("Cool button", "button");
+        
         await ReplyAsync(new FormattedMessage("POG???").WithComponents(builder));
     }
 

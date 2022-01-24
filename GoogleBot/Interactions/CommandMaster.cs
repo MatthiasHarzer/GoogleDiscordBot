@@ -24,7 +24,7 @@ public static class CommandMaster
 
     public static readonly List<CommandInfo> CommandsList = new();
     
-    public static readonly List<CommandModuleHelper> Helpers = new();
+    public static readonly List<ApplicationModuleHelper> Helpers = new();
 
     /// <summary>
     /// Gets the command with the name or null
@@ -122,13 +122,13 @@ public static class CommandMaster
 
     public static void AddApplicationCommands()
     {
-        IEnumerable<CommandModuleBase> commandModules = typeof(CommandModuleBase).Assembly.GetTypes()
-            .Where(t => t.IsSubclassOf(typeof(CommandModuleBase)) && !t.IsAbstract)
-            .Select(t => (CommandModuleBase)Activator.CreateInstance(t));
+        IEnumerable<ApplicationModuleBase> commandModules = typeof(ApplicationModuleBase).Assembly.GetTypes()
+            .Where(t => t.IsSubclassOf(typeof(ApplicationModuleBase)) && !t.IsAbstract)
+            .Select(t => (ApplicationModuleBase)Activator.CreateInstance(t));
 
-        foreach (CommandModuleBase module in commandModules)
+        foreach (ApplicationModuleBase module in commandModules)
         {
-            Helpers.Add(new CommandModuleHelper(module));
+            Helpers.Add(new ApplicationModuleHelper(module));
         }
     }
 
@@ -136,7 +136,7 @@ public static class CommandMaster
     {
         object[] args = command.Data.Options.ToList().ConvertAll(option => option.Value).ToArray();
 
-        CommandModuleHelper helper = Helpers.Find(helper => helper.GetCommandsAsText().Contains(command.CommandName));
+        ApplicationModuleHelper helper = Helpers.Find(helper => helper.GetCommandsAsText().Contains(command.CommandName));
         Context commandContext = new Context(command);
         CommandInfo commandInfo = commandContext.CommandInfo;
         

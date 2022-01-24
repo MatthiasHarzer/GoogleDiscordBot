@@ -5,6 +5,9 @@ using Discord.WebSocket;
 
 namespace GoogleBot;
 
+/// <summary>
+/// Additional params for a guild, like an AudioPlayer for playing sound
+/// </summary>
 public class GuildConfig
 {
     private static readonly List<GuildConfig> GuildMaster = new();
