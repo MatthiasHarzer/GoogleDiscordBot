@@ -275,6 +275,8 @@ namespace GoogleBot
             {
                 case Type _ when origin == typeof(string):
                     return ApplicationCommandOptionType.String;
+                case Type _ when origin == typeof(bool):
+                    return ApplicationCommandOptionType.Boolean;
                 case Type _ when origin == typeof(int):
                     return ApplicationCommandOptionType.Integer;
                 case Type _ when origin == typeof(float):

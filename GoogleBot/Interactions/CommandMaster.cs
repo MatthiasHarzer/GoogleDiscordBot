@@ -66,11 +66,6 @@ public static class CommandMaster
     /// <param name="command">The command</param>
     public static async Task Execute(SocketSlashCommand command)
     {
-        foreach (var o in command.Data.Options)
-        {
-            Console.WriteLine(o.Value);
-        }
-
         ApplicationModuleHelper helper = Helpers.Find(helper =>helper.GetCommandsAsText().Contains(command.CommandName));
         Context commandContext = new Context(command);
         CommandInfo commandInfo = commandContext.CommandInfo;
@@ -79,8 +74,11 @@ public static class CommandMaster
         
         
         Console.WriteLine($"Found {commandInfo?.Name} in {helper?.Module}");
-        
-        commandContext.Command?.DeferAsync(ephemeral: commandInfo is {IsPrivate: true});
+
+        if (commandContext.CommandInfo is not { OverrideDefer: true })
+        {
+            commandContext.Command?.DeferAsync(ephemeral: commandInfo is {IsPrivate: true});
+        }
         
         if (helper != null && commandInfo is {Method: not null})
         {

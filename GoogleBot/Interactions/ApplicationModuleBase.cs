@@ -23,12 +23,19 @@ public abstract class ApplicationModuleBase
     {
         // Console.WriteLine($"Replying with message {message}");
         if (Context.Command != null)
+        {
+            //* If (for some reason) a response hasn't started, do so
+            if (!Context.Command.HasResponded)
+            {
+                await Context.Command.DeferAsync();
+            }
             await Context.Command.ModifyOriginalResponseAsync(properties =>
             {
                 properties.Embed = message.Embed?.Build();
                 properties.Components = message.Components?.Build();
                 properties.Content = message.Message;
             });
+        }
     }
 
     protected async Task ReplyAsync(EmbedBuilder embed)

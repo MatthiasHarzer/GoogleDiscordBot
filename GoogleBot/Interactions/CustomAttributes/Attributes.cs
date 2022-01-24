@@ -90,3 +90,21 @@ public class OptionTypeAttribute : Attribute
         Type = t;
     }
 }
+
+/// <summary>
+/// Overrides an default defer on command execusion to implement own 
+/// </summary>
+public class OverrideDeferAttribute : Attribute
+{
+    public bool DeferOverride { get; } = false;
+
+    public OverrideDeferAttribute()
+    {
+        DeferOverride = true;
+    }
+
+    public OverrideDeferAttribute(bool deferOverride)
+    {
+        DeferOverride = deferOverride;
+    }
+}

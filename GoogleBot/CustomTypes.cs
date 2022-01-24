@@ -134,6 +134,8 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     public bool IsPrivate { get; set; } = false;
     public string Name { get; init; } = string.Empty;
     public string Summary { get; init; } = "No description available";
+
+    public bool OverrideDefer { get; init; } = false;
     public ParameterInfo[] Parameters { get; init; } = global::System.Array.Empty<global::GoogleBot.ParameterInfo>();
 
     public MethodInfo? Method { get; init; }
@@ -151,6 +153,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             { "name", Name },
             { "summery", Summary },
             { "private", IsPrivate },
+            {"overrideDefer", OverrideDefer},
             { "parameters", new JsonArray(Parameters.ToList().ConvertAll(p=>(JsonNode)p.ToJson()).ToArray()) }
         };
 
@@ -160,7 +163,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     public CommandInfo FromJson(JsonObject jsonObject)
     {
         string name = null!, summery = null!;
-        bool isPrivate = false;
+        bool isPrivate = false, overrideDefer = false;
         JsonArray parameters = new JsonArray();
 
         if (jsonObject.TryGetPropertyValue("name", out var n))
@@ -174,6 +177,10 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
         if (jsonObject.TryGetPropertyValue("private", out var ip))
         {
             isPrivate = ip?.GetValue<bool>() ?? false;
+        }
+        if (jsonObject.TryGetPropertyValue("private", out var d))
+        {
+            overrideDefer = d?.GetValue<bool>() ?? false;
         }
         if (jsonObject.TryGetPropertyValue("parameters", out var pa))
         {
@@ -192,6 +199,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             Name = name,
             Summary = summery,
             IsPrivate = isPrivate,
+            OverrideDefer = overrideDefer,
             Parameters = parameters.ToList().OfType<JsonNode>().ToList().ConvertAll(p=>new ParameterInfo().FromJson((JsonObject)p)).ToArray(),
         };
     }

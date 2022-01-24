@@ -97,10 +97,11 @@ public class AudioModule : ApplicationModuleBase
 {
     [Command("play")]
     [Summary("Plays music in the current voice channel from an url or query")]
-    public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query)
+    [OverrideDeferAttribute(true)]
+    public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query, [Name("hidden")][Summary("Whether the responds should be private ")]bool ephermeral = false)
     {
-        try
-        {
+        Context.Command?.DeferAsync(ephemeral: ephermeral);
+   
             IVoiceChannel? channel = Context.VoiceChannel;
             EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
 
@@ -156,12 +157,7 @@ public class AudioModule : ApplicationModuleBase
             }
 
             await ReplyAsync(embed);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.Message);
-            Console.WriteLine(e.StackTrace);
-        }
+
     }
 
     [Command("play-hidden")]

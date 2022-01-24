@@ -65,7 +65,7 @@ public class ApplicationModuleHelper
             {
                 Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
                 Type = p.GetCustomAttribute<OptionTypeAttribute>()?.Type ?? ToOptionType(p.ParameterType),
-                Name = p.Name ?? string.Empty,
+                Name = p.GetCustomAttribute<NameAttribute>()?.Text ?? p.Name ?? string.Empty,
                 IsMultiple = p.GetCustomAttribute<MultipleAttribute>()?.IsMultiple ?? false,
                 IsOptional = p.HasDefaultValue,
             }).ToArray();
@@ -78,6 +78,7 @@ public class ApplicationModuleHelper
                 {
                     //* -> is command 
                     bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
+                    bool overrideDefer = method.GetCustomAttribute<OverrideDeferAttribute>()?.DeferOverride ?? false;
 
                     if (!AddCommand(new CommandInfo
                         {
@@ -86,6 +87,7 @@ public class ApplicationModuleHelper
                             Parameters = parameterInfo,
                             Method = method,
                             IsPrivate = isEphemeral,
+                            OverrideDefer = overrideDefer,
                         }))
                     {
                         Console.WriteLine(

@@ -126,7 +126,7 @@ namespace GoogleBot
 
             List<ApplicationCommandProperties> applicationCommandProperties = new();
 
-            foreach (CommandInfo command in newOrChangedCommands)
+            foreach (CommandInfo command in CommandMaster.CommandList)
             {
                 SlashCommandBuilder builder = new SlashCommandBuilder();
 
