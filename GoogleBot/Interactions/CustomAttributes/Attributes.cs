@@ -1,6 +1,5 @@
 ﻿#nullable enable
 using System;
-using System.Diagnostics.CodeAnalysis;
 using Discord;
 
 namespace GoogleBot.Interactions.CustomAttributes;
@@ -107,7 +106,6 @@ public class OverrideDeferAttribute : Attribute
         DeferOverride = deferOverride;
     }
 }
-
 
 /// <summary>
 /// commands / modules will only be added as guild commands in given dev-guild

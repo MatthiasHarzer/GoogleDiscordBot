@@ -343,7 +343,8 @@ namespace GoogleBot
         public static bool ApproximatelyEqual(CommandInfo command1, CommandInfo command2)
         {
             if (command1.Name != command2.Name || command1.Summary != command2.Summary ||
-                command1.Parameters.Length != command2.Parameters.Length || command1.IsDevOnly != command2.IsDevOnly) return false;
+                command1.Parameters.Length != command2.Parameters.Length ||
+                command1.IsDevOnly != command2.IsDevOnly) return false;
 
             int pos = 0;
             for (pos = 0; pos < command1.Parameters.Length; pos++)

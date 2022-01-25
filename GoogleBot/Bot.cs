@@ -83,6 +83,11 @@ namespace GoogleBot
             // Console.WriteLine(string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>String.Join(" / ", c.Aliases))));
         }
 
+
+        /// <summary>
+        /// Checks currently deployed global commands and compares them with the commands from the modules.
+        /// If they changed -> override them
+        /// </summary>
         private async Task RegisterGlobalCommandsAsync()
         {
             Console.WriteLine("Checking global commands");
@@ -90,7 +95,7 @@ namespace GoogleBot
             bool changed = false;
 
             List<CommandInfo> newOrChangedCommands = new();
-            List<CommandInfo> existingCommands = CommandMaster.ImportCommands().FindAll(c=>!c.IsDevOnly);
+            List<CommandInfo> existingCommands = CommandMaster.ImportCommands().FindAll(c => !c.IsDevOnly);
             List<CommandInfo> availableCommands = CommandMaster.CommandList.FindAll(c => !c.IsDevOnly);
 
             // Console.WriteLine(existingCommands.Count + " " + availableCommands.Count);
@@ -132,7 +137,6 @@ namespace GoogleBot
 
             Console.WriteLine("New or changed global commands found:");
             Console.WriteLine(string.Join("\n", newOrChangedCommands));
-       
 
 
             // var guild = client.GetGuild(guildId);
@@ -171,18 +175,21 @@ namespace GoogleBot
 
             // Console.WriteLine("Available slash commands: \n" + string.Join(", ",
             // CommandMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
-     
         }
 
+        /// <summary>
+        /// Check currently deployed dev-only commands and compares them with the commands from the modules
+        /// If they changed -> override
+        /// </summary>
         private async Task RegisterDevOnlyCommandsAsync()
-        
+
         {
             Console.WriteLine("Checking DevOnly commands");
             // List<CommandInfo> newOrChangedCommands = new List<CommandInfo>();
             bool changed = false;
 
             List<CommandInfo> newOrChangedCommands = new();
-            List<CommandInfo> existingCommands = CommandMaster.ImportCommands().FindAll(c=>c.IsDevOnly);
+            List<CommandInfo> existingCommands = CommandMaster.ImportCommands().FindAll(c => c.IsDevOnly);
             List<CommandInfo> availableCommands = CommandMaster.CommandList.FindAll(c => c.IsDevOnly);
 
             // Console.WriteLine(existingCommands.Count + " " + availableCommands.Count);
@@ -224,9 +231,8 @@ namespace GoogleBot
 
             Console.WriteLine("New or changed dev-only commands:");
             Console.WriteLine(string.Join("\n", newOrChangedCommands));
-         
 
-        
+
             var guild = client.GetGuild(Secrets.DevGuildID);
             if (guild == null)
             {

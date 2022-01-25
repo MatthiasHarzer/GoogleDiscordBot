@@ -57,6 +57,7 @@ public class TestModule : ApplicationModuleBase
     [LinkComponentInteraction("cool-id2")]
     public async Task IdComponentInteraction(SocketMessageComponent component)
     {
+        await Task.CompletedTask;
         // Console.WriteLine("ComponentInteration linked method called AT COOLD ID 2!!!!");
     }
 }
@@ -78,12 +79,11 @@ public class InfoModule : ApplicationModuleBase
 
         foreach (CommandInfo command in CommandMaster.CommandList)
         {
+            if (command.IsDevOnly && Context.Guild != null && Context.Guild.Id != Secrets.DevGuildID) continue;
             // Get the command Summary attribute information
-            string embedFieldText = command.Summary ?? "No description available\n";
-
             embedBuilder.AddField(
                 $"/{command.Name}  {String.Join(" ", command.Parameters.AsParallel().ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}",
-                embedFieldText);
+                command.Summary);
         }
 
         // embedBuilder.WithFooter("The first command can always be used as a slash command (/<command>, e. g. /help)");

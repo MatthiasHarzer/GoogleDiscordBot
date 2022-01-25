@@ -32,7 +32,7 @@ public class ApplicationModuleHelper
     /// </summary>
     public Dictionary<string, List<MethodInfo>> ComponentCallbacks { get; } = new();
 
-    
+
     public bool IsDevOnlyModule { get; } = false;
 
 
@@ -54,8 +54,8 @@ public class ApplicationModuleHelper
         // Console.WriteLine("new CommandModuleHelper for " + module.ToString());
         Module = module;
         IsDevOnlyModule = Module.GetType().GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
-        
-        
+
+
         //* Get all methods in the module
         foreach (MethodInfo method in Module.GetType().GetMethods())
         {

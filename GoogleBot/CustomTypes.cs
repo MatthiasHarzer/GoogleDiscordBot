@@ -124,7 +124,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     public bool IsDevOnly { get; init; } = false;
 
     public bool OverrideDefer { get; init; } = false;
-    public ParameterInfo[] Parameters { get; init; } = global::System.Array.Empty<global::GoogleBot.ParameterInfo>();
+    public ParameterInfo[] Parameters { get; init; } = Array.Empty<ParameterInfo>();
 
     public MethodInfo? Method { get; init; }
 
@@ -142,7 +142,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             { "summery", Summary },
             { "private", IsPrivate },
             { "overrideDefer", OverrideDefer },
-            {"devonly", IsDevOnly},
+            { "devonly", IsDevOnly },
             { "parameters", new JsonArray(Parameters.ToList().ConvertAll(p => (JsonNode)p.ToJson()).ToArray()) }
         };
 
@@ -174,6 +174,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
         {
             overrideDefer = d?.GetValue<bool>() ?? false;
         }
+
         if (jsonObject.TryGetPropertyValue("devonly", out var do_))
         {
             devonly = do_?.GetValue<bool>() ?? false;

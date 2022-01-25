@@ -2,18 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using GoogleBot.Interactions.CustomAttributes;
-using Newtonsoft.Json;
 using static GoogleBot.Util;
-using JsonException = System.Text.Json.JsonException;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace GoogleBot.Interactions;
 
@@ -53,7 +48,7 @@ public static class CommandMaster
 
         foreach (ApplicationModuleBase module in commandModules)
         {
-            Helpers.Add(new ApplicationModuleHelper(module));
+            if (module != null) Helpers.Add(new ApplicationModuleHelper(module));
         }
     }
 
@@ -87,14 +82,21 @@ public static class CommandMaster
                 throw new ArgumentException("Too many arguments for that command");
             }
 
-            int i = 0;
+            int i;
+            //* Fill the args with the provided option values
             for (i = 0; i < options.Length; i++)
             {
                 args[i] = options[i];
             }
 
+            //* Fill remaining args with their default values
             for (; i < args.Length; i++)
             {
+                if (!commandInfo.Method.GetParameters()[i].HasDefaultValue)
+                {
+                    throw new ArgumentException("Missing options.");
+                }
+
                 args[i] = commandInfo.Method.GetParameters()[i].DefaultValue;
             }
 
