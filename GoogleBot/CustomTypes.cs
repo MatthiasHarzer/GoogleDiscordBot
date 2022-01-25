@@ -117,26 +117,11 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
 /// </summary>
 public class CommandInfo : IJsonSerializable<CommandInfo>
 {
-    public CommandInfo()
-    {
-    }
-
-    public CommandInfo(SocketApplicationCommand command)
-    {
-        Name = command.Name;
-        Summary = command.Description;
-        Parameters = command.Options.ToList().ConvertAll(o => new ParameterInfo
-        {
-            Name = o.Name,
-            Summary = o.Description,
-            Type = o.Type,
-            IsOptional = o is { IsRequired: false }
-        }).ToArray();
-    }
-
     public bool IsPrivate { get; set; } = false;
     public string Name { get; init; } = string.Empty;
     public string Summary { get; init; } = "No description available";
+
+    public bool IsDevOnly { get; init; } = false;
 
     public bool OverrideDefer { get; init; } = false;
     public ParameterInfo[] Parameters { get; init; } = global::System.Array.Empty<global::GoogleBot.ParameterInfo>();
@@ -157,6 +142,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             { "summery", Summary },
             { "private", IsPrivate },
             { "overrideDefer", OverrideDefer },
+            {"devonly", IsDevOnly},
             { "parameters", new JsonArray(Parameters.ToList().ConvertAll(p => (JsonNode)p.ToJson()).ToArray()) }
         };
 
@@ -166,7 +152,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     public CommandInfo FromJson(JsonObject jsonObject)
     {
         string name = null!, summery = null!;
-        bool isPrivate = false, overrideDefer = false;
+        bool isPrivate = false, overrideDefer = false, devonly = false;
         JsonArray parameters = new JsonArray();
 
         if (jsonObject.TryGetPropertyValue("name", out var n))
@@ -188,6 +174,10 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
         {
             overrideDefer = d?.GetValue<bool>() ?? false;
         }
+        if (jsonObject.TryGetPropertyValue("devonly", out var do_))
+        {
+            devonly = do_?.GetValue<bool>() ?? false;
+        }
 
         if (jsonObject.TryGetPropertyValue("parameters", out var pa))
         {
@@ -206,6 +196,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             Summary = summery,
             IsPrivate = isPrivate,
             OverrideDefer = overrideDefer,
+            IsDevOnly = devonly,
             Parameters = parameters.ToList().OfType<JsonNode>().ToList()
                 .ConvertAll(p => new ParameterInfo().FromJson((JsonObject)p)).ToArray(),
         };

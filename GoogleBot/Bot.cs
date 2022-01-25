@@ -63,7 +63,12 @@ namespace GoogleBot
             Console.WriteLine("Client Ready");
             try
             {
-                await RegisterCommandsAsync();
+                Console.WriteLine("---------");
+                await RegisterGlobalCommandsAsync();
+                Console.WriteLine("---------");
+                await RegisterDevOnlyCommandsAsync();
+                Console.WriteLine("---------");
+                CommandMaster.ExportCommands();
             }
             catch (Exception e)
             {
@@ -78,18 +83,19 @@ namespace GoogleBot
             // Console.WriteLine(string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>String.Join(" / ", c.Aliases))));
         }
 
-        private async Task RegisterCommandsAsync()
+        private async Task RegisterGlobalCommandsAsync()
         {
-            ulong guildId = Secrets.DevGuildID;
+            Console.WriteLine("Checking global commands");
+            // List<CommandInfo> newOrChangedCommands = new List<CommandInfo>();
+            bool changed = false;
 
-            List<CommandInfo> newOrChangedCommands = new List<CommandInfo>();
+            List<CommandInfo> newOrChangedCommands = new();
+            List<CommandInfo> existingCommands = CommandMaster.ImportCommands().FindAll(c=>!c.IsDevOnly);
+            List<CommandInfo> availableCommands = CommandMaster.CommandList.FindAll(c => !c.IsDevOnly);
 
-            List<CommandInfo> existingCommands = CommandMaster.ImportCommands();
+            // Console.WriteLine(existingCommands.Count + " " + availableCommands.Count);
 
-
-            Console.WriteLine(existingCommands.Count + " " + CommandMaster.CommandList.Count);
-
-            foreach (CommandInfo command in CommandMaster.CommandList)
+            foreach (CommandInfo command in availableCommands)
             {
                 bool isNew = true;
                 foreach (CommandInfo existingCommand in existingCommands)
@@ -100,11 +106,14 @@ namespace GoogleBot
                         // Console.WriteLine("comparing " + command + " vs " + existingCommand);
                         if (!ApproximatelyEqual(command, existingCommand))
                         {
-                            //* Not working for now
                             newOrChangedCommands.Add(command);
+                            changed = true;
+                            break;
                         }
                     }
                 }
+
+                changed |= isNew;
 
                 if (isNew)
                 {
@@ -112,15 +121,19 @@ namespace GoogleBot
                 }
             }
 
+            changed |= availableCommands.Count != existingCommands.Count;
 
-            if (newOrChangedCommands.Count <= 0 && CommandMaster.CommandList.Count == existingCommands.Count)
+
+            if (!changed)
             {
+                Console.WriteLine("No commands changed");
                 return;
             }
 
-            Console.WriteLine("New or changed commands:");
-            Console.WriteLine(string.Join(", ", newOrChangedCommands.ConvertAll(c => $"{c.Name} - {c.Summary}")));
-            CommandMaster.ExportCommands();
+            Console.WriteLine("New or changed global commands found:");
+            Console.WriteLine(string.Join("\n", newOrChangedCommands));
+       
+
 
             // var guild = client.GetGuild(guildId);
 
@@ -158,7 +171,103 @@ namespace GoogleBot
 
             // Console.WriteLine("Available slash commands: \n" + string.Join(", ",
             // CommandMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
-            CommandMaster.ExportCommands();
+     
+        }
+
+        private async Task RegisterDevOnlyCommandsAsync()
+        
+        {
+            Console.WriteLine("Checking DevOnly commands");
+            // List<CommandInfo> newOrChangedCommands = new List<CommandInfo>();
+            bool changed = false;
+
+            List<CommandInfo> newOrChangedCommands = new();
+            List<CommandInfo> existingCommands = CommandMaster.ImportCommands().FindAll(c=>c.IsDevOnly);
+            List<CommandInfo> availableCommands = CommandMaster.CommandList.FindAll(c => c.IsDevOnly);
+
+            // Console.WriteLine(existingCommands.Count + " " + availableCommands.Count);
+
+            foreach (CommandInfo command in availableCommands)
+            {
+                bool isNew = true;
+                foreach (CommandInfo existingCommand in existingCommands)
+                {
+                    if (command.Name.Equals(existingCommand.Name))
+                    {
+                        isNew = false;
+                        // Console.WriteLine("comparing " + command + " vs " + existingCommand);
+                        if (!ApproximatelyEqual(command, existingCommand))
+                        {
+                            newOrChangedCommands.Add(command);
+                            changed = true;
+                            break;
+                        }
+                    }
+                }
+
+                changed |= isNew;
+
+                if (isNew)
+                {
+                    newOrChangedCommands.Add(command);
+                }
+            }
+
+            changed |= availableCommands.Count != existingCommands.Count;
+
+
+            if (!changed)
+            {
+                Console.WriteLine("No commands changed");
+                return;
+            }
+
+            Console.WriteLine("New or changed dev-only commands:");
+            Console.WriteLine(string.Join("\n", newOrChangedCommands));
+         
+
+        
+            var guild = client.GetGuild(Secrets.DevGuildID);
+            if (guild == null)
+            {
+                Console.WriteLine("Invalid dev guild");
+                return;
+            }
+
+            List<ApplicationCommandProperties> applicationCommandProperties = new();
+
+            foreach (CommandInfo command in CommandMaster.CommandList)
+            {
+                SlashCommandBuilder builder = new SlashCommandBuilder();
+
+                builder.WithName(command.Name);
+                builder.WithDescription(command.Summary ?? "No description available");
+
+                foreach (ParameterInfo parameter in command.Parameters)
+                {
+                    builder.AddOption(parameter.Name, parameter.Type,
+                        parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
+                }
+
+                applicationCommandProperties.Add(builder.Build());
+            }
+
+            try
+            {
+                await guild.BulkOverwriteApplicationCommandAsync(applicationCommandProperties.ToArray());
+
+                // await guild.BulkOverwriteApplicationCommandAsync(applicationCommandProperties.ToArray());
+            }
+            catch (HttpException exception)
+            {
+                var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
+
+                // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+                Console.WriteLine(json);
+            }
+
+            // Console.WriteLine("Available slash commands: \n" + string.Join(", ",
+            // CommandMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
         }
     }
 

@@ -92,6 +92,7 @@ public class OptionTypeAttribute : Attribute
 /// <summary>
 /// Overrides an default defer on command execusion to implement own 
 /// </summary>
+[AttributeUsage(AttributeTargets.Method)]
 public class OverrideDeferAttribute : Attribute
 {
     public bool DeferOverride { get; } = false;
@@ -104,5 +105,25 @@ public class OverrideDeferAttribute : Attribute
     public OverrideDeferAttribute(bool deferOverride)
     {
         DeferOverride = deferOverride;
+    }
+}
+
+
+/// <summary>
+/// commands / modules will only be added as guild commands in given dev-guild
+/// </summary>
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
+public class DevOnlyAttribute : Attribute
+{
+    public bool IsDevOnly { get; } = false;
+
+    public DevOnlyAttribute()
+    {
+        IsDevOnly = true;
+    }
+
+    public DevOnlyAttribute(bool isDevOnly)
+    {
+        IsDevOnly = isDevOnly;
     }
 }

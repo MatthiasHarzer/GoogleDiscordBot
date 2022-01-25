@@ -16,13 +16,14 @@ using static GoogleBot.Util;
 
 namespace GoogleBot.Interactions.Modules;
 
+[DevOnly]
 public class TestModule : ApplicationModuleBase
 {
     [Command("component-test")]
     [Summary("Used for testing with buttons and drop downs")]
-    private async Task Play([Multiple] [Summary("multiple word")] [Name("input")] string query = "abc")
+    public async Task ComponentTest([Multiple] [Summary("The buttons name")] [Name("name")] string query = "Button")
     {
-        ComponentBuilder builder = new ComponentBuilder().WithButton("Cool button", "button");
+        ComponentBuilder builder = new ComponentBuilder().WithButton(query, "button");
 
         await ReplyAsync(new FormattedMessage("POG???").WithComponents(builder));
     }

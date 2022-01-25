@@ -32,6 +32,9 @@ public class ApplicationModuleHelper
     /// </summary>
     public Dictionary<string, List<MethodInfo>> ComponentCallbacks { get; } = new();
 
+    
+    public bool IsDevOnlyModule { get; } = false;
+
 
     /// <summary>
     /// Converts the list of CommandInfos to a string list
@@ -50,8 +53,9 @@ public class ApplicationModuleHelper
     {
         // Console.WriteLine("new CommandModuleHelper for " + module.ToString());
         Module = module;
-
-
+        IsDevOnlyModule = Module.GetType().GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
+        
+        
         //* Get all methods in the module
         foreach (MethodInfo method in Module.GetType().GetMethods())
         {
@@ -69,6 +73,7 @@ public class ApplicationModuleHelper
                 IsMultiple = p.GetCustomAttribute<MultipleAttribute>()?.IsMultiple ?? false,
                 IsOptional = p.HasDefaultValue,
             }).ToArray();
+            bool devonly = IsDevOnlyModule || (method.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false);
 
 
             //* All methods must be async tasks
@@ -87,6 +92,7 @@ public class ApplicationModuleHelper
                             Parameters = parameterInfo,
                             Method = method,
                             IsPrivate = isEphemeral,
+                            IsDevOnly = devonly,
                             OverrideDefer = overrideDefer,
                         }))
                     {
