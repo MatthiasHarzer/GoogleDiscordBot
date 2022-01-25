@@ -143,7 +143,7 @@ namespace GoogleBot
 
             List<ApplicationCommandProperties> applicationCommandProperties = new();
 
-            foreach (CommandInfo command in CommandMaster.CommandList)
+            foreach (CommandInfo command in availableCommands)
             {
                 SlashCommandBuilder builder = new SlashCommandBuilder();
 
@@ -242,7 +242,7 @@ namespace GoogleBot
 
             List<ApplicationCommandProperties> applicationCommandProperties = new();
 
-            foreach (CommandInfo command in CommandMaster.CommandList)
+            foreach (CommandInfo command in availableCommands)
             {
                 SlashCommandBuilder builder = new SlashCommandBuilder();
 
