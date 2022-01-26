@@ -19,6 +19,11 @@ public abstract class ApplicationModuleBase
     {
         get => Context.GuildConfig;
     }
+    
+    public T CreateNew<T>() where T : class, new()
+    {
+        return new T();
+    }
 
     /// <summary>
     /// Replies to an executed command with a <see cref="FormattedMessage"/>

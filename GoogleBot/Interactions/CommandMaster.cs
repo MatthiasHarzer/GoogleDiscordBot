@@ -64,7 +64,7 @@ public static class CommandMaster
         CommandInfo commandInfo = commandContext.CommandInfo;
 
 
-        Console.WriteLine($"Found {commandInfo?.Name} in {helper?.Module}");
+        Console.WriteLine($"Found {commandInfo?.Name} in {helper?.ModuleType}");
 
         if (commandContext.CommandInfo is not { OverrideDefer: true })
         {
@@ -103,11 +103,12 @@ public static class CommandMaster
             // Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
 
 
-            helper.SetContext(commandContext);
+            // helper.SetContext(commandContext);
             try
             {
+                var module = helper.GetModuleInstance(commandContext);
                 // Console.WriteLine(args.Length);
-                await ((Task)commandInfo.Method.Invoke(helper.Module, args))!;
+                await ((Task)commandInfo.Method.Invoke(module, args))!;
             }
             catch (Exception e)
             {

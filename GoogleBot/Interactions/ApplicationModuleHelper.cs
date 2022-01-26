@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
 using GoogleBot.Interactions.CustomAttributes;
+using GoogleBot.Interactions.Modules;
 using static GoogleBot.Util;
 
 namespace GoogleBot.Interactions;
@@ -17,9 +18,9 @@ namespace GoogleBot.Interactions;
 public class ApplicationModuleHelper
 {
     /// <summary>
-    /// An instance of the derived module-class 
+    /// The modules type to generate an instance from on command execution
     /// </summary>
-    public ApplicationModuleBase Module { get; }
+    public Type ModuleType { get; }
 
     /// <summary>
     /// All command in the module, marked with <see cref="CommandAttribute"/>
@@ -52,12 +53,12 @@ public class ApplicationModuleHelper
     public ApplicationModuleHelper(ApplicationModuleBase module)
     {
         // Console.WriteLine("new CommandModuleHelper for " + module.ToString());
-        Module = module;
-        IsDevOnlyModule = Module.GetType().GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
+        ModuleType = module.GetType();
+        IsDevOnlyModule = ModuleType.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
 
 
         //* Get all methods in the module
-        foreach (MethodInfo method in Module.GetType().GetMethods())
+        foreach (MethodInfo method in ModuleType.GetMethods())
         {
             CommandAttribute? commandAttribute = method.GetCustomAttribute<CommandAttribute>();
             SummaryAttribute? summaryAttribute = method.GetCustomAttribute<SummaryAttribute>();
@@ -97,7 +98,7 @@ public class ApplicationModuleHelper
                         }))
                     {
                         Console.WriteLine(
-                            $"Command {commandAttribute.Text} in {Module} already exists somewhere else! -> no new command was added");
+                            $"Command {commandAttribute.Text} in {ModuleType} already exists somewhere else! -> no new command was added");
                     }
                 }
                 else if (linkComponentAttribute != null)
@@ -117,15 +118,20 @@ public class ApplicationModuleHelper
             }
         }
     }
-
+    
+    
     /// <summary>
-    /// Sets the context of the module
+    /// Returns a fresh instance of the module while setting its context
     /// </summary>
-    /// <param name="context">The new context</param>
-    public void SetContext(Context context)
+    /// <param name="context">The modules context</param>
+    /// <returns>The newly created module instance</returns>
+    public ApplicationModuleBase GetModuleInstance(Context context)
     {
-        Module.Context = context;
+        ApplicationModuleBase newModule = (ApplicationModuleBase)Activator.CreateInstance(ModuleType)!;
+        newModule.Context = context;
+        return newModule;
     }
+
 
     /// <summary>
     /// Add a command to the commands list if it does not exist yet 
@@ -169,8 +175,8 @@ public class ApplicationModuleHelper
                 // Console.WriteLine($"FOUND {string.Join(", ", componentCallback.Value.ConvertAll(m=>m.Name))}");
                 foreach (MethodInfo method in componentCallback.Value)
                 {
-                    Module.Context.Component = component;
-                    await (Task)method.Invoke(Module, new object?[] { component })!;
+                    var m = GetModuleInstance(new Context(component));
+                    await (Task)method.Invoke(m, new object?[] { component })!;
                 }
             }
         }

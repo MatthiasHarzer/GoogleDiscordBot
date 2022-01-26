@@ -299,6 +299,14 @@ public class Context
         GuildConfig = GuildConfig.Get(null);
         User = null!;
     }
+    public Context(SocketMessageComponent component)
+    {
+        IGuildUser? guildUser = component.User as IGuildUser;
+        GuildConfig = GuildConfig.Get(guildUser?.GuildId);
+        User = component.User;
+        Channel = component.Channel;
+        
+    }
 
 
     /// <summary>
