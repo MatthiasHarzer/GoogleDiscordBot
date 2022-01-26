@@ -233,6 +233,7 @@ public class FormattedMessage
     /// </summary>
     public string? Message { get; set; } = null;
 
+    public FormattedMessage(){}
 
     /// <summary>
     /// Configures a new FormattedMessage with the given embed
@@ -252,6 +253,14 @@ public class FormattedMessage
         WithText(message);
     }
 
+    public FormattedMessage FromExisting(FormattedMessage fm)
+    {
+        Message = fm?.Message ?? Message;
+        Embed = fm?.Embed ?? Embed;
+        Components = fm?.Components ?? Components;
+        return this;
+    }
+    
     /// <summary>
     /// Adds components to the message
     /// </summary>

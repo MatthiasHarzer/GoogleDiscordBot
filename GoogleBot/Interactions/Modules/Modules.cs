@@ -107,12 +107,12 @@ public class AudioModule : ApplicationModuleBase
 {
     [Command("play")]
     [Summary("Plays music in the current voice channel from an url or query")]
-    [OverrideDeferAttribute(true)]
+    [OverrideDefer(true)]
     public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query,
         [Name("hidden")] [Summary("Whether the responds should be private ")]
-        bool ephermeral = false)
+        bool ephemeral = false)
     {
-        Context.Command?.DeferAsync(ephemeral: ephermeral);
+        Context.Command?.DeferAsync(ephemeral: ephemeral);
 
         IVoiceChannel? channel = Context.VoiceChannel;
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
@@ -176,7 +176,9 @@ public class AudioModule : ApplicationModuleBase
     [Summary("Skips the current song")]
     public async Task Skip()
     {
-        EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+
+        FormattedMessage message;
+        
         ComponentBuilder components = null;
         
         if (Context.GuildConfig.AudioPlayer.Playing)
@@ -193,31 +195,30 @@ public class AudioModule : ApplicationModuleBase
                 //* Require majority of users to agree
 
                 Context.GuildConfig.GenerateSkipId();
-                components = new ComponentBuilder().WithButton("Skip", Context.GuildConfig.ValidSkipVoteId, ButtonStyle.Success);
                 // components.WithButton("No", Context.GuildConfig.ValidSkipVoteIds[1]);
                 GuildConfig.VotedUsers.Add(Context.User.Id); //* The user who initiated the command is one 
                 GuildConfig.RequiredVotes = (int)Math.Ceiling((double)(userCount / 2));
                 
-                embed = Responses.SkipVote(Context.GuildConfig.RequiredVotes).Embed!;
+                message = Responses.SkipVote(Context.GuildConfig.RequiredVotes);
+                
+                message.WithComponents(new ComponentBuilder().WithButton("Skip", Context.GuildConfig.ValidSkipVoteId, ButtonStyle.Success));
 
             }
             else
             {
+                message = Responses.Skipped(FormattedVideo(Context.GuildConfig.AudioPlayer.CurrentSong));
                 Context.GuildConfig.AudioPlayer.Skip();
-                embed.AddField("Skipping", $"Song {FormattedVideo(Context.GuildConfig.AudioPlayer.CurrentSong)} skipped");
             }
             
             
         }
         else
         {
-            embed.AddField("Nothing to skip", "The queue is empty.");
+            message = Responses.NothingToSkip();
+
         }
-
         
-
-
-        await ReplyAsync(embed, components);
+        await ReplyAsync(message?.Embed, components);
     }
 
 

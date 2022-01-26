@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using GoogleBot.Interactions.Modules;
 using static GoogleBot.Util;
 
 namespace GoogleBot.Interactions;
@@ -140,10 +141,8 @@ public static class CommandMaster
         if (helper != null)
         {
             typing = socketCommandContext.Channel.EnterTypingState();
-            EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
-            embed.AddField("Text-based commands are deprecated! Please use the application command.",
-                $"Consider using `/{command.Name} {string.Join(" ", command.Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}` instead.");
-            FormattedMessage message = new FormattedMessage(embed);
+
+            FormattedMessage message = Responses.DeprecationHint(command);
             socketCommandContext.Message?.ReplyAsync(message.Message, embed: message.Embed?.Build());
         }
 
