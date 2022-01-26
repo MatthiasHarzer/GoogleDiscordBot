@@ -214,6 +214,14 @@ public class FormattedMessage
     /// The embed of the message
     /// </summary>
     public EmbedBuilder? Embed { get; set; } = null;
+    
+    /// <summary>
+    /// Gets the built embed
+    /// </summary>
+    public Embed BuiltEmbed
+    {
+        get => Embed?.Build()!;
+    }
 
     /// <summary>
     /// The components of the message
@@ -289,6 +297,7 @@ public class Context
     public Context()
     {
         GuildConfig = GuildConfig.Get(null);
+        User = null!;
     }
 
 
@@ -332,7 +341,7 @@ public class Context
     /// <summary>
     /// The user who executed/triggered the interaction
     /// </summary>
-    public SocketUser? User { get; }
+    public SocketUser User { get; }
 
     /// <summary>
     /// ?

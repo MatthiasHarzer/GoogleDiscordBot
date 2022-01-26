@@ -14,6 +14,11 @@ public abstract class ApplicationModuleBase
     /// May include CommandInfo, Guild, User, Channels
     /// </summary>
     public Context Context { get; set; } = new Context();
+    
+    public GuildConfig GuildConfig
+    {
+        get => Context.GuildConfig;
+    }
 
     /// <summary>
     /// Replies to an executed command with a <see cref="FormattedMessage"/>
@@ -46,9 +51,9 @@ public abstract class ApplicationModuleBase
         }
     }
 
-    protected async Task ReplyAsync(EmbedBuilder embed)
+    protected async Task ReplyAsync(EmbedBuilder embed, ComponentBuilder components = null)
     {
-        await ReplyAsync(new FormattedMessage(embed));
+        await ReplyAsync(new FormattedMessage(embed).WithComponents(components!));
     }
 
     protected async Task ReplyAsync(string text)

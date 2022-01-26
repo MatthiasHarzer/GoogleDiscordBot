@@ -197,6 +197,18 @@ namespace GoogleBot
             return new DiscordColor(color.R, color.G, color.B);
         }
 
+        public static string RandomString(int length = 20)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[Random.Next(s.Length)]).ToArray());
+        }
+
+        public static int RandomNumber(int max = 100)
+        {
+            return Random.Next(max);
+        }
+
 
         /// <summary>
         /// Fetch data from the Google custom search api
@@ -366,5 +378,7 @@ namespace GoogleBot
 
             return true;
         }
+        
+        
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using Discord;
-using Discord.WebSocket;
+using System.Timers;
+using static GoogleBot.Util;
 
 namespace GoogleBot;
 
@@ -14,11 +14,25 @@ public class GuildConfig
     public AudioPlayer AudioPlayer { get; }
     public ulong Id { get; }
 
-    public string Prefix
-    {
-        get => "!";
-    } // Can be used in the future
 
+    public List<ulong> VotedUsers { get; set; } = new();
+    public int RequiredVotes { get; set; } = 0;
+
+    public string ValidSkipVoteId { get; set; } = string.Empty;
+
+    public void GenerateSkipId()
+    {
+        ValidSkipVoteId = $"sv-{Id}-{DateTime.Now.TimeOfDay.TotalMilliseconds}-{RandomString()}";
+    }
+
+    public void InvalidateVoteData()
+    {
+        VotedUsers.Clear();
+        RequiredVotes = 0;
+        ValidSkipVoteId = null;
+    }
+
+        
     private GuildConfig(ulong id)
     {
         AudioPlayer = new AudioPlayer();

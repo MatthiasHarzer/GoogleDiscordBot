@@ -20,7 +20,7 @@ namespace GoogleBot.Interactions.Modules;
 public class TestModule : ApplicationModuleBase
 {
     [Command("component-test")]
-    [Summary("Used for testing with buttons and drop downs")]
+    [Summary("Used for testing with buttons and drop-downs")]
     public async Task ComponentTest([Multiple] [Summary("The buttons name")] [Name("name")] string query = "Button")
     {
         ComponentBuilder builder = new ComponentBuilder().WithButton(query, "button");
@@ -28,6 +28,23 @@ public class TestModule : ApplicationModuleBase
         await ReplyAsync(new FormattedMessage("POG???").WithComponents(builder));
     }
 
+    [Command("user-count")]
+    public async Task UserCount()
+    {
+        var users = await Context.VoiceChannel?.GetUsersAsync().ToListAsync().AsTask()!;
+
+        int count = users.First()?.Count ?? 0;
+
+        foreach (var user in users)
+        {
+            Console.WriteLine(user.Count);
+        }
+
+
+
+        await ReplyAsync("" + count);
+    }
+    
     [Command("ping")]
     [Summary("Ping a user")]
     public async Task Ping([Name("user")] [OptionType(ApplicationCommandOptionType.User)] SocketUser user,
@@ -42,16 +59,7 @@ public class TestModule : ApplicationModuleBase
     {
         // Console.WriteLine("ComponentInteration linked method called " + component.Data.CustomId);
 
-
-        try
-        {
-            await component.RespondAsync("Worked!");
-        }
-        catch (HttpException e)
-        {
-            Console.WriteLine(e.Message);
-            Console.WriteLine(e.StackTrace);
-        }
+        await Task.CompletedTask;
     }
 
     [LinkComponentInteraction("cool-id2")]
@@ -169,20 +177,91 @@ public class AudioModule : ApplicationModuleBase
     public async Task Skip()
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+        ComponentBuilder components = null;
+        
         if (Context.GuildConfig.AudioPlayer.Playing)
         {
-            embed.AddField("Skipping", $"Song {FormattedVideo(Context.GuildConfig.AudioPlayer.CurrentSong)} skipped");
+            var users = await Context.VoiceChannel?.GetUsersAsync().ToListAsync().AsTask()!;
+            
+            int userCount = users.First()?.Count ?? 0;
+
+            if (Context.GuildConfig.AudioPlayer.AudioClient?.ConnectionState == ConnectionState.Connected)
+                userCount--;
+
+            if (userCount >= 3)
+            {
+                //* Require majority of users to agree
+
+                Context.GuildConfig.GenerateSkipId();
+                components = new ComponentBuilder().WithButton("Skip", Context.GuildConfig.ValidSkipVoteId, ButtonStyle.Success);
+                // components.WithButton("No", Context.GuildConfig.ValidSkipVoteIds[1]);
+                GuildConfig.VotedUsers.Add(Context.User.Id); //* The user who initiated the command is one 
+                GuildConfig.RequiredVotes = (int)Math.Ceiling((double)(userCount / 2));
+                
+                embed = Responses.SkipVote(Context.GuildConfig.RequiredVotes).Embed!;
+
+            }
+            else
+            {
+                Context.GuildConfig.AudioPlayer.Skip();
+                embed.AddField("Skipping", $"Song {FormattedVideo(Context.GuildConfig.AudioPlayer.CurrentSong)} skipped");
+            }
+            
+            
         }
         else
         {
             embed.AddField("Nothing to skip", "The queue is empty.");
         }
 
-        Context.GuildConfig.AudioPlayer.Skip();
+        
 
 
-        await ReplyAsync(embed);
+        await ReplyAsync(embed, components);
     }
+
+
+    //* Catch all interactions with the id which stars with sv-
+    [LinkComponentInteraction("sv-*")]
+    public async Task SkipVote(SocketMessageComponent component)
+    {
+        // Console.WriteLine(Context.GuildConfig.Id);
+
+        await component.DeferAsync();
+        if (component.Data.CustomId == Context.GuildConfig.ValidSkipVoteId && !GuildConfig.VotedUsers.Contains(component.User.Id))
+        {
+            Video skippedSong = null!;
+            GuildConfig.VotedUsers.Add(component.User.Id);
+      
+            if (GuildConfig.VotedUsers.Count >= Context.GuildConfig.RequiredVotes)
+            {
+                skippedSong = Context.GuildConfig.AudioPlayer.CurrentSong;
+                GuildConfig.AudioPlayer.Skip();
+                GuildConfig.InvalidateVoteData();
+            }
+            await component.Message.ModifyAsync(properties =>
+            {
+                int r = GuildConfig.RequiredVotes - GuildConfig.VotedUsers.Count;
+                
+                if (r <= 0)
+                {
+                    properties.Components = null;
+                    if(skippedSong != null)  properties.Embed = Responses
+                        .Skipped(FormattedVideo(skippedSong)).BuiltEmbed;
+                }
+                else
+                {
+                    properties.Embed = Responses.SkipVote(r).BuiltEmbed;
+                    
+                }
+                    
+            });
+        }
+        
+
+
+    }
+    
 
     [Command("stop")]
     [Summary("Disconnects the bot from the current voice channel")]

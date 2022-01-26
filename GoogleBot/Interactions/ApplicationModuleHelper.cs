@@ -154,8 +154,17 @@ public class ApplicationModuleHelper
             //* Value = List of methods to call when the custom id appears
 
             // Console.WriteLine($"{componentCallback.Key}: {string.Join(", ", componentCallback.Value.ConvertAll(m=>m.Name))}");
-
-            if (componentCallback.Key == component.Data.CustomId || componentCallback.Key == "*")
+            bool startsWith = componentCallback.Key.Length > 1 && componentCallback.Key.Last() == '*';  //* Match bla-id-* to bla-id-123
+            bool endsWith = componentCallback.Key.Length > 1 && componentCallback.Key.First() == '*';   // Match *-bla-id to 123-bla-id
+            string key = componentCallback.Key;
+            if (startsWith || endsWith)
+            {
+                key = componentCallback.Key.Replace("*", "");
+            }
+            
+            if (componentCallback.Key == component.Data.CustomId || componentCallback.Key == "*" 
+                                                                 || (startsWith && component.Data.CustomId.StartsWith(key))
+                                                                 || (endsWith && component.Data.CustomId.EndsWith(key)))
             {
                 // Console.WriteLine($"FOUND {string.Join(", ", componentCallback.Value.ConvertAll(m=>m.Name))}");
                 foreach (MethodInfo method in componentCallback.Value)

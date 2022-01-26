@@ -52,7 +52,7 @@ namespace GoogleBot
     public class AudioPlayer
     {
         public bool Playing = false;
-        private IAudioClient audioClient;
+        public IAudioClient AudioClient;
         public readonly List<Video> Queue = new List<Video>();
         public Video CurrentSong;
         private IVoiceChannel voiceChannel;
@@ -315,12 +315,12 @@ namespace GoogleBot
                 .ExecuteAsync();
 
             //* If bot isn't connected -> connect 
-            if (audioClient is not { ConnectionState: ConnectionState.Connected })
+            if (AudioClient is not { ConnectionState: ConnectionState.Connected })
             {
                 Console.WriteLine("Connecting to voicechannel");
                 try
                 {
-                    audioClient = await this.voiceChannel.ConnectAsync();
+                    AudioClient = await this.voiceChannel.ConnectAsync();
                 }
                 catch (Exception)
                 {
@@ -336,7 +336,7 @@ namespace GoogleBot
             Console.WriteLine("Starting audio stream");
 
             //* Play sound async
-            PlaySoundFromMemoryStream(audioClient, memoryStream, NextSong);
+            PlaySoundFromMemoryStream(AudioClient, memoryStream, NextSong);
 
             if (isNewPlaylist)
             {
@@ -373,7 +373,7 @@ namespace GoogleBot
             }
             else
             {
-                audioClient.StopAsync();
+                AudioClient.StopAsync();
                 voiceChannel = null;
             }
         }
@@ -391,8 +391,8 @@ namespace GoogleBot
             CurrentSong = null;
             Playing = false;
 
-            if (audioClient != null)
-                audioClient.StopAsync();
+            if (AudioClient != null)
+                AudioClient.StopAsync();
         }
 
         /// <summary>
