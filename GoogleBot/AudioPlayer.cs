@@ -17,6 +17,7 @@ using YoutubeExplode.Common;
 using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos.Streams;
 using Video = YoutubeExplode.Videos.Video;
+// ReSharper disable ParameterHidesMember
 
 namespace GoogleBot
 {
@@ -43,6 +44,7 @@ namespace GoogleBot
         NoVoiceChannel,
         JoiningChannelFailed,
         DifferentVoiceChannels,
+        CancelledEarly,
     }
 
 
@@ -124,15 +126,15 @@ namespace GoogleBot
         /// Tries to play some audio from youtube in a given voice channel
         /// </summary>
         /// <param name="query">A Youtube link or id or some search terms </param>
-        /// <param name="voiceChannel">The voice channel of the user</param>
+        /// <param name="vc">The voice channel of the user</param>
         /// <returns>An PlayReturnValue containing a State</returns>
-        public async Task<PlayReturnValue> Play(string query, IVoiceChannel voiceChannel = null)
+        public async Task<PlayReturnValue> Play(string query, IVoiceChannel vc = null)
         {
-            if (voiceChannel != null)
+            if (vc != null)
             {
                 if (this.voiceChannel == null)
-                    this.voiceChannel = voiceChannel;
-                else if (!voiceChannel.Equals(this.voiceChannel))
+                    this.voiceChannel = vc;
+                else if (!vc.Equals(this.voiceChannel))
                 {
                     return new PlayReturnValue
                     {
@@ -143,7 +145,7 @@ namespace GoogleBot
             }
 
 
-            if (this.voiceChannel == null)
+            if (voiceChannel == null)
             {
                 return new PlayReturnValue
                 {
@@ -324,8 +326,14 @@ namespace GoogleBot
                 }
                 catch (Exception)
                 {
+                    
                     Playing = false;
                     CurrentSong = null;
+                    if (this.voiceChannel == null)
+                        return new PlayReturnValue
+                        {
+                            AudioPlayState = AudioPlayState.CancelledEarly
+                        };
                     return new PlayReturnValue
                     {
                         AudioPlayState = AudioPlayState.JoiningChannelFailed

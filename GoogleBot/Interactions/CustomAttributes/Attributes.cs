@@ -125,3 +125,47 @@ public class DevOnlyAttribute : Attribute
         IsDevOnly = isDevOnly;
     }
 }
+
+/// <summary>
+/// When applied, commands need the majority of a VC to execute it
+/// </summary>
+[AttributeUsage(AttributeTargets.Method)]
+public class RequiresMajorityAttribute : Attribute
+{
+    public bool RequiresMajority { get; } = false;
+
+    public string ButtonText { get; } = "Yes";
+
+    /// <summary>
+    /// Default set RequiredMajority to true
+    /// </summary>
+    public RequiresMajorityAttribute()
+    {
+        RequiresMajority = true;
+    }
+
+    /// <summary>
+    /// Explicitly set the RequiredMajority
+    /// </summary>
+    /// <param name="requiresMajority">The RequiredMajority</param>
+    public RequiresMajorityAttribute(bool requiresMajority)
+    {
+        RequiresMajority = requiresMajority;
+    }
+
+    /// <summary>
+    /// Sets the buttons text when voting + default true
+    /// </summary>
+    /// <param name="buttonText">The vote-buttons text</param>
+    public RequiresMajorityAttribute(string buttonText)
+    {
+        RequiresMajority = true;
+        ButtonText = buttonText;
+    }
+
+    public RequiresMajorityAttribute(bool requiresMajority, string buttonText)
+    {
+        RequiresMajority = requiresMajority;
+        ButtonText = buttonText;
+    }
+}

@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using Discord;
-using static GoogleBot.Util;
+using Discord.WebSocket;
+
 
 namespace GoogleBot.Interactions.Modules;
 
@@ -32,6 +33,12 @@ public class Responses
         return new FormattedMessage(new EmbedBuilder().AddField("Nothing to skip", "The queue is empty."));
     }
 
+    public static FormattedMessage VoteRequired(SocketUser author, string command, int numberOfVotesRequired)
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField($"`{numberOfVotesRequired}` more {(numberOfVotesRequired == 1 ? "vote" : "votes")} required",
+            $"<@{author.Id}> wants to execute `{command}`"));
+    }
+
     /// <summary>
     /// A hint when using text-based commands, to use application command instead
     /// </summary>
@@ -40,7 +47,7 @@ public class Responses
     public static FormattedMessage DeprecationHint(CommandInfo command)
     {
         return new FormattedMessage(new EmbedBuilder().AddField("Text-based commands are deprecated!",
-                $"Please use the application command `/{command.Name}{(command.Parameters.Length <= 0 ? "":" ")}{string.Join(" ", command.Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}` instead.")
-            );
+            $"Please use the application command `/{command.Name}{(command.Parameters.Length <= 0 ? "" : " ")}{string.Join(" ", command.Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}` instead.")
+        );
     }
 }

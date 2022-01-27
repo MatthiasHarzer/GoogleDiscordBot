@@ -14,12 +14,12 @@ public abstract class ApplicationModuleBase
     /// May include CommandInfo, Guild, User, Channels
     /// </summary>
     public Context Context { get; set; } = new Context();
-    
+
     public GuildConfig GuildConfig
     {
         get => Context.GuildConfig;
     }
-    
+
     public T CreateNew<T>() where T : class, new()
     {
         return new T();

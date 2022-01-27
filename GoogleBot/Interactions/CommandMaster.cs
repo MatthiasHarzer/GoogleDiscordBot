@@ -5,11 +5,11 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using AngleSharp.Common;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using GoogleBot.Interactions.Modules;
-using static GoogleBot.Util;
 
 namespace GoogleBot.Interactions;
 
@@ -101,6 +101,14 @@ public static class CommandMaster
                 args[i] = commandInfo.Method.GetParameters()[i].DefaultValue;
             }
 
+            // Console.WriteLine(commandInfo.RequiresMajority);
+            if (commandInfo.RequiresMajority)
+            {
+                MajorityWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
+                if (await watcher.CreateVoteIfNeeded(commandContext, helper.GetModuleInstance(commandContext), args))
+                    return;
+            }
+
             // Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
 
 
@@ -132,7 +140,7 @@ public static class CommandMaster
     /// <param name="socketCommandContext">The command context</param>
     public static void CheckTextCommand(SocketCommandContext socketCommandContext)
     {
-        CommandInfo command = GetTextCommandFromMessage(socketCommandContext.Message);
+        CommandInfo command = Util.GetTextCommandFromMessage(socketCommandContext.Message);
 
         IDisposable typing = null;
 

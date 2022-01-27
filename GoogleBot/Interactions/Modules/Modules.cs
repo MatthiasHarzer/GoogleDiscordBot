@@ -12,7 +12,7 @@ using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using GoogleBot.Interactions.CustomAttributes;
 using YoutubeExplode.Videos;
-using static GoogleBot.Util;
+
 
 namespace GoogleBot.Interactions.Modules;
 
@@ -41,10 +41,9 @@ public class TestModule : ApplicationModuleBase
         }
 
 
-
         await ReplyAsync("" + count);
     }
-    
+
     [Command("ping")]
     [Summary("Ping a user")]
     public async Task Ping([Name("user")] [OptionType(ApplicationCommandOptionType.User)] SocketUser user,
@@ -67,6 +66,20 @@ public class TestModule : ApplicationModuleBase
     {
         await Task.CompletedTask;
         // Console.WriteLine("ComponentInteration linked method called AT COOLD ID 2!!!!");
+    }
+}
+
+public class MajorityWatchModule : ApplicationModuleBase
+{
+    [LinkComponentInteraction("mv-*")]
+    public async Task MajorityVote(SocketMessageComponent component)
+    {
+        MajorityWatcher watcher = Context.GuildConfig.GetWatcher(component.Data.CustomId);
+        await component.DeferAsync();
+        if (watcher != null)
+        {
+            await watcher.TryVote(component.User.Id, component);
+        }
     }
 }
 
@@ -135,16 +148,16 @@ public class AudioModule : ApplicationModuleBase
         {
             case AudioPlayState.Success:
                 embed.AddField("Now playing",
-                    FormattedVideo(returnValue.Video));
+                    Util.FormattedVideo(returnValue.Video));
                 break;
             case AudioPlayState.PlayingAsPlaylist:
                 embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
                 embed.AddField("Now playing",
-                    FormattedVideo(returnValue.Video));
+                    Util.FormattedVideo(returnValue.Video));
                 break;
             case AudioPlayState.Queued:
                 embed.AddField("Song added to queue",
-                    FormattedVideo(returnValue.Video));
+                    Util.FormattedVideo(returnValue.Video));
                 break;
             case AudioPlayState.QueuedAsPlaylist:
                 embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
@@ -166,6 +179,10 @@ public class AudioModule : ApplicationModuleBase
                 embed.AddField("Invalid voice channel",
                     $"You have to be connect to the same voice channel `{returnValue.Note}` as the bot.");
                 break;
+            case AudioPlayState.CancelledEarly:
+                embed.AddField("Cancelled", "`Playing was stopped early.`");
+                break;
+                
         }
 
         await ReplyAsync(embed);
@@ -174,98 +191,30 @@ public class AudioModule : ApplicationModuleBase
 
     [Command("skip")]
     [Summary("Skips the current song")]
+    [RequiresMajority("Skip")]
     public async Task Skip()
     {
-
         FormattedMessage message;
-        
-        ComponentBuilder components = null;
-        
-        if (Context.GuildConfig.AudioPlayer.Playing)
+
+        ComponentBuilder? components = null;
+
+        if (Context.GuildConfig.AudioPlayer.Playing && Context.GuildConfig.AudioPlayer.AudioClient.ConnectionState == ConnectionState.Connected)
         {
-            var users = await Context.VoiceChannel?.GetUsersAsync().ToListAsync().AsTask()!;
-            
-            int userCount = users.First()?.Count ?? 0;
-
-            if (Context.GuildConfig.AudioPlayer.AudioClient?.ConnectionState == ConnectionState.Connected)
-                userCount--;
-
-            if (userCount >= 3)
-            {
-                //* Require majority of users to agree
-
-                Context.GuildConfig.GenerateSkipId();
-                // components.WithButton("No", Context.GuildConfig.ValidSkipVoteIds[1]);
-                GuildConfig.VotedUsers.Add(Context.User.Id); //* The user who initiated the command is one 
-                GuildConfig.RequiredVotes = (int)Math.Ceiling((double)(userCount / 2));
-                
-                message = Responses.SkipVote(Context.GuildConfig.RequiredVotes);
-                
-                message.WithComponents(new ComponentBuilder().WithButton("Skip", Context.GuildConfig.ValidSkipVoteId, ButtonStyle.Success));
-
-            }
-            else
-            {
-                message = Responses.Skipped(FormattedVideo(Context.GuildConfig.AudioPlayer.CurrentSong));
-                Context.GuildConfig.AudioPlayer.Skip();
-            }
-            
-            
+            message = Responses.Skipped(Util.FormattedVideo(Context.GuildConfig.AudioPlayer.CurrentSong));
+            Context.GuildConfig.AudioPlayer.Skip();
         }
         else
         {
             message = Responses.NothingToSkip();
-
         }
-        
+
         await ReplyAsync(message?.Embed, components);
     }
 
 
-    //* Catch all interactions with the id which stars with sv-
-    [LinkComponentInteraction("sv-*")]
-    public async Task SkipVote(SocketMessageComponent component)
-    {
-        // Console.WriteLine(Context.GuildConfig.Id);
-
-        await component.DeferAsync();
-        if (component.Data.CustomId == Context.GuildConfig.ValidSkipVoteId && !GuildConfig.VotedUsers.Contains(component.User.Id))
-        {
-            Video skippedSong = null!;
-            GuildConfig.VotedUsers.Add(component.User.Id);
-      
-            if (GuildConfig.VotedUsers.Count >= Context.GuildConfig.RequiredVotes)
-            {
-                skippedSong = Context.GuildConfig.AudioPlayer.CurrentSong;
-                GuildConfig.AudioPlayer.Skip();
-                GuildConfig.InvalidateVoteData();
-            }
-            await component.Message.ModifyAsync(properties =>
-            {
-                int r = GuildConfig.RequiredVotes - GuildConfig.VotedUsers.Count;
-                
-                if (r <= 0)
-                {
-                    properties.Components = null;
-                    if(skippedSong != null)  properties.Embed = Responses
-                        .Skipped(FormattedVideo(skippedSong)).BuiltEmbed;
-                }
-                else
-                {
-                    properties.Embed = Responses.SkipVote(r).BuiltEmbed;
-                    
-                }
-                    
-            });
-        }
-        
-
-
-    }
-    
-
     [Command("stop")]
     [Summary("Disconnects the bot from the current voice channel")]
+    [RequiresMajority("Stop")]
     public async Task Stop()
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
@@ -315,7 +264,7 @@ public class AudioModule : ApplicationModuleBase
         if (player.Playing && currentSong != null)
         {
             embed.AddField("Currently playing",
-                FormattedVideo(currentSong));
+                Util.FormattedVideo(currentSong));
         }
 
         if (queue.Count > 0)
@@ -332,7 +281,7 @@ public class AudioModule : ApplicationModuleBase
             foreach (var video in queue)
             {
                 string content =
-                    $"\n\n[`{video.Title} - {video.Author} ({FormattedVideoDuration(video)})`]({video.Url})";
+                    $"\n\n[`{video.Title} - {video.Author} ({Util.FormattedVideoDuration(video)})`]({video.Url})";
 
                 if (content.Length + approxLength > max_length)
                 {
@@ -374,7 +323,7 @@ public class GoogleModule : ApplicationModuleBase
             return;
         }
 
-        Search result = FetchGoogleQuery(String.Join(' ', query));
+        Search result = Util.FetchGoogleQuery(String.Join(' ', query));
 
         string title = $"Search results for __**{query}**__:";
         string footer =

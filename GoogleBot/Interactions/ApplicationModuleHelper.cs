@@ -8,7 +8,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Modules;
-using static GoogleBot.Util;
+
 
 namespace GoogleBot.Interactions;
 
@@ -69,7 +69,7 @@ public class ApplicationModuleHelper
             ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p => new ParameterInfo
             {
                 Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
-                Type = p.GetCustomAttribute<OptionTypeAttribute>()?.Type ?? ToOptionType(p.ParameterType),
+                Type = p.GetCustomAttribute<OptionTypeAttribute>()?.Type ?? Util.ToOptionType(p.ParameterType),
                 Name = p.GetCustomAttribute<NameAttribute>()?.Text ?? p.Name ?? string.Empty,
                 IsMultiple = p.GetCustomAttribute<MultipleAttribute>()?.IsMultiple ?? false,
                 IsOptional = p.HasDefaultValue,
@@ -85,6 +85,10 @@ public class ApplicationModuleHelper
                     //* -> is command 
                     bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
                     bool overrideDefer = method.GetCustomAttribute<OverrideDeferAttribute>()?.DeferOverride ?? false;
+                    bool requiresMajority = method.GetCustomAttribute<RequiresMajorityAttribute>()?.RequiresMajority ??
+                                            false;
+                    string majorityVoteButtonText =
+                        method.GetCustomAttribute<RequiresMajorityAttribute>()?.ButtonText ?? "Yes";
 
                     if (!AddCommand(new CommandInfo
                         {
@@ -95,6 +99,8 @@ public class ApplicationModuleHelper
                             IsPrivate = isEphemeral,
                             IsDevOnly = devonly,
                             OverrideDefer = overrideDefer,
+                            RequiresMajority = requiresMajority,
+                            MajorityVoteButtonText = majorityVoteButtonText,
                         }))
                     {
                         Console.WriteLine(
@@ -118,8 +124,8 @@ public class ApplicationModuleHelper
             }
         }
     }
-    
-    
+
+
     /// <summary>
     /// Returns a fresh instance of the module while setting its context
     /// </summary>
@@ -160,16 +166,21 @@ public class ApplicationModuleHelper
             //* Value = List of methods to call when the custom id appears
 
             // Console.WriteLine($"{componentCallback.Key}: {string.Join(", ", componentCallback.Value.ConvertAll(m=>m.Name))}");
-            bool startsWith = componentCallback.Key.Length > 1 && componentCallback.Key.Last() == '*';  //* Match bla-id-* to bla-id-123
-            bool endsWith = componentCallback.Key.Length > 1 && componentCallback.Key.First() == '*';   // Match *-bla-id to 123-bla-id
+            bool startsWith =
+                componentCallback.Key.Length > 1 &&
+                componentCallback.Key.Last() == '*'; //* Match bla-id-* to bla-id-123
+            bool endsWith =
+                componentCallback.Key.Length > 1 &&
+                componentCallback.Key.First() == '*'; // Match *-bla-id to 123-bla-id
             string key = componentCallback.Key;
             if (startsWith || endsWith)
             {
                 key = componentCallback.Key.Replace("*", "");
             }
-            
-            if (componentCallback.Key == component.Data.CustomId || componentCallback.Key == "*" 
-                                                                 || (startsWith && component.Data.CustomId.StartsWith(key))
+
+            if (componentCallback.Key == component.Data.CustomId || componentCallback.Key == "*"
+                                                                 || (startsWith &&
+                                                                     component.Data.CustomId.StartsWith(key))
                                                                  || (endsWith && component.Data.CustomId.EndsWith(key)))
             {
                 // Console.WriteLine($"FOUND {string.Join(", ", componentCallback.Value.ConvertAll(m=>m.Name))}");

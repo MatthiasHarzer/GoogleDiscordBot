@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions;
-using static GoogleBot.Util;
+
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -61,7 +61,7 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
             { "summery", Summary },
             { "multiple", IsMultiple },
             { "optional", IsOptional },
-            { "type", OptionTypeToString(Type) }
+            { "type", Util.OptionTypeToString(Type) }
         };
     }
 
@@ -93,7 +93,7 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
 
         if (jsonObject.TryGetPropertyValue("type", out var t))
         {
-            type = ToOptionType(t?.ToString());
+            type = Util.ToOptionType(t?.ToString());
         }
 
         if (name == null || summery == null)
@@ -117,11 +117,15 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
 /// </summary>
 public class CommandInfo : IJsonSerializable<CommandInfo>
 {
-    public bool IsPrivate { get; set; } = false;
+    public bool IsPrivate { get; init; } = false;
     public string Name { get; init; } = string.Empty;
     public string Summary { get; init; } = "No description available";
 
     public bool IsDevOnly { get; init; } = false;
+
+    public bool RequiresMajority { get; init; } = false;
+
+    public string MajorityVoteButtonText { get; init; } = "Yes";
 
     public bool OverrideDefer { get; init; } = false;
     public ParameterInfo[] Parameters { get; init; } = Array.Empty<ParameterInfo>();
@@ -175,9 +179,9 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             overrideDefer = d?.GetValue<bool>() ?? false;
         }
 
-        if (jsonObject.TryGetPropertyValue("devonly", out var do_))
+        if (jsonObject.TryGetPropertyValue("devonly", out var dev))
         {
-            devonly = do_?.GetValue<bool>() ?? false;
+            devonly = dev?.GetValue<bool>() ?? false;
         }
 
         if (jsonObject.TryGetPropertyValue("parameters", out var pa))
@@ -214,7 +218,7 @@ public class FormattedMessage
     /// The embed of the message
     /// </summary>
     public EmbedBuilder? Embed { get; set; } = null;
-    
+
     /// <summary>
     /// Gets the built embed
     /// </summary>
@@ -233,7 +237,9 @@ public class FormattedMessage
     /// </summary>
     public string? Message { get; set; } = null;
 
-    public FormattedMessage(){}
+    public FormattedMessage()
+    {
+    }
 
     /// <summary>
     /// Configures a new FormattedMessage with the given embed
@@ -260,7 +266,7 @@ public class FormattedMessage
         Components = fm?.Components ?? Components;
         return this;
     }
-    
+
     /// <summary>
     /// Adds components to the message
     /// </summary>
@@ -290,7 +296,7 @@ public class FormattedMessage
     /// <returns></returns>
     public FormattedMessage WithEmbed(EmbedBuilder embed)
     {
-        embed.WithColor(RandomColor()); // Add a nice color to the embed
+        embed.WithColor(Util.RandomColor()); // Add a nice color to the embed
         embed.WithCurrentTimestamp(); //
         Embed = embed;
         return this;
@@ -308,13 +314,13 @@ public class Context
         GuildConfig = GuildConfig.Get(null);
         User = null!;
     }
+
     public Context(SocketMessageComponent component)
     {
         IGuildUser? guildUser = component.User as IGuildUser;
         GuildConfig = GuildConfig.Get(guildUser?.GuildId);
         User = component.User;
         Channel = component.Channel;
-        
     }
 
 
@@ -349,6 +355,7 @@ public class Context
     /// The CommandInfo from a given command
     /// </summary>
     public CommandInfo? CommandInfo { get; }
+
 
     /// <summary>
     /// The Guild
