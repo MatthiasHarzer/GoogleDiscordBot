@@ -87,8 +87,6 @@ public class ApplicationModuleHelper
                     bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
                     bool overrideDefer = method.GetCustomAttribute<OverrideDeferAttribute>()?.DeferOverride ?? false;
 
-                    bool requiresMajority = preconditionAttribute?.RequiresMajority ?? false;
-                    string majorityVoteButtonText = preconditionAttribute?.ButtonText ?? "Yes";
 
                     if (!AddCommand(new CommandInfo
                         {
@@ -99,11 +97,16 @@ public class ApplicationModuleHelper
                             IsPrivate = isEphemeral,
                             IsDevOnly = devonly,
                             OverrideDefer = overrideDefer,
+                            IsOptionalEphemeral =
+                                method.GetCustomAttribute<OptionalEphemeralAttribute>()?.IsOptionalEphemeral ?? false,
                             Preconditions = new Preconditions
                             {
-                                RequiresMajority = preconditionAttribute?.RequiresMajority ?? new PreconditionAttribute().RequiresMajority,
-                                MajorityVoteButtonText = preconditionAttribute?.ButtonText ?? new PreconditionAttribute().ButtonText,
-                                RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ?? new PreconditionAttribute().RequiresBotConnected,
+                                RequiresMajority = preconditionAttribute?.RequiresMajority ??
+                                                   new PreconditionAttribute().RequiresMajority,
+                                MajorityVoteButtonText = preconditionAttribute?.ButtonText ??
+                                                         new PreconditionAttribute().ButtonText,
+                                RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ??
+                                                       new PreconditionAttribute().RequiresBotConnected,
                             }
                         }))
                     {

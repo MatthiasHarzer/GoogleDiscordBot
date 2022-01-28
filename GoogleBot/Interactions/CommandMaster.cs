@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using AngleSharp.Common;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -59,77 +58,62 @@ public static class CommandMaster
     /// <param name="command">The command</param>
     public static async Task Execute(SocketSlashCommand command)
     {
-        ApplicationModuleHelper helper =
-            Helpers.Find(helper => helper.GetCommandsAsText().Contains(command.CommandName));
-        Context commandContext = new Context(command);
-        CommandInfo commandInfo = commandContext.CommandInfo;
-
-
-        Console.WriteLine($"Found {commandInfo?.Name} in {helper?.ModuleType}");
-
-        if (commandContext.CommandInfo is not { OverrideDefer: true })
+        try
         {
-            commandContext.Command?.DeferAsync(ephemeral: commandInfo is { IsPrivate: true });
-        }
+            ApplicationModuleHelper helper =
+                Helpers.Find(helper => helper.GetCommandsAsText().Contains(command.CommandName));
+            Context commandContext = new Context(command);
+            CommandInfo commandInfo = commandContext.CommandInfo;
 
-        if (helper != null && commandInfo is { Method: not null })
-        {
-            object[] args = new object[commandInfo.Method.GetParameters().Length];
 
-            object[] options = command.Data.Options.ToList().ConvertAll(option => option.Value).ToArray();
+            Console.WriteLine($"Found /{commandInfo?.Name} in {helper?.ModuleType}");
 
-            if (options.Length > args.Length)
+            // if (commandContext.CommandInfo is not { OverrideDefer: true })
+            // {
+            //     commandContext.Command?.DeferAsync(ephemeral: commandInfo is { IsPrivate: true });
+            // }
+
+            if (helper != null && commandInfo is { Method: not null })
             {
-                throw new ArgumentException("Too many arguments for that command");
-            }
+                object[] args = commandContext.Arguments;
 
-            int i;
-            //* Fill the args with the provided option values
-            for (i = 0; i < options.Length; i++)
-            {
-                args[i] = options[i];
-            }
+                await command.DeferAsync(commandContext.IsEphemeral);
 
-            //* Fill remaining args with their default values
-            for (; i < args.Length; i++)
-            {
-                if (!commandInfo.Method.GetParameters()[i].HasDefaultValue)
+                PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
+                bool preconditionsMet =
+                    await watcher.CheckPreconditions(commandContext, helper.GetModuleInstance(commandContext), args);
+                if (!preconditionsMet)
+                    return;
+
+
+                // Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
+
+
+                // helper.SetContext(commandContext);
+                try
                 {
-                    throw new ArgumentException("Missing options.");
+                    var module = helper.GetModuleInstance(commandContext);
+                    // Console.WriteLine(args.Length);
+                    await ((Task)commandInfo.Method.Invoke(module, args))!;
                 }
-
-                args[i] = commandInfo.Method.GetParameters()[i].DefaultValue;
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    Console.WriteLine(e.StackTrace);
+                }
             }
-
-            PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
-            bool preconditionsMet =
-                await watcher.CheckPreconditions(commandContext, helper.GetModuleInstance(commandContext), args);
-            if (!preconditionsMet)
-                return;
-
-
-            // Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
-
-
-            // helper.SetContext(commandContext);
-            try
+            else
             {
-                var module = helper.GetModuleInstance(commandContext);
-                // Console.WriteLine(args.Length);
-                await ((Task)commandInfo.Method.Invoke(module, args))!;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-                Console.WriteLine(e.StackTrace);
+                commandContext.Command?.ModifyOriginalResponseAsync(properties =>
+                {
+                    properties.Content = "`Looks like that command doesn't exist. Sorry :/`";
+                });
             }
         }
-        else
+        catch (Exception e)
         {
-            commandContext.Command?.ModifyOriginalResponseAsync(properties =>
-            {
-                properties.Content = "`Looks like that command doesn't exist. Sorry :/`";
-            });
+            Console.WriteLine(e.Message);
+            Console.WriteLine(e.StackTrace);
         }
     }
 

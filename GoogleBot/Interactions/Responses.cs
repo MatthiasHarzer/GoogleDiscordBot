@@ -63,4 +63,11 @@ public class Responses
         return new FormattedMessage(new EmbedBuilder().AddField("Invalid voice channel",
             $"You have to be connect to the same voice channel {targetVc} as the bot."));
     }
+
+    public static FormattedMessage CommandRequiresMajorityEphemeralHint(CommandInfo commandInfo)
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField(
+            $"The command `/{commandInfo.Name}` requires the consent of the majority of members in your voice channel to execute",
+            "Consider removing the `hidden` option from the command to trigger a vote"));
+    }
 }

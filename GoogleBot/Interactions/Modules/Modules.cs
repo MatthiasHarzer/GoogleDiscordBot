@@ -67,6 +67,19 @@ public class TestModule : ApplicationModuleBase
         await Task.CompletedTask;
         // Console.WriteLine("ComponentInteration linked method called AT COOLD ID 2!!!!");
     }
+
+    [Command("play-test")]
+    [Summary("Play command as guild command (Dev only) ")]
+    [OptionalEphemeral]
+    [Precondition(requiresMajority: true, majorityVoteButtonText: "Skip", requiresBotConnected: true)]
+    public async Task PlayTest([Multiple] [Summary("A search term or YT-link +")] [Name("query")] string query)
+    {
+        var am = new AudioModule
+        {
+            Context = Context
+        };
+        await am.Play(query);
+    }
 }
 
 public class MajorityWatchModule : ApplicationModuleBase
@@ -119,15 +132,13 @@ public class InfoModule : ApplicationModuleBase
 public class AudioModule : ApplicationModuleBase
 {
     [Command("play")]
-    [Summary("Plays music in the current voice channel from an url or query")]
-    [OverrideDefer(true)]
+    [Summary("Plays music in the current voice channel from an YT-link or query")]
     [Precondition(requiresBotConnected: true)]
-    public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query,
-        [Name("hidden")] [Summary("Whether the responds should be private ")]
-        bool ephemeral = false)
+    [OptionalEphemeral]
+    public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query)
     {
         // Console.WriteLine("executed PLAY");
-        Context.Command?.DeferAsync(ephemeral: ephemeral);
+
 
         IVoiceChannel? channel = Context.VoiceChannel;
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
@@ -192,7 +203,7 @@ public class AudioModule : ApplicationModuleBase
 
     [Command("skip")]
     [Summary("Skips the current song")]
-    [Precondition(requiresMajority:true, majorityVoteButtonText: "Skip", requiresBotConnected:true)]
+    [Precondition(requiresMajority: true, majorityVoteButtonText: "Skip", requiresBotConnected: true)]
     public async Task Skip()
     {
         FormattedMessage message;
@@ -216,7 +227,7 @@ public class AudioModule : ApplicationModuleBase
 
     [Command("stop")]
     [Summary("Disconnects the bot from the current voice channel")]
-    [Precondition(requiresMajority:true, majorityVoteButtonText: "Stop")]
+    [Precondition(requiresMajority: true, majorityVoteButtonText: "Stop")]
     public async Task Stop()
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();

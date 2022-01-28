@@ -138,6 +138,7 @@ namespace GoogleBot
             Console.WriteLine("New or changed global commands found:");
             Console.WriteLine(string.Join("\n", newOrChangedCommands));
 
+            // return;
 
             // var guild = client.GetGuild(guildId);
 
@@ -153,7 +154,13 @@ namespace GoogleBot
                 foreach (ParameterInfo parameter in command.Parameters)
                 {
                     builder.AddOption(parameter.Name, parameter.Type,
-                        parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
+                        parameter.Summary, isRequired: !parameter.IsOptional);
+                }
+
+                if (command.IsOptionalEphemeral)
+                {
+                    builder.AddOption("hidden", ApplicationCommandOptionType.Boolean,
+                        "Whether the responds should be private", false);
                 }
 
                 applicationCommandProperties.Add(builder.Build());
@@ -253,6 +260,12 @@ namespace GoogleBot
                 {
                     builder.AddOption(parameter.Name, parameter.Type,
                         parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
+                }
+
+                if (command.IsOptionalEphemeral)
+                {
+                    builder.AddOption("hidden", ApplicationCommandOptionType.Boolean,
+                        "Whether the responds should be private", false);
                 }
 
                 applicationCommandProperties.Add(builder.Build());

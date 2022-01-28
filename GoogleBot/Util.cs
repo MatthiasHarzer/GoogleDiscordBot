@@ -356,7 +356,8 @@ namespace GoogleBot
         {
             if (command1.Name != command2.Name || command1.Summary != command2.Summary ||
                 command1.Parameters.Length != command2.Parameters.Length ||
-                command1.IsDevOnly != command2.IsDevOnly) return false;
+                command1.IsDevOnly != command2.IsDevOnly ||
+                command1.IsOptionalEphemeral != command2?.IsOptionalEphemeral) return false;
 
             int pos = 0;
             for (pos = 0; pos < command1.Parameters.Length; pos++)

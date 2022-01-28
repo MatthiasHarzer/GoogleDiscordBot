@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -19,21 +20,6 @@ internal interface IJsonSerializable<out T>
 {
     JsonObject ToJson();
     T FromJson(JsonObject jsonObject);
-}
-
-/// <summary>
-/// Simple return value for converting a message into its parts (command, args)
-/// </summary>
-public class CommandConversionInfo
-{
-    public CommandInfo Command { get; init; } = null!;
-    public object[] Arguments { get; init; } = Array.Empty<object>();
-    public CommandConversionState State { get; init; }
-
-    public (string, Type)[] TargetTypeParam { get; init; } = Array.Empty<(string, Type)>();
-
-
-    public ParameterInfo[] MissingArgs { get; init; } = global::System.Array.Empty<global::GoogleBot.ParameterInfo>();
 }
 
 /// <summary>
@@ -132,9 +118,9 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     public bool IsPrivate { get; init; } = false;
     public string Name { get; init; } = string.Empty;
     public string Summary { get; init; } = "No description available";
-
     public bool IsDevOnly { get; init; } = false;
 
+    public bool IsOptionalEphemeral { get; init; }
     public Preconditions Preconditions { get; init; } = new Preconditions();
 
     public bool OverrideDefer { get; init; } = false;
@@ -159,6 +145,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             { "private", IsPrivate },
             { "overrideDefer", OverrideDefer },
             { "devonly", IsDevOnly },
+            { "optionalEphemeral", IsOptionalEphemeral },
             { "parameters", new JsonArray(Parameters.ToList().ConvertAll(p => (JsonNode)p.ToJson()).ToArray()) }
         };
 
@@ -168,7 +155,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     public CommandInfo FromJson(JsonObject jsonObject)
     {
         string name = null!, summery = null!;
-        bool isPrivate = false, overrideDefer = false, devonly = false;
+        bool isPrivate = false, overrideDefer = false, devonly = false, optionalEphemeral = false;
         JsonArray parameters = new JsonArray();
 
         if (jsonObject.TryGetPropertyValue("name", out var n))
@@ -196,6 +183,11 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             devonly = dev?.GetValue<bool>() ?? false;
         }
 
+        if (jsonObject.TryGetPropertyValue("optionalEphemeral", out var oe))
+        {
+            optionalEphemeral = oe?.GetValue<bool>() ?? false;
+        }
+
         if (jsonObject.TryGetPropertyValue("parameters", out var pa))
         {
             parameters = pa?.AsArray() ?? new JsonArray();
@@ -214,6 +206,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             IsPrivate = isPrivate,
             OverrideDefer = overrideDefer,
             IsDevOnly = devonly,
+            IsOptionalEphemeral = optionalEphemeral,
             Parameters = parameters.ToList().OfType<JsonNode>().ToList()
                 .ConvertAll(p => new ParameterInfo().FromJson((JsonObject)p)).ToArray(),
         };
@@ -350,13 +343,46 @@ public class Context
         User = command.User;
         GuildConfig = GuildConfig.Get(guildUser?.GuildId);
         VoiceChannel = guildUser?.VoiceChannel;
+
+        object[] args = new object[CommandInfo.Method!.GetParameters().Length];
+
+        object[] options = command.Data.Options.ToList().ConvertAll(option => option.Value).ToArray();
+
+
+        int i;
+        //* Fill the args with the provided option values
+        for (i = 0; i < Math.Min(options.Length, args.Length); i++)
+        {
+            args[i] = options[i];
+        }
+
+        //* Fill remaining args with their default values
+        for (; i < args.Length; i++)
+        {
+            if (!CommandInfo.Method.GetParameters()[i].HasDefaultValue)
+            {
+                throw new ArgumentException("Missing options.");
+            }
+
+            args[i] = CommandInfo.Method!.GetParameters()[i].DefaultValue!;
+        }
+
+        Arguments = args;
+
+        if (CommandInfo.IsOptionalEphemeral)
+        {
+            int optionsHidden = Command.Data.Options.ToList()
+                .FindAll(o => o.Name.ToLower() == "hidden" && (bool)o.Value).Count;
+            if (optionsHidden > 1)
+                throw new ArgumentException("Too many options for \"hidden\"");
+            IsEphemeral = optionsHidden > 0;
+        }
     }
 
     /// <summary>
     /// The original command 
     /// </summary>
     public SocketSlashCommand? Command { get; }
-
 
     /// <summary>
     /// The text channel 
@@ -368,6 +394,48 @@ public class Context
     /// </summary>
     public CommandInfo? CommandInfo { get; }
 
+    /// <summary>
+    /// Whether the command should be ephemeral or not
+    /// </summary>
+    public bool IsEphemeral { get; } = false;
+
+    /// <summary>
+    /// The arguments for the executed command (including default values for optional args)
+    /// </summary>
+    public object[] Arguments { get; } = Array.Empty<object>();
+
+    /// <summary>
+    /// The arguments actually used by the user (filter out optional args)
+    /// </summary>
+    public object[] UsedArgs
+    {
+        get
+        {
+            try
+            {
+                //* Get the used args (remove default values)
+                List<object> usedArgs = new();
+                // int i = 0;
+                for (int i = 0; i < Arguments.Length; i++)
+                {
+                    // Console.WriteLine(args[i] + " != " + CommandInfo.Method!.GetParameters()[i].DefaultValue + " : " +
+                    //                   (args[i] != CommandInfo.Method!.GetParameters()[i].DefaultValue));
+                    if (!CommandInfo!.Method!.GetParameters()[i].HasDefaultValue || Arguments[i].ToString() !=
+                        CommandInfo.Method!.GetParameters()[i].DefaultValue!.ToString())
+                    {
+                        usedArgs.Add(Arguments[i]);
+                    }
+                }
+
+                return usedArgs.ToArray();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return Array.Empty<object>();
+            }
+        }
+    }
 
     /// <summary>
     /// The Guild

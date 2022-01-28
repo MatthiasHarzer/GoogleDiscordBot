@@ -153,3 +153,18 @@ public class PreconditionAttribute : Attribute
         RequiresBotConnected = requiresBotConnected;
     }
 }
+
+/// <summary>
+/// When applied, the command will get an optional ephemeral param, making the message ephemeral
+/// </summary>
+public class OptionalEphemeralAttribute : Attribute
+{
+    public bool IsOptionalEphemeral { get; init; }
+
+    public OptionalEphemeralAttribute(bool isOptionalEphemeral = true)
+    {
+        IsOptionalEphemeral = isOptionalEphemeral;
+    }
+
+    public static bool Default => new OptionalEphemeralAttribute().IsOptionalEphemeral;
+}

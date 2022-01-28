@@ -146,7 +146,7 @@ public class PreconditionWatcher
         //* If the commands does not require the majority, return
         if (!CommandInfo.Preconditions.RequiresMajority) return true;
 
-        await context.Command!.DeferAsync();
+        // await context.Command!.DeferAsync();
 
         await Reset();
 
@@ -159,10 +159,19 @@ public class PreconditionWatcher
 
 
         requiredVotes = (int)MathF.Ceiling((float)userCount / 2);
-        // requiredVotes = 2;
+        requiredVotes = 2;
         if (requiredVotes <= 1)
         {
             return true;
+        }
+
+        if (context.IsEphemeral)
+        {
+            await Context.Command!.ModifyOriginalResponseAsync(properties =>
+            {
+                properties.Embed = Responses.CommandRequiresMajorityEphemeralHint(CommandInfo).BuiltEmbed;
+            });
+            return false;
         }
 
         votedUsers.Add(context.User.Id);
@@ -173,12 +182,13 @@ public class PreconditionWatcher
         await Context.Command?.ModifyOriginalResponseAsync(properties =>
         {
             properties.Embed = Responses.VoteRequired(Context.User,
-                    $"/{CommandInfo.Name}{(args.Length <= 0 ? "" : $" {string.Join(" ", UsedArgs)}")}", RemainingVotes)
+                    $"/{CommandInfo.Name}{(UsedArgs.Length <= 0 ? "" : $" {string.Join(" ", UsedArgs)}")}",
+                    RemainingVotes)
                 .BuiltEmbed;
             properties.Components = new ComponentBuilder()
                 .WithButton(CommandInfo.Preconditions.MajorityVoteButtonText, Id, ButtonStyle.Success).Build();
         })!;
-        Console.WriteLine("Created");
+        Console.WriteLine("Vote created");
         return false;
     }
 
@@ -197,7 +207,9 @@ public class PreconditionWatcher
 
         await component.Message.ModifyAsync(properties =>
         {
-            properties.Embed = Responses.VoteRequired(component.User, string.Join(" ", UsedArgs), RemainingVotes).BuiltEmbed;
+            properties.Embed = Responses.VoteRequired(component.User,
+                $"/{CommandInfo.Name}{(UsedArgs.Length <= 0 ? "" : $" {string.Join(" ", UsedArgs)}")}",
+                RemainingVotes).BuiltEmbed;
         });
 
         if (RemainingVotes <= 0)
