@@ -199,7 +199,9 @@ public class PreconditionWatcher
     /// <param name="component">The messages component</param>
     public async Task TryVote(SocketMessageComponent component)
     {
-        if (component.Data.CustomId != Id)
+        //* If the id doesnt match or the users isn't connected to the vc, ignore (return)
+        var usersInVc = (await guildConfig.BotsVoiceChannel.GetUsersAsync().ToListAsync().AsTask()).First();
+        if (component.Data.CustomId != Id || usersInVc.ToList().ConvertAll(u=>u.Id).Contains(component.Id))
             return;
 
         if (!votedUsers.Contains(component.User.Id))
