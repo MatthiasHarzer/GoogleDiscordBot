@@ -17,7 +17,7 @@ using YoutubeExplode.Common;
 using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos.Streams;
 using Video = YoutubeExplode.Videos.Video;
-// ReSharper disable ParameterHidesMember
+
 
 namespace GoogleBot
 {
@@ -58,6 +58,9 @@ namespace GoogleBot
         public readonly List<Video> Queue = new List<Video>();
         public Video CurrentSong;
         private IVoiceChannel voiceChannel;
+
+        public IVoiceChannel VoiceChannel => voiceChannel;
+
         private readonly YoutubeClient youtube = new YoutubeClient();
 
         private CancellationTokenSource taskCanceller = new CancellationTokenSource();
@@ -326,7 +329,6 @@ namespace GoogleBot
                 }
                 catch (Exception)
                 {
-                    
                     Playing = false;
                     CurrentSong = null;
                     if (this.voiceChannel == null)
@@ -334,6 +336,7 @@ namespace GoogleBot
                         {
                             AudioPlayState = AudioPlayState.CancelledEarly
                         };
+                    voiceChannel = null;
                     return new PlayReturnValue
                     {
                         AudioPlayState = AudioPlayState.JoiningChannelFailed
@@ -381,8 +384,7 @@ namespace GoogleBot
             }
             else
             {
-                AudioClient.StopAsync();
-                voiceChannel = null;
+                Stop();
             }
         }
 

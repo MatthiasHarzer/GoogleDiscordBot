@@ -12,7 +12,7 @@ using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using GoogleBot.Interactions.CustomAttributes;
 using YoutubeExplode.Videos;
-
+using Precondition = GoogleBot.Interactions.CustomAttributes.PreconditionAttribute;
 
 namespace GoogleBot.Interactions.Modules;
 
@@ -74,11 +74,11 @@ public class MajorityWatchModule : ApplicationModuleBase
     [LinkComponentInteraction("mv-*")]
     public async Task MajorityVote(SocketMessageComponent component)
     {
-        MajorityWatcher watcher = Context.GuildConfig.GetWatcher(component.Data.CustomId);
+        PreconditionWatcher watcher = Context.GuildConfig.GetWatcher(component.Data.CustomId);
         await component.DeferAsync();
         if (watcher != null)
         {
-            await watcher.TryVote(component.User.Id, component);
+            _ = watcher.TryVote(component);
         }
     }
 }
@@ -121,10 +121,12 @@ public class AudioModule : ApplicationModuleBase
     [Command("play")]
     [Summary("Plays music in the current voice channel from an url or query")]
     [OverrideDefer(true)]
+    [Precondition(requiresBotConnected: true)]
     public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query,
         [Name("hidden")] [Summary("Whether the responds should be private ")]
         bool ephemeral = false)
     {
+        // Console.WriteLine("executed PLAY");
         Context.Command?.DeferAsync(ephemeral: ephemeral);
 
         IVoiceChannel? channel = Context.VoiceChannel;
@@ -182,7 +184,6 @@ public class AudioModule : ApplicationModuleBase
             case AudioPlayState.CancelledEarly:
                 embed.AddField("Cancelled", "`Playing was stopped early.`");
                 break;
-                
         }
 
         await ReplyAsync(embed);
@@ -191,14 +192,15 @@ public class AudioModule : ApplicationModuleBase
 
     [Command("skip")]
     [Summary("Skips the current song")]
-    [RequiresMajority("Skip")]
+    [Precondition(requiresMajority:true, majorityVoteButtonText: "Skip", requiresBotConnected:true)]
     public async Task Skip()
     {
         FormattedMessage message;
 
         ComponentBuilder? components = null;
 
-        if (Context.GuildConfig.AudioPlayer.Playing && Context.GuildConfig.AudioPlayer.AudioClient.ConnectionState == ConnectionState.Connected)
+        if (Context.GuildConfig.AudioPlayer.Playing &&
+            Context.GuildConfig.AudioPlayer.AudioClient.ConnectionState == ConnectionState.Connected)
         {
             message = Responses.Skipped(Util.FormattedVideo(Context.GuildConfig.AudioPlayer.CurrentSong));
             Context.GuildConfig.AudioPlayer.Skip();
@@ -214,7 +216,7 @@ public class AudioModule : ApplicationModuleBase
 
     [Command("stop")]
     [Summary("Disconnects the bot from the current voice channel")]
-    [RequiresMajority("Stop")]
+    [Precondition(requiresMajority:true, majorityVoteButtonText: "Stop")]
     public async Task Stop()
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();

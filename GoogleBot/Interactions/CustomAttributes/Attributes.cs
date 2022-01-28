@@ -130,42 +130,26 @@ public class DevOnlyAttribute : Attribute
 /// When applied, commands need the majority of a VC to execute it
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
-public class RequiresMajorityAttribute : Attribute
+public class PreconditionAttribute : Attribute
 {
-    public bool RequiresMajority { get; } = false;
+    public bool RequiresMajority { get; }
 
-    public string ButtonText { get; } = "Yes";
+    public string ButtonText { get; }
 
-    /// <summary>
-    /// Default set RequiredMajority to true
-    /// </summary>
-    public RequiresMajorityAttribute()
-    {
-        RequiresMajority = true;
-    }
+    public bool RequiresBotConnected { get; }
+
 
     /// <summary>
-    /// Explicitly set the RequiredMajority
+    /// Initializes the precondition attribute
     /// </summary>
-    /// <param name="requiresMajority">The RequiredMajority</param>
-    public RequiresMajorityAttribute(bool requiresMajority)
+    /// <param name="requiresMajority">Whether the majority of a VC is required to execute the command</param>
+    /// <param name="majorityVoteButtonText">The text to put on the vote button</param>
+    /// <param name="requiresBotConnected">Whether the bot must be in the a and the same VC as the player who executed the command</param>
+    public PreconditionAttribute(bool requiresMajority = false, string majorityVoteButtonText = "Yes",
+        bool requiresBotConnected = false)
     {
         RequiresMajority = requiresMajority;
-    }
-
-    /// <summary>
-    /// Sets the buttons text when voting + default true
-    /// </summary>
-    /// <param name="buttonText">The vote-buttons text</param>
-    public RequiresMajorityAttribute(string buttonText)
-    {
-        RequiresMajority = true;
-        ButtonText = buttonText;
-    }
-
-    public RequiresMajorityAttribute(bool requiresMajority, string buttonText)
-    {
-        RequiresMajority = requiresMajority;
-        ButtonText = buttonText;
+        ButtonText = majorityVoteButtonText;
+        RequiresBotConnected = requiresBotConnected;
     }
 }

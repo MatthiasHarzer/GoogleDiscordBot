@@ -101,13 +101,12 @@ public static class CommandMaster
                 args[i] = commandInfo.Method.GetParameters()[i].DefaultValue;
             }
 
-            // Console.WriteLine(commandInfo.RequiresMajority);
-            if (commandInfo.RequiresMajority)
-            {
-                MajorityWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
-                if (await watcher.CreateVoteIfNeeded(commandContext, helper.GetModuleInstance(commandContext), args))
-                    return;
-            }
+            PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
+            bool preconditionsMet =
+                await watcher.CheckPreconditions(commandContext, helper.GetModuleInstance(commandContext), args);
+            if (!preconditionsMet)
+                return;
+
 
             // Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
 

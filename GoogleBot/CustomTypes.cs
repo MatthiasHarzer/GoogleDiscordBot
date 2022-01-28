@@ -37,6 +37,18 @@ public class CommandConversionInfo
 }
 
 /// <summary>
+/// Preconditions for a command
+/// </summary>
+public class Preconditions
+{
+    public bool RequiresMajority { get; init; }
+
+    public string MajorityVoteButtonText { get; init; } = string.Empty;
+
+    public bool RequiresBotConnected { get; init; }
+}
+
+/// <summary>
 /// Describes a parameter of a command
 /// </summary>
 public class ParameterInfo : IJsonSerializable<ParameterInfo>
@@ -123,11 +135,11 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
 
     public bool IsDevOnly { get; init; } = false;
 
-    public bool RequiresMajority { get; init; } = false;
-
-    public string MajorityVoteButtonText { get; init; } = "Yes";
+    public Preconditions Preconditions { get; init; } = new Preconditions();
 
     public bool OverrideDefer { get; init; } = false;
+
+
     public ParameterInfo[] Parameters { get; init; } = Array.Empty<ParameterInfo>();
 
     public MethodInfo? Method { get; init; }
@@ -222,10 +234,10 @@ public class FormattedMessage
     /// <summary>
     /// Gets the built embed
     /// </summary>
-    public Embed BuiltEmbed
-    {
-        get => Embed?.Build()!;
-    }
+    public Embed BuiltEmbed => Embed?.Build()!;
+
+
+    public MessageComponent BuiltComponents => Components?.Build()!;
 
     /// <summary>
     /// The components of the message

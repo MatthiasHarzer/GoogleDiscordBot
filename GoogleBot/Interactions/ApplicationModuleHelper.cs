@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
 using GoogleBot.Interactions.CustomAttributes;
-using GoogleBot.Interactions.Modules;
+using PreconditionAttribute = GoogleBot.Interactions.CustomAttributes.PreconditionAttribute;
 
 
 namespace GoogleBot.Interactions;
@@ -66,6 +66,7 @@ public class ApplicationModuleHelper
             PrivateAttribute? privateAttribute = method.GetCustomAttribute<PrivateAttribute>();
             LinkComponentInteractionAttribute? linkComponentAttribute =
                 method.GetCustomAttribute<LinkComponentInteractionAttribute>();
+            PreconditionAttribute? preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
             ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p => new ParameterInfo
             {
                 Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
@@ -85,10 +86,9 @@ public class ApplicationModuleHelper
                     //* -> is command 
                     bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
                     bool overrideDefer = method.GetCustomAttribute<OverrideDeferAttribute>()?.DeferOverride ?? false;
-                    bool requiresMajority = method.GetCustomAttribute<RequiresMajorityAttribute>()?.RequiresMajority ??
-                                            false;
-                    string majorityVoteButtonText =
-                        method.GetCustomAttribute<RequiresMajorityAttribute>()?.ButtonText ?? "Yes";
+
+                    bool requiresMajority = preconditionAttribute?.RequiresMajority ?? false;
+                    string majorityVoteButtonText = preconditionAttribute?.ButtonText ?? "Yes";
 
                     if (!AddCommand(new CommandInfo
                         {
@@ -99,8 +99,12 @@ public class ApplicationModuleHelper
                             IsPrivate = isEphemeral,
                             IsDevOnly = devonly,
                             OverrideDefer = overrideDefer,
-                            RequiresMajority = requiresMajority,
-                            MajorityVoteButtonText = majorityVoteButtonText,
+                            Preconditions = new Preconditions
+                            {
+                                RequiresMajority = preconditionAttribute?.RequiresMajority ?? new PreconditionAttribute().RequiresMajority,
+                                MajorityVoteButtonText = preconditionAttribute?.ButtonText ?? new PreconditionAttribute().ButtonText,
+                                RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ?? new PreconditionAttribute().RequiresBotConnected,
+                            }
                         }))
                     {
                         Console.WriteLine(

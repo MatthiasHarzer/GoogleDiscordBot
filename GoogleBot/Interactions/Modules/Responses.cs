@@ -35,7 +35,8 @@ public class Responses
 
     public static FormattedMessage VoteRequired(SocketUser author, string command, int numberOfVotesRequired)
     {
-        return new FormattedMessage(new EmbedBuilder().AddField($"`{numberOfVotesRequired}` more {(numberOfVotesRequired == 1 ? "vote" : "votes")} required",
+        return new FormattedMessage(new EmbedBuilder().AddField(
+            $"`{numberOfVotesRequired}` more {(numberOfVotesRequired == 1 ? "vote" : "votes")} required",
             $"<@{author.Id}> wants to execute `{command}`"));
     }
 
@@ -49,5 +50,17 @@ public class Responses
         return new FormattedMessage(new EmbedBuilder().AddField("Text-based commands are deprecated!",
             $"Please use the application command `/{command.Name}{(command.Parameters.Length <= 0 ? "" : " ")}{string.Join(" ", command.Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}` instead.")
         );
+    }
+
+    public static FormattedMessage NoVoiceChannel()
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField("No voice channel",
+            "`Please connect to a voice channel first!`"));
+    }
+
+    public static FormattedMessage WrongVoiceChannel(string targetVc)
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField("Invalid voice channel",
+            $"You have to be connect to the same voice channel {targetVc} as the bot."));
     }
 }

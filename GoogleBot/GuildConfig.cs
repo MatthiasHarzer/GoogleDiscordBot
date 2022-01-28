@@ -12,14 +12,14 @@ using GoogleBot.Interactions.Modules;
 namespace GoogleBot;
 
 /// <summary>
-/// Keeps track of a commands majority votes in a guild
+/// Keeps track of a commands preconditions for one guild
 /// </summary>
-public class MajorityWatcher
+public class PreconditionWatcher
 {
     /// <summary>
     /// The command the execute when the vote passes
     /// </summary>
-    public CommandInfo Command { get; }
+    public CommandInfo CommandInfo { get; }
 
     private bool running;
 
@@ -27,31 +27,59 @@ public class MajorityWatcher
 
     private readonly List<ulong> votedUsers = new();
 
-    private string id = string.Empty;
-
     private readonly GuildConfig guildConfig;
 
     private object[] commandsArgs = Array.Empty<object>();
 
     private Context Context { get; set; }
-    
+
     private ApplicationModuleBase Module { get; set; }
 
-    public string Id => id;
+    public string Id { get; private set; } = string.Empty;
 
     /// <summary>
     /// Number of votes needed to pass the vote
     /// </summary>
     public int RemainingVotes => requiredVotes - votedUsers.Count;
 
-    /// <summary>
-    /// Creates a new MajorityWatcher for the specified <see cref="CommandInfo"/> and <see cref="GoogleBot.GuildConfig"/>
-    /// </summary>
-    /// <param name="command"></param>
-    /// <param name="guildConfig"></param>
-    public MajorityWatcher(CommandInfo command, GuildConfig guildConfig)
+    private object[] UsedArgs
     {
-        Command = command;
+        get
+        {
+            try
+            {
+                //* Get the used args (remove default values)
+                List<object> usedArgs = new();
+                // int i = 0;
+                for (int i = 0; i < commandsArgs.Length; i++)
+                {
+                    // Console.WriteLine(args[i] + " != " + CommandInfo.Method!.GetParameters()[i].DefaultValue + " : " +
+                    //                   (args[i] != CommandInfo.Method!.GetParameters()[i].DefaultValue));
+                    if (!CommandInfo.Method!.GetParameters()[i].HasDefaultValue || commandsArgs[i].ToString() !=
+                        CommandInfo.Method!.GetParameters()[i].DefaultValue!.ToString())
+                    {
+                        usedArgs.Add(commandsArgs[i]);
+                    }
+                }
+
+                return usedArgs.ToArray();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return Array.Empty<object>();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="PreconditionWatcher"/> for the specified <see cref="GoogleBot.CommandInfo"/> and <see cref="GoogleBot.GuildConfig"/>
+    /// </summary>
+    /// <param name="commandInfo"></param>
+    /// <param name="guildConfig"></param>
+    public PreconditionWatcher(CommandInfo commandInfo, GuildConfig guildConfig)
+    {
+        CommandInfo = commandInfo;
         this.guildConfig = guildConfig;
     }
 
@@ -81,27 +109,44 @@ public class MajorityWatcher
         running = false;
         votedUsers.Clear();
         requiredVotes = 0;
-        id = string.Empty;
+        Id = string.Empty;
         Context = null;
         Module = null;
         commandsArgs = Array.Empty<object>();
     }
 
     /// <summary>
-    /// Checks if a vote is needed for the current command (more than 2 people, in VC etc)
+    /// Checks if all preconditions have been met and reply / start votes if needed
     /// </summary>
     /// <param name="context">The commands context</param>
     /// <param name="module">The commands module</param>
     /// <param name="args">The commands args</param>
-    /// <returns>True if a vote started, else False</returns>
-    public async Task<bool> CreateVoteIfNeeded(Context context, ApplicationModuleBase module, object[] args)
+    /// <returns>True if all conditions have been met</returns>
+    public async Task<bool> CheckPreconditions(Context context, ApplicationModuleBase module, object[] args)
     {
-        // Console.WriteLine(context);
-        if (context.VoiceChannel == null)
+        // Console.WriteLine(requiresVc + " " + requiresMajority);
+
+        if (CommandInfo.Preconditions.RequiresBotConnected)
         {
-            // Console.WriteLine("VC NULL");
-            return false;
+            //* Check if user is connected to a VC
+            if (context.VoiceChannel == null)
+            {
+                await ReplyAsync(context, Responses.NoVoiceChannel(), CommandInfo.OverrideDefer);
+                return false;
+            }
+
+            //* Check if user is connected to the same VC as the bot
+            if (guildConfig.BotConnectedToVC && !context.VoiceChannel.Equals(guildConfig.BotsVoiceChannel))
+            {
+                await ReplyAsync(context, Responses.WrongVoiceChannel(guildConfig.BotsVoiceChannel.Mention));
+                return false;
+            }
         }
+
+        //* If the commands does not require the majority, return
+        if (!CommandInfo.Preconditions.RequiresMajority) return true;
+
+        await context.Command!.DeferAsync();
 
         await Reset();
 
@@ -109,65 +154,51 @@ public class MajorityWatcher
         Module = module;
         commandsArgs = args;
 
-        var users = await context.VoiceChannel.GetUsersAsync().ToListAsync().AsTask();
-        int userCount = (users.First()?.Count - 1) ?? 0; //* -1 for the bot
+        var users = await context.VoiceChannel!.GetUsersAsync().ToListAsync().AsTask();
+        int userCount = users.First()?.ToList().FindAll(u => !u.IsBot).Count ?? 0;
 
-        // Console.WriteLine(userCount);
-        if (guildConfig.AudioPlayer.AudioClient?.ConnectionState == ConnectionState.Disconnected)
-        {
-            // Console.WriteLine("Not connected");   
-            return false;
-        }
 
         requiredVotes = (int)MathF.Ceiling((float)userCount / 2);
+        // requiredVotes = 2;
         if (requiredVotes <= 1)
         {
-            return false;
+            return true;
         }
 
         votedUsers.Add(context.User.Id);
-        id = $"mv-{Command.Name}-{guildConfig.Id}-{DateTime.Now.TimeOfDay.TotalMilliseconds}-{Util.RandomString()}";
+        Id = $"mv-{CommandInfo.Name}-{guildConfig.Id}-{DateTime.Now.TimeOfDay.TotalMilliseconds}-{Util.RandomString()}";
         running = true;
 
-        // Console.WriteLine(id);
-        //
-        // Console.WriteLine(context.Command);
-
-        // if (Context.Command?.HasResponded == false)
-        // {
-        //     try
-        //     {
-        //         await Context.Command.DeferAsync();
-        //     }
-        //     catch (Exception)
-        //     {
-        //         //Ignored}
-        //     }
-        // }
 
         await Context.Command?.ModifyOriginalResponseAsync(properties =>
         {
-            
-            properties.Embed = Responses.VoteRequired(Context.User, $"/{Command.Name}{(args.Length <= 0 ? "" : string.Join(" ", args))}", RemainingVotes).BuiltEmbed;
+            properties.Embed = Responses.VoteRequired(Context.User,
+                    $"/{CommandInfo.Name}{(args.Length <= 0 ? "" : $" {string.Join(" ", UsedArgs)}")}", RemainingVotes)
+                .BuiltEmbed;
             properties.Components = new ComponentBuilder()
-                .WithButton(Command.MajorityVoteButtonText, id, ButtonStyle.Success).Build();
+                .WithButton(CommandInfo.Preconditions.MajorityVoteButtonText, Id, ButtonStyle.Success).Build();
         })!;
         Console.WriteLine("Created");
-        return true;
+        return false;
     }
+
 
     /// <summary>
     /// if the user didn't vote before, count their vote and check if remaining votes reached or edit message
     /// </summary>
-    /// <param name="uid">The users id</param>
     /// <param name="component">The messages component</param>
-    public async Task TryVote(ulong uid, SocketMessageComponent component)
+    public async Task TryVote(SocketMessageComponent component)
     {
         if (component.Data.CustomId != Id)
             return;
 
-        if (!votedUsers.Contains(uid))
-            votedUsers.Add(uid);
+        if (!votedUsers.Contains(component.User.Id))
+            votedUsers.Add(component.User.Id);
+
+        await component.Message.ModifyAsync(properties =>
+        {
+            properties.Embed = Responses.VoteRequired(component.User, string.Join(" ", UsedArgs), RemainingVotes).BuiltEmbed;
+        });
 
         if (RemainingVotes <= 0)
         {
@@ -182,13 +213,6 @@ public class MajorityWatcher
 
             await Invoke(); //* Execute the command
             await Reset(); //* Reset the watcher
-        }
-        else
-        {
-            await component.Message.ModifyAsync(properties =>
-            {
-                properties.Embed = Responses.SkipVote(RemainingVotes).BuiltEmbed;
-            });
         }
     }
 
@@ -208,6 +232,34 @@ public class MajorityWatcher
             Console.WriteLine(e.StackTrace);
         }
     }
+
+    /// <summary>
+    /// Reply to the command in the given context
+    /// </summary>
+    /// <param name="context">The commands <see cref="GoogleBot.Context"/></param>
+    /// <param name="message">The <see cref="FormattedMessage"/> to send</param>
+    /// <param name="ephemeralIfPossible">If not deferred yet, do so with ephemeral (or not)</param>
+    private async Task ReplyAsync(Context context, FormattedMessage message, bool ephemeralIfPossible = false)
+    {
+        if (!context.Command!.HasResponded)
+        {
+            try
+            {
+                await context.Command.DeferAsync(ephemeralIfPossible);
+            }
+            catch (Exception)
+            {
+                //Ignored}
+            }
+        }
+
+        await context.Command.ModifyOriginalResponseAsync(properties =>
+        {
+            properties.Embed = message.BuiltEmbed;
+            properties.Components = message.BuiltComponents;
+            properties.Content = message.Message;
+        });
+    }
 }
 
 /// <summary>
@@ -219,18 +271,22 @@ public class GuildConfig
     public AudioPlayer AudioPlayer { get; }
     public ulong Id { get; }
 
-    private readonly List<MajorityWatcher> watchers = new();
+    private readonly List<PreconditionWatcher> watchers = new();
 
-    public MajorityWatcher GetWatcher(CommandInfo command)
+    public bool BotConnectedToVC => BotsVoiceChannel != null;
+
+    public IVoiceChannel BotsVoiceChannel => AudioPlayer.VoiceChannel;
+
+    public PreconditionWatcher GetWatcher(CommandInfo command)
     {
-        MajorityWatcher w = watchers.Find(w => w.Command.Name == command.Name);
+        PreconditionWatcher w = watchers.Find(w => w.CommandInfo.Name == command.Name);
         if (w != null) return w;
-        w = new MajorityWatcher(command, this);
+        w = new PreconditionWatcher(command, this);
         watchers.Add(w);
         return w;
     }
 
-    public MajorityWatcher GetWatcher(string id)
+    public PreconditionWatcher GetWatcher(string id)
     {
         return watchers.Find(w => w.Id == id);
     }
