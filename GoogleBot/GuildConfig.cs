@@ -159,7 +159,7 @@ public class PreconditionWatcher
 
 
         requiredVotes = (int)MathF.Ceiling((float)userCount / 2);
-        requiredVotes = 2;
+        // requiredVotes = 2;
         if (requiredVotes <= 1)
         {
             return true;
