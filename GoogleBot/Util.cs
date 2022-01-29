@@ -246,7 +246,7 @@ public static class Util
     /// <returns></returns>
     public static string FormattedVideo(Video video)
     {
-        return $"[{video.Title} ({FormattedVideoDuration(video)})]({video.Url})";
+        return $"[{video.Title} - {video.Author.Title} ({FormattedVideoDuration(video)})]({video.Url})";
     }
 
     /// <summary>
