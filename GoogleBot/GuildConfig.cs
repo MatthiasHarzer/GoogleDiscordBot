@@ -94,11 +94,12 @@ public class PreconditionWatcher
         {
             try
             {
-                await Context.Command.ModifyOriginalResponseAsync(properties =>
-                {
-                    properties.Embed = new EmbedBuilder().AddField("Cancelled", "The vote was cancelled").Build();
-                    properties.Components = Optional<MessageComponent>.Unspecified;
-                });
+                // await Context.Command.ModifyOriginalResponseAsync(properties =>
+                // {
+                //     properties.Embed = new EmbedBuilder().AddField("Cancelled", "The vote was cancelled").Build();
+                //     properties.Components = Optional<MessageComponent>.Unspecified;
+                // });
+                await (await Context.Command.GetOriginalResponseAsync()).DeleteAsync();
             }
             catch (Exception e)
             {
@@ -160,7 +161,7 @@ public class PreconditionWatcher
 
 
         requiredVotes = (int)MathF.Ceiling((float)userCount / 2);
-        // requiredVotes = 2;
+        requiredVotes = 2;
         if (requiredVotes <= 1)
         {
             return true;

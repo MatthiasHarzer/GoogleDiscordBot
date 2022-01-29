@@ -156,17 +156,14 @@ public class AudioModule : CommandModuleBase
         switch (returnValue.AudioPlayState)
         {
             case AudioPlayState.Success:
-                embed.AddField("Now playing",
-                    Util.FormattedVideo(returnValue.Video));
+                embed.AddField("Now playing",$"[`{Util.FormattedVideo(returnValue.Video)}`]({returnValue.Video.Url})");
                 break;
             case AudioPlayState.PlayingAsPlaylist:
                 embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
-                embed.AddField("Now playing",
-                    Util.FormattedVideo(returnValue.Video));
+                embed.AddField("Now playing",$"[`{Util.FormattedVideo(returnValue.Video)}`]({returnValue.Video.Url})");
                 break;
             case AudioPlayState.Queued:
-                embed.AddField("Song added to queue",
-                    Util.FormattedVideo(returnValue.Video));
+                embed.AddField("Song added to queue",$"[`{Util.FormattedVideo(returnValue.Video)}`]({returnValue.Video.Url})");
                 break;
             case AudioPlayState.QueuedAsPlaylist:
                 embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
@@ -272,8 +269,7 @@ public class AudioModule : CommandModuleBase
 
         if (player.Playing && currentSong != null)
         {
-            embed.AddField("Currently playing",
-                Util.FormattedVideo(currentSong));
+            embed.AddField("Currently playing",$"[`{Util.FormattedVideo(currentSong)}`]({currentSong.Url})");
         }
 
         if (queue.Count > 0)

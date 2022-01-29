@@ -129,12 +129,23 @@ public abstract class MessageCommandsModuleBase : ModuleBase
                 }
             }
 
-            await Context.MessageCommand.ModifyOriginalResponseAsync(properties =>
+            try
             {
-                properties.Embed = message.Embed?.Build();
-                properties.Components = message.Components?.Build();
-                properties.Content = message.Message;
-            });
+
+                await Context.MessageCommand.ModifyOriginalResponseAsync(properties =>
+                {
+                    properties.Embed = message.Embed?.Build();
+                    properties.Components = message.Components?.Build();
+                    properties.Content = message.Message;
+                });
+            }
+            catch (Exception)
+            {
+                await Context.MessageCommand.ModifyOriginalResponseAsync(properties =>
+                    properties.Content = "`Couldn't respond.`");
+                await (await Context.MessageCommand.GetOriginalResponseAsync()).DeleteAsync();
+            }
+            
         }
     }
     
