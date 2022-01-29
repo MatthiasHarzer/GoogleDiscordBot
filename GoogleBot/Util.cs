@@ -260,6 +260,17 @@ namespace GoogleBot
             return $"[{video.Title} ({FormattedVideoDuration(video)})]({video.Url})";
         }
 
+        /// <summary>
+        /// Formats a command to a usage hint when needed
+        /// </summary>
+        /// <param name="command">The command to format</param>
+        /// <returns>The formatted command as a string including optional params</returns>
+        public static string FormattedCommand(CommandInfo command)
+        {
+            return
+                $"/{command.Name}  {String.Join(" ", command.Parameters.AsParallel().ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}{(command.IsOptionalEphemeral ? " [<hidden>]" : "")}";
+        }
+
         public static CommandInfo GetTextCommandFromMessage(SocketUserMessage message)
         {
             int argPos = 0;

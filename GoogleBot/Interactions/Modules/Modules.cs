@@ -115,9 +115,7 @@ public class InfoModule : ApplicationModuleBase
         {
             if (command.IsDevOnly && Context.Guild != null && Context.Guild.Id != Secrets.DevGuildID) continue;
             // Get the command Summary attribute information
-            embedBuilder.AddField(
-                $"/{command.Name}  {String.Join(" ", command.Parameters.AsParallel().ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}",
-                command.Summary);
+            embedBuilder.AddField(Util.FormattedCommand(command), command.Summary);
         }
 
         // embedBuilder.WithFooter("The first command can always be used as a slash command (/<command>, e. g. /help)");

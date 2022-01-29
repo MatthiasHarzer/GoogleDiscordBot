@@ -48,10 +48,10 @@ public class Responses
     public static FormattedMessage DeprecationHint(CommandInfo command)
     {
         return new FormattedMessage(new EmbedBuilder().AddField("Text-based commands are deprecated!",
-            $"Please use the application command `/{command.Name}{(command.Parameters.Length <= 0 ? "" : " ")}{string.Join(" ", command.Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}` instead.")
+            $"Please use the application command `{Util.FormattedCommand(command)}` instead.")
         );
     }
-
+    
     public static FormattedMessage NoVoiceChannel()
     {
         return new FormattedMessage(new EmbedBuilder().AddField("No voice channel",
