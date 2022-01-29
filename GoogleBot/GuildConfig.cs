@@ -190,7 +190,7 @@ public class PreconditionWatcher
             properties.Components = new ComponentBuilder()
                 .WithButton(CommandInfo.Preconditions.MajorityVoteButtonText, Id, ButtonStyle.Success).Build();
         })!;
-        Console.WriteLine("Vote created");
+        // Console.WriteLine("Vote created");
         return false;
     }
 

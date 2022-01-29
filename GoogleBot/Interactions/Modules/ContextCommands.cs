@@ -12,7 +12,7 @@ public class MessageCommands : MessageCommandsModuleBase
     [Command("echo")]
     public async Task Test(string text)
     {
-        Console.WriteLine("In Test Command " + text);
+        // Console.WriteLine("In Test Command " + text);
         await ReplyAsync(text);
     }
 

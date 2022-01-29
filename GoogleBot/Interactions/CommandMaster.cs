@@ -180,7 +180,7 @@ public static class CommandMaster
             PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
             bool preconditionsMet =
                 await watcher.CheckPreconditions(commandContext, helper.GetModuleInstance(commandContext), args);
-            Console.WriteLine(preconditionsMet);
+            // Console.WriteLine(preconditionsMet);
             if (!preconditionsMet)
                 return;
 
