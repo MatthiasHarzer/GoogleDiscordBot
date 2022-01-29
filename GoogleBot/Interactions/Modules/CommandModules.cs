@@ -136,8 +136,6 @@ public class AudioModule : CommandModuleBase
     public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query)
     {
         // Console.WriteLine("executed PLAY");
-
-
         IVoiceChannel? channel = Context.VoiceChannel;
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
 
@@ -291,8 +289,7 @@ public class AudioModule : CommandModuleBase
 
             foreach (var video in queue)
             {
-                string content =
-                    $"\n\n[`{video.Title} - {video.Author} ({Util.FormattedVideoDuration(video)})`]({video.Url})";
+                string content = $"\n\n[`{Util.FormattedVideo(video)})`]({video.Url})";
 
                 if (content.Length + approxLength > max_length)
                 {

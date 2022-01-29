@@ -5,7 +5,7 @@ using Discord;
 namespace GoogleBot.Interactions;
 
 /// <summary>
-/// Defines a class as an application module
+/// Defines the class as an application module
 /// </summary>
 public abstract class ModuleBase
 {
@@ -13,13 +13,18 @@ public abstract class ModuleBase
     /// The Context for module, when a command or method in it gets executed.
     /// May include CommandInfo, Guild, User, Channels
     /// </summary>
-    public Context Context { get; set; }
+    public Context Context { get; set; }= new Context();
     
     public GuildConfig GuildConfig
     {
         get => Context.GuildConfig;
     }
 
+    /// <summary>
+    /// Reply to the initial message / command
+    /// </summary>
+    /// <param name="message">The message to reply with</param>
+    /// <returns></returns>
     protected abstract Task ReplyAsync(FormattedMessage message);
     protected async Task ReplyAsync(EmbedBuilder embed, ComponentBuilder components = null)
     {
@@ -32,9 +37,9 @@ public abstract class ModuleBase
     
 
     /// <summary>
-    /// Send a new message in the channel of context
+    /// Sends a new message in the channel of context
     /// </summary>
-    /// <param name="message">The formatted message</param>
+    /// <param name="message">The message to send</param>
     protected async Task SendMessage(FormattedMessage message)
     {
         if (Context is { Channel: not null })
@@ -65,26 +70,11 @@ public abstract class ModuleBase
 
 }
 
-
+/// <summary>
+/// Defines the class as a slash command module
+/// </summary>
 public abstract class CommandModuleBase : ModuleBase
 {
-    /// <summary>
-    /// The Context for module, when a command or method in it gets executed.
-    /// May include CommandInfo, Guild, User, Channels
-    /// </summary>
-    public Context Context { get; set; } = new Context();
-
-    public GuildConfig GuildConfig
-    {
-        get => Context.GuildConfig;
-    }
-    
-
-    public T CreateNew<T>() where T : class, new()
-    {
-        return new T();
-    }
-
     /// <summary>
     /// Replies to an executed command with a <see cref="FormattedMessage"/>
     /// </summary>
@@ -117,6 +107,9 @@ public abstract class CommandModuleBase : ModuleBase
     }
 }
 
+/// <summary>
+/// Defines the class as a message command module
+/// </summary>
 public abstract class MessageCommandsModuleBase : ModuleBase
 {
     protected override async Task ReplyAsync(FormattedMessage message)
