@@ -17,7 +17,7 @@ using Precondition = GoogleBot.Interactions.CustomAttributes.PreconditionAttribu
 namespace GoogleBot.Interactions.Modules;
 
 [DevOnly]
-public class TestModule : ApplicationModuleBase
+public class TestModule : CommandModuleBase
 {
     [Command("component-test")]
     [Summary("Used for testing with buttons and drop-downs")]
@@ -82,7 +82,7 @@ public class TestModule : ApplicationModuleBase
     }
 }
 
-public class MajorityWatchModule : ApplicationModuleBase
+public class MajorityWatchModule : CommandModuleBase
 {
     [LinkComponentInteraction("mv-*")]
     public async Task MajorityVote(SocketMessageComponent component)
@@ -99,7 +99,7 @@ public class MajorityWatchModule : ApplicationModuleBase
 /// <summary>
 /// A general use module
 /// </summary>
-public class InfoModule : ApplicationModuleBase
+public class InfoModule : CommandModuleBase
 {
     [Command("help")]
     [Summary("Shows a help dialog with all available commands")]
@@ -127,7 +127,7 @@ public class InfoModule : ApplicationModuleBase
 /// <summary>
 /// An module responsible for playing, queueing and skipping songs.
 /// </summary>
-public class AudioModule : ApplicationModuleBase
+public class AudioModule : CommandModuleBase
 {
     [Command("play")]
     [Summary("Plays music in the current voice channel from an YT-link or query")]
@@ -320,7 +320,7 @@ public class AudioModule : ApplicationModuleBase
 /// <summary>
 /// A module responsible for googleing
 /// </summary>
-public class GoogleModule : ApplicationModuleBase
+public class GoogleModule : CommandModuleBase
 {
     [Command("google")]
     [Summary("Google something")]

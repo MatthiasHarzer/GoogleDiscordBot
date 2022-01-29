@@ -9,6 +9,7 @@ using GoogleBot.Interactions;
 using GoogleBot.Interactions.Modules;
 
 
+
 namespace GoogleBot;
 
 /// <summary>
@@ -33,7 +34,7 @@ public class PreconditionWatcher
 
     private Context Context { get; set; }
 
-    private ApplicationModuleBase Module { get; set; }
+    private ModuleBase Module { get; set; }
 
     public string Id { get; private set; } = string.Empty;
 
@@ -122,7 +123,7 @@ public class PreconditionWatcher
     /// <param name="module">The commands module</param>
     /// <param name="args">The commands args</param>
     /// <returns>True if all conditions have been met</returns>
-    public async Task<bool> CheckPreconditions(Context context, ApplicationModuleBase module, object[] args)
+    public async Task<bool> CheckPreconditions(Context context, ModuleBase module, object[] args)
     {
         // Console.WriteLine(requiresVc + " " + requiresMajority);
 
@@ -293,7 +294,7 @@ public class GuildConfig
 
     public PreconditionWatcher GetWatcher(CommandInfo command)
     {
-        PreconditionWatcher w = watchers.Find(w => w.CommandInfo.Name == command.Name);
+        PreconditionWatcher w = watchers.Find(w => w.CommandInfo.Id == command.Id);
         if (w != null) return w;
         w = new PreconditionWatcher(command, this);
         watchers.Add(w);

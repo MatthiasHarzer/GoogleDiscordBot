@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -11,6 +13,8 @@ using PreconditionAttribute = GoogleBot.Interactions.CustomAttributes.Preconditi
 
 
 namespace GoogleBot.Interactions;
+
+
 
 /// <summary>
 /// Each instance of <see cref="ApplicationModuleHelper"/> refers to one module
@@ -36,6 +40,18 @@ public class ApplicationModuleHelper
 
     public bool IsDevOnlyModule { get; } = false;
 
+    public CommandType CommandModuleType
+    {
+        get
+        {
+            if (ModuleType.BaseType == typeof(MessageCommandsModuleBase))
+                return CommandType.MessageCommand;
+            // if (ModuleType == typeof(UserCommandsModuleBase))
+            //     return CommandModuleTypes.UserCommand;
+            return CommandType.SlashCommand;
+        }
+    }
+
 
     /// <summary>
     /// Converts the list of CommandInfos to a string list
@@ -47,15 +63,15 @@ public class ApplicationModuleHelper
     }
 
     /// <summary>
-    /// Creates a new instance from the module
+    /// Creates a new instance from a <see cref="CommandModuleBase"/> with its command 
     /// </summary>
     /// <param name="module">An instance of the derived module-class</param>
-    public ApplicationModuleHelper(ApplicationModuleBase module)
+    public ApplicationModuleHelper(CommandModuleBase module)
     {
         // Console.WriteLine("new CommandModuleHelper for " + module.ToString());
         ModuleType = module.GetType();
+        // Console.WriteLine("app cmd  " + ModuleType.BaseType + " -> " + CommandModuleType);
         IsDevOnlyModule = ModuleType.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
-
 
         //* Get all methods in the module
         foreach (MethodInfo method in ModuleType.GetMethods())
@@ -75,6 +91,8 @@ public class ApplicationModuleHelper
                 IsMultiple = p.GetCustomAttribute<MultipleAttribute>()?.IsMultiple ?? false,
                 IsOptional = p.HasDefaultValue,
             }).ToArray();
+
+
             bool devonly = IsDevOnlyModule || (method.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false);
 
 
@@ -92,6 +110,7 @@ public class ApplicationModuleHelper
                         {
                             Name = commandAttribute.Text,
                             Summary = summaryAttribute?.Text ?? "No description available",
+                            Type = CommandType.SlashCommand,
                             Parameters = parameterInfo,
                             Method = method,
                             IsPrivate = isEphemeral,
@@ -134,13 +153,78 @@ public class ApplicationModuleHelper
 
 
     /// <summary>
+    /// Creates a new instance from a <see cref="MessageCommandsModuleBase"/> with its command (message commands only)
+    /// </summary>
+    /// <param name="module">An instance of the derived module-class</param>
+    public ApplicationModuleHelper(MessageCommandsModuleBase module)
+    {
+        ModuleType = module.GetType();
+        // Console.WriteLine("MCMD " + ModuleType.BaseType + " -> " + CommandModuleType);
+        IsDevOnlyModule = ModuleType.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
+
+        //* Get all methods in the module
+        foreach (MethodInfo method in ModuleType.GetMethods())
+        {
+            CommandAttribute? commandAttribute = method.GetCustomAttribute<CommandAttribute>();
+            LinkComponentInteractionAttribute? linkComponentAttribute =
+                method.GetCustomAttribute<LinkComponentInteractionAttribute>();
+            PreconditionAttribute? preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
+            
+            bool devonly = IsDevOnlyModule || (method.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false);
+
+            //* All methods must be async tasks
+            if (method.ReturnType == typeof(Task))
+            {
+                if (commandAttribute != null)
+                {
+                    //* -> is command 
+                    if (!AddCommand(new CommandInfo
+                        {
+                            Name = commandAttribute.Text,
+                            Type = CommandType.MessageCommand,
+                            Method = method,
+                            IsDevOnly = devonly,
+                            Preconditions = new Preconditions
+                            {
+                                RequiresMajority = preconditionAttribute?.RequiresMajority ??
+                                                   new PreconditionAttribute().RequiresMajority,
+                                MajorityVoteButtonText = preconditionAttribute?.ButtonText ??
+                                                         new PreconditionAttribute().ButtonText,
+                                RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ??
+                                                       new PreconditionAttribute().RequiresBotConnected,
+                            }
+                        }))
+                    {
+                        Console.WriteLine(
+                            $"Message Command {commandAttribute.Text} in {ModuleType} already exists somewhere else! -> no new command was added");
+                    }
+                }
+                else if (linkComponentAttribute != null)
+                {
+                    //* -> Is component interaction callback
+                    string customId = linkComponentAttribute.CustomId;
+
+                    if (ComponentCallbacks.ContainsKey(customId))
+                    {
+                        ComponentCallbacks[customId].Add(method);
+                    }
+                    else
+                    {
+                        ComponentCallbacks.Add(customId, new List<MethodInfo> { method });
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Returns a fresh instance of the module while setting its context
     /// </summary>
     /// <param name="context">The modules context</param>
     /// <returns>The newly created module instance</returns>
-    public ApplicationModuleBase GetModuleInstance(Context context)
+    public ModuleBase GetModuleInstance(Context context)
     {
-        ApplicationModuleBase newModule = (ApplicationModuleBase)Activator.CreateInstance(ModuleType)!;
+        ModuleBase newModule =(ModuleBase) Activator.CreateInstance(ModuleType)!;
         newModule.Context = context;
         return newModule;
     }
@@ -150,15 +234,31 @@ public class ApplicationModuleHelper
     /// Add a command to the commands list if it does not exist yet 
     /// </summary>
     /// <param name="commandInfo">The command to add</param>
-    /// <returns>True if the command where added</returns>
+    /// <returns>True if the command was added</returns>
     private bool AddCommand(CommandInfo commandInfo)
     {
-        if (CommandMaster.CommandList.FindAll(com => com.Name == commandInfo.Name).Count != 0) return false;
-        //* The command does not exist yet -> add
-        CommandMaster.CommandList.Add(commandInfo);
-        Commands.Add(commandInfo);
+        // Console.WriteLine($"trying to Add command {commandInfo.Name} in {ModuleType} where CommandModuleType = {CommandModuleType}");
+        switch (CommandModuleType)
+        {
+            case CommandType.MessageCommand:
+                if (CommandMaster.MessageCommands.FindAll(com => com.Name == commandInfo.Name).Count > 0) return false;
+                //* The command does not exist yet -> add
+                CommandMaster.MessageCommands.Add(commandInfo);
+                Commands.Add(commandInfo);
+                break;
+            case CommandType.SlashCommand:
+            case CommandType.UserCommand:
+            default:
+                if (CommandMaster.CommandList.FindAll(com => com.Name == commandInfo.Name).Count != 0) return false;
+                //* The command does not exist yet -> add
+                CommandMaster.CommandList.Add(commandInfo);
+                Commands.Add(commandInfo);
+                break;
+        }
+
         return true;
     }
+    
 
     /// <summary>
     /// Calls all linked interaction where the components custom-id matches

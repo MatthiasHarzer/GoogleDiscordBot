@@ -168,3 +168,4 @@ public class OptionalEphemeralAttribute : Attribute
 
     public static bool Default => new OptionalEphemeralAttribute().IsOptionalEphemeral;
 }
+

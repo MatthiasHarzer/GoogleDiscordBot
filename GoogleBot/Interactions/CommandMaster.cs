@@ -18,8 +18,21 @@ namespace GoogleBot.Interactions;
 public static class CommandMaster
 {
     public static readonly List<CommandInfo> CommandList = new();
-
     public static readonly List<ApplicationModuleHelper> Helpers = new();
+
+    public static readonly List<CommandInfo> MessageCommands = new();
+    public static readonly List<ApplicationModuleHelper> MessageCommandHelpers = new();
+
+
+    public static List<CommandInfo> AllCommands
+    {
+        get
+        {
+            List<CommandInfo> cmds = new List<CommandInfo>(CommandList);
+            cmds.AddRange(MessageCommands);
+            return cmds;
+        }
+    }
 
     /// <summary>
     /// Gets the application command with the given name
@@ -29,7 +42,7 @@ public static class CommandMaster
     public static CommandInfo GetCommandFromName(string commandName)
     {
         var res = CommandList.FindAll(c => c.Name == commandName);
-        if (res.Count != 0)
+        if (res.Count > 0)
         {
             return res.First();
         }
@@ -38,17 +51,46 @@ public static class CommandMaster
     }
 
     /// <summary>
-    /// Get all modules with base class <see cref="ApplicationModuleBase"/> an create their <see cref="ApplicationModuleHelper"/> 
+    /// Gets the message command with the given name
+    /// </summary>
+    /// <param name="messageCommandName">The commands name</param>
+    /// <returns>The message command info</returns>
+    public static CommandInfo GetMessageCommandFromName(string messageCommandName)
+    {
+        var res = MessageCommands.FindAll(c => c.Name == messageCommandName);
+        if (res.Count > 0)
+        {
+            return res.First();
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Get all modules with base class <see cref="CommandModuleBase"/> for SlashCommands or <see cref="MessageCommandsModuleBase"/> for message commands
+    /// and create their <see cref="ApplicationModuleHelper"/> 
     /// </summary>
     public static void MountModules()
     {
-        IEnumerable<ApplicationModuleBase> commandModules = typeof(ApplicationModuleBase).Assembly.GetTypes()
-            .Where(t => t.IsSubclassOf(typeof(ApplicationModuleBase)) && !t.IsAbstract)
-            .Select(t => (ApplicationModuleBase)Activator.CreateInstance(t));
+        //* Add regular commands
+        IEnumerable<CommandModuleBase> commandModules = typeof(CommandModuleBase).Assembly.GetTypes()
+            .Where(t =>t.IsSubclassOf(typeof(CommandModuleBase)) && !t.IsAbstract)
+            .Select(t => (CommandModuleBase)Activator.CreateInstance(t));
 
-        foreach (ApplicationModuleBase module in commandModules)
+        foreach (CommandModuleBase module in commandModules)
         {
             if (module != null) Helpers.Add(new ApplicationModuleHelper(module));
+        }
+
+        //* Add message commands
+        IEnumerable<MessageCommandsModuleBase> messageCommandModules = typeof(MessageCommandsModuleBase).Assembly
+            .GetTypes()
+            .Where(t => t.IsSubclassOf(typeof(MessageCommandsModuleBase)) && !t.IsAbstract)
+            .Select(t => (MessageCommandsModuleBase)Activator.CreateInstance(t));
+
+        foreach (MessageCommandsModuleBase module in messageCommandModules)
+        {
+            if (module != null) MessageCommandHelpers.Add(new ApplicationModuleHelper(module));
         }
     }
 
@@ -61,9 +103,9 @@ public static class CommandMaster
         try
         {
             ApplicationModuleHelper helper =
-                Helpers.Find(helper => helper.GetCommandsAsText().Contains(command.CommandName));
+                Helpers.Find(helper => helper.GetCommandsAsText().Contains(command.CommandName))!;
             Context commandContext = new Context(command);
-            CommandInfo commandInfo = commandContext.CommandInfo;
+            CommandInfo commandInfo = commandContext.CommandInfo!;
 
 
             Console.WriteLine($"Found /{commandInfo?.Name} in {helper?.ModuleType}");
@@ -117,6 +159,54 @@ public static class CommandMaster
         }
     }
 
+    public static async Task ExecuteMessageCommand(SocketMessageCommand command)
+    {
+        ApplicationModuleHelper helper =
+            MessageCommandHelpers.Find(helper => helper.GetCommandsAsText().Contains(command.CommandName))!;
+        Context commandContext = new Context(command);
+        CommandInfo commandInfo = commandContext.CommandInfo!;
+
+        await command.DeferAsync();
+
+        Console.WriteLine($"Found message command {commandInfo?.Name} in {helper?.ModuleType}");
+
+        if (helper != null && commandInfo is { Method: not null })
+        {
+            object[] args = commandContext.Arguments;
+
+            // Console.WriteLine(string.Join(", ", args));
+            // Console.WriteLine(commandInfo);
+            
+            PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
+            bool preconditionsMet =
+                await watcher.CheckPreconditions(commandContext, helper.GetModuleInstance(commandContext), args);
+            Console.WriteLine(preconditionsMet);
+            if (!preconditionsMet)
+                return;
+
+            // Console.WriteLine(string.Join(", ", args));
+            // Console.WriteLine(commandInfo);
+            try
+            {
+                var module = helper.GetModuleInstance(commandContext);
+                Console.WriteLine(module);
+                await ((Task)commandInfo.Method.Invoke(module, args))!;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+            }
+        }
+        else
+        {
+            command?.ModifyOriginalResponseAsync(properties =>
+            {
+                properties.Content = "`Looks like that command doesn't exist. Sorry :/`";
+            });
+        }
+    }
+
     /// <summary>
     /// Check if the message is a text command and reply with an message to use the application command
     /// </summary>
@@ -148,12 +238,22 @@ public static class CommandMaster
     {
         JsonObject savable = new JsonObject();
         JsonArray commands = new JsonArray();
+        JsonArray messageCommands = new JsonArray();
+
+        //* Get all regular commands
         foreach (CommandInfo cmd in CommandList)
         {
             commands.Add(cmd.ToJson());
         }
 
+        //* Get all message commands
+        foreach (CommandInfo cmd in MessageCommands)
+        {
+            messageCommands.Add(cmd.ToJson());
+        }
+
         savable.Add("commands", commands);
+        savable.Add("messageCommands", messageCommands);
         // Console.WriteLine(JsonSerializer.Serialize(savable));
 
         File.WriteAllText("./commands.json", JsonSerializer.Serialize(savable));
@@ -163,17 +263,20 @@ public static class CommandMaster
     /// <summary>
     /// Read local file and try converting the json to valid command infos
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The list of commands in the safe-file</returns>
     public static List<CommandInfo> ImportCommands()
     {
         List<CommandInfo> commandInfos = new();
+
         try
         {
             string content = File.ReadAllText("./commands.json");
 
             JsonObject json = JsonSerializer.Deserialize<JsonObject>(content);
 
+
             JsonArray jsonCommands = null;
+
             if (json != null && json.TryGetPropertyValue("commands", out var jn))
             {
                 if (jn != null) jsonCommands = jn.AsArray();
@@ -183,18 +286,16 @@ public static class CommandMaster
             {
                 foreach (JsonNode jsonCommand in jsonCommands)
                 {
-                    if (jsonCommand != null)
+                    if (jsonCommand == null) continue;
+                    try
                     {
-                        try
-                        {
-                            commandInfos.Add(new CommandInfo().FromJson((JsonObject)jsonCommand));
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e.Message);
-                            Console.WriteLine(e.StackTrace);
-                            // ignored
-                        }
+                        commandInfos.Add(new CommandInfo().FromJson((JsonObject)jsonCommand));
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                        Console.WriteLine(e.StackTrace);
+                        // ignored
                     }
                 }
             }
@@ -208,5 +309,64 @@ public static class CommandMaster
         }
 
         return commandInfos;
+    }
+
+    /// <summary>
+    /// Read local file and try converting the json to valid message command infos
+    /// </summary>
+    /// <returns>The list of message commands in the safe-file</returns>
+    public static List<CommandInfo> ImportMessageCommands()
+    {
+        List<CommandInfo> messageCommands = new();
+
+        try
+        {
+            string content = File.ReadAllText("./commands.json");
+
+            JsonObject json = JsonSerializer.Deserialize<JsonObject>(content);
+
+            JsonArray jsonMessageCommands = null;
+            if (json != null && json.TryGetPropertyValue("messageCommands", out var jmcmd))
+            {
+                jsonMessageCommands = jmcmd?.AsArray();
+            }
+
+            if (jsonMessageCommands != null)
+            {
+                foreach (JsonNode jsonMsgCommand in jsonMessageCommands)
+                {
+                    if (jsonMsgCommand == null) continue;
+                    try
+                    {
+                        messageCommands.Add(new CommandInfo().FromJson((JsonObject)jsonMsgCommand));
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                        Console.WriteLine(e.StackTrace);
+                        // ignored
+                    }
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            Console.WriteLine(e.StackTrace);
+            // -> something's fishy with the file or json
+        }
+
+        return messageCommands;
+    }
+
+    /// <summary>
+    /// Gets all command from local file, including slash-, message- and user-commands (user commands not implemented yet)
+    /// </summary>
+    /// <returns>The list of commands</returns>
+    public static List<CommandInfo> ImportAllCommands()
+    {
+        List<CommandInfo> cmds = ImportCommands();
+        cmds.AddRange(ImportMessageCommands());
+        return cmds;
     }
 }

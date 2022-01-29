@@ -13,284 +13,301 @@ using GoogleBot.Interactions;
 using Newtonsoft.Json;
 
 
-namespace GoogleBot
+namespace GoogleBot;
+
+internal class Bot
 {
-    internal class Bot
+    private DiscordSocketClient client;
+    private CommandHandler commandHandler;
+
+    public static Task Main(string[] args)
     {
-        private DiscordSocketClient client;
-        private CommandHandler commandHandler;
-
-        public static Task Main(string[] args)
-        {
-            return new Bot().MainAsync();
-        }
-
-        private Task Log(LogMessage msg)
-        {
-            Console.WriteLine(msg.ToString());
-            return Task.CompletedTask;
-        }
-
-        private async Task MainAsync()
-        {
-            client = new DiscordSocketClient();
-            client.Log += Log;
-            client.Ready += ClientReady;
-
-            await client.LoginAsync(TokenType.Bot, Secrets.DiscordToken);
-            await client.StartAsync();
-
-            await Task.Delay(-1);
-        }
-
-        private async Task ClientReady()
-        {
-            CommandService commandsService = new CommandService(new CommandServiceConfig
-            {
-                CaseSensitiveCommands = false,
-                LogLevel = LogSeverity.Info
-            });
-            commandsService.Log += Log;
-            commandHandler = new CommandHandler(client, commandsService);
-            await commandHandler.InstallCommandsAsync();
-
-            await client.SetGameAsync("with Google", type: ActivityType.Playing);
-
-            // Commands.testing();
-            // CommandMaster.InstantiateCommands();
-            CommandMaster.MountModules();
-
-            Console.WriteLine("Client Ready");
-            try
-            {
-                Console.WriteLine("---------");
-                await RegisterGlobalCommandsAsync();
-                Console.WriteLine("---------");
-                await RegisterDevOnlyCommandsAsync();
-                Console.WriteLine("---------");
-                CommandMaster.ExportCommands();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-                Console.WriteLine(e.StackTrace);
-            }
-
-
-            // Console.WriteLine(string.Join(", ", CommandHandler._coms.Commands.ToList().ConvertAll(c=>c.Name)));
-
-            // _ = InitSlashCommandsAsync();
-            // Console.WriteLine(string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>String.Join(" / ", c.Aliases))));
-        }
-
-
-        /// <summary>
-        /// Checks currently deployed global commands and compares them with the commands from the modules.
-        /// If they changed -> override them
-        /// </summary>
-        private async Task RegisterGlobalCommandsAsync()
-        {
-            Console.WriteLine("Checking global commands");
-            // List<CommandInfo> newOrChangedCommands = new List<CommandInfo>();
-            bool changed = false;
-
-            List<CommandInfo> newOrChangedCommands = new();
-            List<CommandInfo> existingCommands = CommandMaster.ImportCommands().FindAll(c => !c.IsDevOnly);
-            List<CommandInfo> availableCommands = CommandMaster.CommandList.FindAll(c => !c.IsDevOnly);
-
-            // Console.WriteLine(existingCommands.Count + " " + availableCommands.Count);
-
-            foreach (CommandInfo command in availableCommands)
-            {
-                bool isNew = true;
-                foreach (CommandInfo existingCommand in existingCommands)
-                {
-                    if (command.Name.Equals(existingCommand.Name))
-                    {
-                        isNew = false;
-                        // Console.WriteLine("comparing " + command + " vs " + existingCommand);
-                        if (!ApproximatelyEqual(command, existingCommand))
-                        {
-                            newOrChangedCommands.Add(command);
-                            changed = true;
-                            break;
-                        }
-                    }
-                }
-
-                changed |= isNew;
-
-                if (isNew)
-                {
-                    newOrChangedCommands.Add(command);
-                }
-            }
-
-            changed |= availableCommands.Count != existingCommands.Count;
-
-
-            if (!changed)
-            {
-                Console.WriteLine("No commands changed");
-                return;
-            }
-
-            Console.WriteLine("New or changed global commands found:");
-            Console.WriteLine(string.Join("\n", newOrChangedCommands));
-
-            // return;
-
-            // var guild = client.GetGuild(guildId);
-
-            List<ApplicationCommandProperties> applicationCommandProperties = new();
-
-            foreach (CommandInfo command in availableCommands)
-            {
-                SlashCommandBuilder builder = new SlashCommandBuilder();
-
-                builder.WithName(command.Name);
-                builder.WithDescription(command.Summary ?? "No description available");
-
-                foreach (ParameterInfo parameter in command.Parameters)
-                {
-                    builder.AddOption(parameter.Name, parameter.Type,
-                        parameter.Summary, isRequired: !parameter.IsOptional);
-                }
-
-                if (command.IsOptionalEphemeral)
-                {
-                    builder.AddOption("hidden", ApplicationCommandOptionType.Boolean,
-                        "Whether the responds should be private", false);
-                }
-
-                applicationCommandProperties.Add(builder.Build());
-            }
-
-            try
-            {
-                await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
-
-                // await guild.BulkOverwriteApplicationCommandAsync(applicationCommandProperties.ToArray());
-            }
-            catch (HttpException exception)
-            {
-                var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
-
-                // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
-                Console.WriteLine(json);
-            }
-
-            // Console.WriteLine("Available slash commands: \n" + string.Join(", ",
-            // CommandMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
-        }
-
-        /// <summary>
-        /// Check currently deployed dev-only commands and compares them with the commands from the modules
-        /// If they changed -> override
-        /// </summary>
-        private async Task RegisterDevOnlyCommandsAsync()
-
-        {
-            Console.WriteLine("Checking DevOnly commands");
-            // List<CommandInfo> newOrChangedCommands = new List<CommandInfo>();
-            bool changed = false;
-
-            List<CommandInfo> newOrChangedCommands = new();
-            List<CommandInfo> existingCommands = CommandMaster.ImportCommands().FindAll(c => c.IsDevOnly);
-            List<CommandInfo> availableCommands = CommandMaster.CommandList.FindAll(c => c.IsDevOnly);
-
-            // Console.WriteLine(existingCommands.Count + " " + availableCommands.Count);
-
-            foreach (CommandInfo command in availableCommands)
-            {
-                bool isNew = true;
-                foreach (CommandInfo existingCommand in existingCommands)
-                {
-                    if (command.Name.Equals(existingCommand.Name))
-                    {
-                        isNew = false;
-                        // Console.WriteLine("comparing " + command + " vs " + existingCommand);
-                        if (!ApproximatelyEqual(command, existingCommand))
-                        {
-                            newOrChangedCommands.Add(command);
-                            changed = true;
-                            break;
-                        }
-                    }
-                }
-
-                changed |= isNew;
-
-                if (isNew)
-                {
-                    newOrChangedCommands.Add(command);
-                }
-            }
-
-            changed |= availableCommands.Count != existingCommands.Count;
-
-
-            if (!changed)
-            {
-                Console.WriteLine("No commands changed");
-                return;
-            }
-
-            Console.WriteLine("New or changed dev-only commands:");
-            Console.WriteLine(string.Join("\n", newOrChangedCommands));
-
-
-            var guild = client.GetGuild(Secrets.DevGuildID);
-            if (guild == null)
-            {
-                Console.WriteLine("Invalid dev guild");
-                return;
-            }
-
-            List<ApplicationCommandProperties> applicationCommandProperties = new();
-
-            foreach (CommandInfo command in availableCommands)
-            {
-                SlashCommandBuilder builder = new SlashCommandBuilder();
-
-                builder.WithName(command.Name);
-                builder.WithDescription(command.Summary ?? "No description available");
-
-                foreach (ParameterInfo parameter in command.Parameters)
-                {
-                    builder.AddOption(parameter.Name, parameter.Type,
-                        parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
-                }
-
-                if (command.IsOptionalEphemeral)
-                {
-                    builder.AddOption("hidden", ApplicationCommandOptionType.Boolean,
-                        "Whether the responds should be private", false);
-                }
-
-                applicationCommandProperties.Add(builder.Build());
-            }
-
-            try
-            {
-                await guild.BulkOverwriteApplicationCommandAsync(applicationCommandProperties.ToArray());
-
-                // await guild.BulkOverwriteApplicationCommandAsync(applicationCommandProperties.ToArray());
-            }
-            catch (HttpException exception)
-            {
-                var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
-
-                // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
-                Console.WriteLine(json);
-            }
-
-            // Console.WriteLine("Available slash commands: \n" + string.Join(", ",
-            // CommandMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
-        }
+        return new Bot().MainAsync();
     }
 
-    public class CommandHandler
+    private Task Log(LogMessage msg)
+    {
+        Console.WriteLine(msg.ToString());
+        return Task.CompletedTask;
+    }
+
+    private async Task MainAsync()
+    {
+        client = new DiscordSocketClient();
+        client.Log += Log;
+        client.Ready += ClientReady;
+
+        await client.LoginAsync(TokenType.Bot, Secrets.DiscordToken);
+        await client.StartAsync();
+
+        await Task.Delay(-1);
+    }
+
+    private async Task ClientReady()
+    {
+        CommandService commandsService = new CommandService(new CommandServiceConfig
+        {
+            CaseSensitiveCommands = false,
+            LogLevel = LogSeverity.Info
+        });
+        commandsService.Log += Log;
+        commandHandler = new CommandHandler(client, commandsService);
+        await commandHandler.InstallCommandsAsync();
+
+        await client.SetGameAsync("with Google", type: ActivityType.Playing);
+
+        // Commands.testing();
+        // CommandMaster.InstantiateCommands();
+        CommandMaster.MountModules();
+
+        Console.WriteLine("Client Ready");
+        try
+        {
+            Console.WriteLine("---------");
+            await RegisterGlobalCommandsAsync();
+            Console.WriteLine("---------");
+            await RegisterDevOnlyCommandsAsync();
+            Console.WriteLine("---------");
+            CommandMaster.ExportCommands();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            Console.WriteLine(e.StackTrace);
+        }
+
+
+        // Console.WriteLine(string.Join(", ", CommandHandler._coms.Commands.ToList().ConvertAll(c=>c.Name)));
+
+        // _ = InitSlashCommandsAsync();
+        // Console.WriteLine(string.Join(", ",CommandHandler._coms.Commands.AsParallel().ToList().ConvertAll(c=>String.Join(" / ", c.Aliases))));
+    }
+
+
+    /// <summary>
+    /// Checks currently deployed global commands and compares them with the commands from the modules.
+    /// If they changed -> override them
+    /// </summary>
+    private async Task RegisterGlobalCommandsAsync()
+    {
+        Console.WriteLine("Checking global commands");
+        // List<CommandInfo> newOrChangedCommands = new List<CommandInfo>();
+        bool changed = false;
+
+        List<CommandInfo> newOrChangedCommands = new();
+        List<CommandInfo> existingCommands = CommandMaster.ImportAllCommands().FindAll(c => !c.IsDevOnly);
+        List<CommandInfo> availableCommands = CommandMaster.AllCommands.FindAll(c => !c.IsDevOnly);
+
+        List<CommandInfo> availableSlashCommands = CommandMaster.CommandList.FindAll(c => !c.IsDevOnly);
+        List<CommandInfo> availableMessageCommands = CommandMaster.MessageCommands.FindAll(c => !c.IsDevOnly);
+
+        // Console.WriteLine(existingCommands.Count + " " + availableCommands.Count);
+
+        foreach (CommandInfo command in availableCommands)
+        {
+            bool isNew = true;
+            foreach (CommandInfo existingCommand in existingCommands)
+            {
+                if (command.Id.Equals(existingCommand.Id))
+                {
+                    isNew = false;
+                    // Console.WriteLine("comparing " + command + " vs " + existingCommand);
+                    if (!ApproximatelyEqual(command, existingCommand))
+                    {
+                        // Console.WriteLine("CHANGED");
+                        newOrChangedCommands.Add(command);
+                        changed = true;
+                        break;
+                    }                           
+                    // Console.WriteLine("NOT changed");
+
+                }
+            }
+
+            changed |= isNew;
+
+            if (isNew)
+            {
+                newOrChangedCommands.Add(command);
+            }
+        }
+
+        changed |= availableCommands.Count != existingCommands.Count;
+
+
+        if (!changed)
+        {
+            Console.WriteLine("No commands changed");
+            return;
+        }
+
+        Console.WriteLine("New or changed global commands found:");
+        Console.WriteLine(string.Join("\n", newOrChangedCommands));
+
+
+        // return;
+        // var guild = client.GetGuild(guildId);
+
+        List<ApplicationCommandProperties> applicationCommandProperties = new();
+
+        //* Add slash commands
+        foreach (CommandInfo command in availableSlashCommands)
+        {
+            SlashCommandBuilder builder = new SlashCommandBuilder();
+
+            builder.WithName(command.Name);
+            builder.WithDescription(command.Summary ?? "No description available");
+
+            foreach (ParameterInfo parameter in command.Parameters)
+            {
+                builder.AddOption(parameter.Name, parameter.Type,
+                    parameter.Summary, isRequired: !parameter.IsOptional);
+            }
+
+            if (command.IsOptionalEphemeral)
+            {
+                builder.AddOption("hidden", ApplicationCommandOptionType.Boolean,
+                    "Whether the responds should be private", false);
+            }
+
+            applicationCommandProperties.Add(builder.Build());
+        }
+        
+        //* Add message commands
+        foreach (CommandInfo command in availableMessageCommands)
+        {
+            MessageCommandBuilder builder = new MessageCommandBuilder();
+
+            builder.WithName(command.Name);
+            applicationCommandProperties.Add(builder.Build());
+        }
+
+        try
+        {
+            await client.BulkOverwriteGlobalApplicationCommandsAsync(applicationCommandProperties.ToArray());
+
+            // await guild.BulkOverwriteApplicationCommandAsync(applicationCommandProperties.ToArray());
+        }
+        catch (HttpException exception)
+        {
+            var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
+
+            // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+            Console.WriteLine(json);
+        }
+
+        // Console.WriteLine("Available slash commands: \n" + string.Join(", ",
+        // CommandMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
+    }
+
+    /// <summary>
+    /// Check currently deployed dev-only commands and compares them with the commands from the modules
+    /// If they changed -> override
+    /// </summary>
+    private async Task RegisterDevOnlyCommandsAsync()
+    {
+        Console.WriteLine("Checking DevOnly commands");
+        // List<CommandInfo> newOrChangedCommands = new List<CommandInfo>();
+        bool changed = false;
+
+        List<CommandInfo> newOrChangedCommands = new();
+        List<CommandInfo> existingCommands = CommandMaster.ImportCommands().FindAll(c => c.IsDevOnly);
+        List<CommandInfo> availableCommands = CommandMaster.CommandList.FindAll(c => c.IsDevOnly);
+
+        // Console.WriteLine(existingCommands.Count + " " + availableCommands.Count);
+
+        foreach (CommandInfo command in availableCommands)
+        {
+            bool isNew = true;
+            foreach (CommandInfo existingCommand in existingCommands)
+            {
+                if (command.Name.Equals(existingCommand.Name))
+                {
+                    isNew = false;
+                    // Console.WriteLine("comparing " + command + " vs " + existingCommand);
+                    if (!ApproximatelyEqual(command, existingCommand))
+                    {
+                        newOrChangedCommands.Add(command);
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+
+            changed |= isNew;
+
+            if (isNew)
+            {
+                newOrChangedCommands.Add(command);
+            }
+        }
+
+        changed |= availableCommands.Count != existingCommands.Count;
+
+
+        if (!changed)
+        {
+            Console.WriteLine("No commands changed");
+            return;
+        }
+
+        Console.WriteLine("New or changed dev-only commands:");
+        Console.WriteLine(string.Join("\n", newOrChangedCommands));
+
+
+        var guild = client.GetGuild(Secrets.DevGuildID);
+        if (guild == null)
+        {
+            Console.WriteLine("Invalid dev guild");
+            return;
+        }
+
+        List<ApplicationCommandProperties> applicationCommandProperties = new();
+
+        foreach (CommandInfo command in availableCommands)
+        {
+            SlashCommandBuilder builder = new SlashCommandBuilder();
+
+            builder.WithName(command.Name);
+            builder.WithDescription(command.Summary ?? "No description available");
+
+            foreach (ParameterInfo parameter in command.Parameters)
+            {
+                builder.AddOption(parameter.Name, parameter.Type,
+                    parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
+            }
+
+            if (command.IsOptionalEphemeral)
+            {
+                builder.AddOption("hidden", ApplicationCommandOptionType.Boolean,
+                    "Whether the responds should be private", false);
+            }
+
+            applicationCommandProperties.Add(builder.Build());
+        }
+
+        try
+        {
+            await guild.BulkOverwriteApplicationCommandAsync(applicationCommandProperties.ToArray());
+
+            // await guild.BulkOverwriteApplicationCommandAsync(applicationCommandProperties.ToArray());
+        }
+        catch (HttpException exception)
+        {
+            var json = JsonConvert.SerializeObject(exception, Formatting.Indented);
+
+            // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+            Console.WriteLine(json);
+        }
+
+        // Console.WriteLine("Available slash commands: \n" + string.Join(", ",
+        // CommandMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
+    }
+    
+
+}
+
+public class CommandHandler
     {
         private readonly DiscordSocketClient client;
         private readonly CommandService commands;
@@ -306,6 +323,7 @@ namespace GoogleBot
             client.MessageReceived += HandleCommandAsync;
             client.SlashCommandExecuted += HandleSlashCommandAsync;
             client.ButtonExecuted += ApplicationModuleHelper.InteractionHandler;
+            client.MessageCommandExecuted += HandleMessageCommandAsync;
             await commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
             // await commands.AddModuleAsync(typeof(GoogleModule), null);
         }
@@ -350,5 +368,18 @@ namespace GoogleBot
                 }
             }
         }
+
+        private Task HandleMessageCommandAsync(SocketMessageCommand command)
+        {
+            try
+            {
+                _ = CommandMaster.ExecuteMessageCommand(command);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+            }
+            return Task.CompletedTask;
+        }
     }
-}

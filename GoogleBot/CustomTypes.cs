@@ -16,6 +16,14 @@ using GoogleBot.Interactions;
 
 namespace GoogleBot;
 
+public enum CommandType
+{
+    SlashCommand = 0,
+    MessageCommand = 1,
+    UserCommand = 2, //* Not implemented yet
+}
+
+
 internal interface IJsonSerializable<out T>
 {
     JsonObject ToJson();
@@ -125,6 +133,9 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
 
     public bool OverrideDefer { get; init; } = false;
 
+    public CommandType Type;
+
+    public string Id => $"{Name}-{Type}";
 
     public ParameterInfo[] Parameters { get; init; } = Array.Empty<ParameterInfo>();
 
@@ -133,30 +144,50 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     public override string ToString()
     {
         return
-            $"{Name} {string.Join(" ", Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))} : {Summary}";
+            $"({Type}) {Name} {string.Join(" ", Parameters.ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}";
     }
 
     public JsonObject ToJson()
     {
-        JsonObject json = new JsonObject
+        switch (Type)
         {
-            { "name", Name },
-            { "summery", Summary },
-            { "private", IsPrivate },
-            { "overrideDefer", OverrideDefer },
-            { "devonly", IsDevOnly },
-            { "optionalEphemeral", IsOptionalEphemeral },
-            { "parameters", new JsonArray(Parameters.ToList().ConvertAll(p => (JsonNode)p.ToJson()).ToArray()) }
-        };
-
-        return json;
+            case CommandType.MessageCommand:
+            case CommandType.UserCommand:
+                return new JsonObject
+                {
+                    { "id", Id},
+                    { "name", Name },
+                    { "type", (int)Type },
+                };
+            case CommandType.SlashCommand:
+            default:
+                return new JsonObject
+                {
+                    { "id", Id},
+                    { "name", Name },
+                    { "summery", Summary },
+                    { "type", (int)Type},
+                    { "private", IsPrivate },
+                    { "overrideDefer", OverrideDefer },
+                    { "devonly", IsDevOnly },
+                    { "optionalEphemeral", IsOptionalEphemeral },
+                    { "parameters", new JsonArray(Parameters.ToList().ConvertAll(p => (JsonNode)p.ToJson()).ToArray()) }
+                };
+        }
     }
 
     public CommandInfo FromJson(JsonObject jsonObject)
     {
-        string name = null!, summery = null!;
-        bool isPrivate = false, overrideDefer = false, devonly = false, optionalEphemeral = false;
+        CommandInfo defaults = new CommandInfo();
+        string name = defaults.Name, summery = defaults.Summary;
+        bool isPrivate = defaults.IsPrivate, overrideDefer = defaults.OverrideDefer, devonly = defaults.IsDevOnly, optionalEphemeral = defaults.IsOptionalEphemeral;
+        CommandType type = defaults.Type;
         JsonArray parameters = new JsonArray();
+
+        if (jsonObject.TryGetPropertyValue("type", out var t))
+        {
+            type = (CommandType)Math.Min((t?.GetValue<int>() ?? 0), Enum.GetNames(typeof(CommandType)).Length-1);
+        }
 
         if (jsonObject.TryGetPropertyValue("name", out var n))
         {
@@ -170,22 +201,22 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
 
         if (jsonObject.TryGetPropertyValue("private", out var ip))
         {
-            isPrivate = ip?.GetValue<bool>() ?? false;
+            isPrivate = ip?.GetValue<bool>() ?? isPrivate;
         }
 
         if (jsonObject.TryGetPropertyValue("private", out var d))
         {
-            overrideDefer = d?.GetValue<bool>() ?? false;
+            overrideDefer = d?.GetValue<bool>() ?? overrideDefer;
         }
 
         if (jsonObject.TryGetPropertyValue("devonly", out var dev))
         {
-            devonly = dev?.GetValue<bool>() ?? false;
+            devonly = dev?.GetValue<bool>() ?? devonly;
         }
 
         if (jsonObject.TryGetPropertyValue("optionalEphemeral", out var oe))
         {
-            optionalEphemeral = oe?.GetValue<bool>() ?? false;
+            optionalEphemeral = oe?.GetValue<bool>() ?? optionalEphemeral;
         }
 
         if (jsonObject.TryGetPropertyValue("parameters", out var pa))
@@ -203,6 +234,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
         {
             Name = name,
             Summary = summery,
+            Type = type,
             IsPrivate = isPrivate,
             OverrideDefer = overrideDefer,
             IsDevOnly = devonly,
@@ -379,10 +411,25 @@ public class Context
         }
     }
 
+    public Context(SocketMessageCommand command)
+    {
+        IGuildUser? guildUser = command.User as IGuildUser;
+        Channel = command.Channel;
+        MessageCommand = command;
+        CommandInfo = CommandMaster.GetMessageCommandFromName(command.CommandName);
+        Guild = (SocketGuild?)guildUser?.Guild;
+        User = command.User;
+        Arguments = new object[] { command.Data.Message.Content };
+        GuildConfig = GuildConfig.Get(guildUser?.GuildId);
+        VoiceChannel = guildUser?.VoiceChannel;
+    }
+
     /// <summary>
     /// The original command 
     /// </summary>
     public SocketSlashCommand? Command { get; }
+    
+    public SocketMessageCommand? MessageCommand { get; }
 
     /// <summary>
     /// The text channel 
