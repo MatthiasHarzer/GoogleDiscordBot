@@ -7,7 +7,6 @@ using Discord.WebSocket;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Services;
 
-
 namespace GoogleBot.Interactions.Modules;
 
 [MessageCommandsModule]

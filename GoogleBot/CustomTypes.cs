@@ -1,15 +1,6 @@
 ﻿#nullable enable
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using Discord;
-using Discord.WebSocket;
-using GoogleBot.Interactions;
-using GoogleBot.Interactions.Context;
 
 
 // ReSharper disable MemberCanBePrivate.Global

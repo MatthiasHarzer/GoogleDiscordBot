@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Commands;
 using GoogleBot.Interactions.Context;
-using ICommandContext = GoogleBot.Interactions.Context.ICommandContext;
 
 namespace GoogleBot.Interactions.Modules;
 

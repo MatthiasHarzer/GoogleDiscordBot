@@ -1,14 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Discord;
-using Discord.WebSocket;
-using GoogleBot.Interactions;
 using GoogleBot.Interactions.Commands;
-using GoogleBot.Interactions.Context;
-using GoogleBot.Interactions.Modules;
-
 
 namespace GoogleBot.Services;
 

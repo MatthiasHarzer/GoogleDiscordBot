@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Discord.WebSocket;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Services;

@@ -1,12 +1,8 @@
-﻿using System;
-using System.Linq;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions.Commands;
-using YoutubeExplode.Videos;
-using GoogleBot.Interactions.Commands;
 using GoogleBot.Services;
-
+using YoutubeExplode.Videos;
 
 namespace GoogleBot.Interactions;
 

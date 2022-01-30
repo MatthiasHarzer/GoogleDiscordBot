@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.Interactions;
 using Discord.Net;
 using Discord.WebSocket;
-using static GoogleBot.Util;
 using GoogleBot.Interactions;
 using Newtonsoft.Json;
-using GoogleBot.Interactions.Commands;
+using static GoogleBot.Util;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 using ParameterInfo = GoogleBot.Interactions.Commands.ParameterInfo;
 

@@ -8,16 +8,13 @@ using System.Threading.Tasks;
 using CliWrap;
 using Discord;
 using Discord.Audio;
-using Discord.WebSocket;
 using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using YoutubeExplode;
 using YoutubeExplode.Common;
-using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos.Streams;
 using Video = YoutubeExplode.Videos.Video;
-
 
 namespace GoogleBot.Services;
 

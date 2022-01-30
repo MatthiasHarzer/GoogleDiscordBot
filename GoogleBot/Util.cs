@@ -1,8 +1,6 @@
 ﻿using System;
-using YoutubeExplode.Videos;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -10,7 +8,7 @@ using Google.Apis.CustomSearchAPI.v1;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using Google.Apis.Services;
 using GoogleBot.Interactions;
-using GoogleBot.Interactions.Commands;
+using YoutubeExplode.Videos;
 using Color = System.Drawing.Color;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 using DiscordColor = Discord.Color;

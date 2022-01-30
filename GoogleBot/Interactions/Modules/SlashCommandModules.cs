@@ -1,17 +1,14 @@
 ﻿#nullable enable
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
 using Discord;
 using Discord.Commands;
-using Discord.Net;
 using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using GoogleBot.Interactions.CustomAttributes;
-using GoogleBot.Interactions.Commands;
 using GoogleBot.Services;
 using YoutubeExplode.Videos;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
