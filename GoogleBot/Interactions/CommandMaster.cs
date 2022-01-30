@@ -71,7 +71,6 @@ public static class CommandMaster
 
     /// <summary>
     /// Get all modules with base class <see cref="CommandModuleBase"/> for SlashCommands or <see cref="MessageCommandsModuleBase"/> for message commands
-    /// and create their <see cref="ApplicationModuleHelper"/> 
     /// </summary>
     public static void MountModules()
     {
@@ -258,7 +257,7 @@ public static class CommandMaster
     /// Add a command to the commands list if it does not exist yet 
     /// </summary>
     /// <param name="commandInfo">The command to add</param>
-    /// <returns>True if the command was added</returns>
+    /// <returns>True if the command was added, false if it already exists</returns>
     private static bool AddCommand(CommandInfo commandInfo)
     {
         // Console.WriteLine($"trying to Add command {commandInfo.Name} in {ModuleType} where CommandModuleType = {CommandModuleType}");
