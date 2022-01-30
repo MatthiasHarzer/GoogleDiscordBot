@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions;
+using GoogleBot.Interactions.Commands;
 using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.Modules;
 
@@ -74,7 +75,7 @@ public class PreconditionWatcher
     }
 
     /// <summary>
-    /// Creates a new <see cref="PreconditionWatcher"/> for the specified <see cref="GoogleBot.CommandInfo"/> and <see cref="GoogleBot.GuildConfig"/>
+    /// Creates a new <see cref="PreconditionWatcher"/> for the specified <see cref="Interactions.Commands.CommandInfo"/> and <see cref="GoogleBot.GuildConfig"/>
     /// </summary>
     /// <param name="commandInfo"></param>
     /// <param name="guildConfig"></param>

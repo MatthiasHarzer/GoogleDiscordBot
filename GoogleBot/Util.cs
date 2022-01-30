@@ -10,8 +10,11 @@ using Google.Apis.CustomSearchAPI.v1;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using Google.Apis.Services;
 using GoogleBot.Interactions;
+using GoogleBot.Interactions.Commands;
 using Color = System.Drawing.Color;
+using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 using DiscordColor = Discord.Color;
+using ParameterInfo = GoogleBot.Interactions.Commands.ParameterInfo;
 
 // using CommandInfo = Discord.Commands.CommandInfo;
 
@@ -272,7 +275,7 @@ public static class Util
         {
             string raw_command = message.ToString().Split(" ")[0].Substring(argPos);
 
-            foreach (CommandInfo ctx in CommandMaster.CommandList)
+            foreach (CommandInfo ctx in InteractionMaster.CommandList)
             {
                 if (ctx.Name.Equals(raw_command))
                 {

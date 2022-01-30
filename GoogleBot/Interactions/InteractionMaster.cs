@@ -12,6 +12,9 @@ using Discord.WebSocket;
 using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Modules;
+using GoogleBot.Interactions.Commands;
+using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
+using ParameterInfo = GoogleBot.Interactions.Commands.ParameterInfo;
 using PreconditionAttribute = GoogleBot.Interactions.CustomAttributes.PreconditionAttribute;
 
 namespace GoogleBot.Interactions;
@@ -19,7 +22,7 @@ namespace GoogleBot.Interactions;
 /// <summary>
 /// Keeps track of commands and executes them
 /// </summary>
-public static class CommandMaster
+public static class InteractionMaster
 {
     public static readonly List<CommandInfo> CommandList = new();
 

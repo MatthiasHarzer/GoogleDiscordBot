@@ -2,10 +2,12 @@
 using System.Linq;
 using Discord;
 using Discord.WebSocket;
+using GoogleBot.Interactions.Commands;
 using YoutubeExplode.Videos;
+using GoogleBot.Interactions.Commands;
 
 
-namespace GoogleBot.Interactions.Modules;
+namespace GoogleBot.Interactions;
 
 public class Responses
 {

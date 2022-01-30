@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using GoogleBot.Interactions.Commands;
 
 namespace GoogleBot.Interactions.Context;
 
@@ -31,7 +32,7 @@ public class MessageCommandContext : ICommandContext
         IGuildUser guildUser = (command.User as IGuildUser)!;
         TextChannel = command.Channel;
         Command = command;
-        CommandInfo = CommandMaster.GetMessageCommandFromName(command.CommandName);
+        CommandInfo = InteractionMaster.GetMessageCommandFromName(command.CommandName);
         Guild = (SocketGuild?)guildUser.Guild!;
         User = command.User;
         GuildConfig = GuildConfig.Get(guildUser.GuildId);

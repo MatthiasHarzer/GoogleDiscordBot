@@ -11,7 +11,9 @@ using Discord.Net;
 using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using GoogleBot.Interactions.CustomAttributes;
+using GoogleBot.Interactions.Commands;
 using YoutubeExplode.Videos;
+using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 using Precondition = GoogleBot.Interactions.CustomAttributes.PreconditionAttribute;
 
 namespace GoogleBot.Interactions.Modules;
@@ -83,7 +85,7 @@ public class InfoModule : CommandModuleBase
             Title = "Here's a list of commands and their description:"
         };
 
-        foreach (CommandInfo command in CommandMaster.CommandList)
+        foreach (CommandInfo command in InteractionMaster.CommandList)
         {
             if (command.IsDevOnly && Context.Guild != null && Context.Guild.Id != Secrets.DevGuildID) continue;
             // Get the command Summary attribute information

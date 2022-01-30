@@ -2,6 +2,7 @@
 using System.Linq;
 using Discord;
 using Discord.WebSocket;
+using GoogleBot.Interactions.Commands;
 
 namespace GoogleBot.Interactions.Context;
 
@@ -50,7 +51,7 @@ public class SlashCommandContext : ICommandContext
         
         TextChannel = command.Channel;
         
-        CommandInfo = CommandMaster.GetCommandFromName(command.CommandName);
+        CommandInfo = InteractionMaster.GetCommandFromName(command.CommandName);
         Command = command;
         Guild = (SocketGuild?)guildUser.Guild!;
         User = command.User;

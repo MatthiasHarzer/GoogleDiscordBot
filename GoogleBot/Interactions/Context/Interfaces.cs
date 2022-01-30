@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using GoogleBot.Interactions.Commands;
 
 namespace GoogleBot.Interactions.Context;
 
@@ -37,7 +38,7 @@ public interface IContext
 public interface ICommandContext : IContext
 {
     /// <summary>
-    /// The <see cref="GoogleBot.CommandInfo"/> of interaction
+    /// The <see cref="Commands.CommandInfo"/> of interaction
     /// </summary>
     public CommandInfo CommandInfo { get; }
     

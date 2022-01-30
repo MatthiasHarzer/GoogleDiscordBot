@@ -11,6 +11,9 @@ using Discord.WebSocket;
 using static GoogleBot.Util;
 using GoogleBot.Interactions;
 using Newtonsoft.Json;
+using GoogleBot.Interactions.Commands;
+using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
+using ParameterInfo = GoogleBot.Interactions.Commands.ParameterInfo;
 
 
 namespace GoogleBot;
@@ -57,8 +60,8 @@ internal class Bot
         await client.SetGameAsync("with Google", type: ActivityType.Playing);
 
         // Commands.testing();
-        // CommandMaster.InstantiateCommands();
-        CommandMaster.MountModules();
+        // InteractionMaster.InstantiateCommands();
+        InteractionMaster.MountModules();
 
         Console.WriteLine("Client Ready");
         try
@@ -68,7 +71,7 @@ internal class Bot
             Console.WriteLine("---------");
             await RegisterDevOnlyCommandsAsync();
             Console.WriteLine("---------");
-            CommandMaster.ExportCommands();
+            InteractionMaster.ExportCommands();
         }
         catch (Exception e)
         {
@@ -95,11 +98,11 @@ internal class Bot
         bool changed = false;
 
         List<CommandInfo> newOrChangedCommands = new();
-        List<CommandInfo> existingCommands = CommandMaster.ImportAllCommands().FindAll(c => !c.IsDevOnly);
-        List<CommandInfo> availableCommands = CommandMaster.AllCommands.FindAll(c => !c.IsDevOnly);
+        List<CommandInfo> existingCommands = InteractionMaster.ImportAllCommands().FindAll(c => !c.IsDevOnly);
+        List<CommandInfo> availableCommands = InteractionMaster.AllCommands.FindAll(c => !c.IsDevOnly);
 
-        List<CommandInfo> availableSlashCommands = CommandMaster.CommandList.FindAll(c => !c.IsDevOnly);
-        List<CommandInfo> availableMessageCommands = CommandMaster.MessageCommands.FindAll(c => !c.IsDevOnly);
+        List<CommandInfo> availableSlashCommands = InteractionMaster.CommandList.FindAll(c => !c.IsDevOnly);
+        List<CommandInfo> availableMessageCommands = InteractionMaster.MessageCommands.FindAll(c => !c.IsDevOnly);
 
         // Console.WriteLine(existingCommands.Count + " " + availableCommands.Count);
 
@@ -197,7 +200,7 @@ internal class Bot
         }
 
         // Console.WriteLine("Available slash commands: \n" + string.Join(", ",
-        // CommandMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
+        // InteractionMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
     }
 
     /// <summary>
@@ -211,8 +214,8 @@ internal class Bot
         bool changed = false;
 
         List<CommandInfo> newOrChangedCommands = new();
-        List<CommandInfo> existingCommands = CommandMaster.ImportCommands().FindAll(c => c.IsDevOnly);
-        List<CommandInfo> availableCommands = CommandMaster.CommandList.FindAll(c => c.IsDevOnly);
+        List<CommandInfo> existingCommands = InteractionMaster.ImportCommands().FindAll(c => c.IsDevOnly);
+        List<CommandInfo> availableCommands = InteractionMaster.CommandList.FindAll(c => c.IsDevOnly);
 
         // Console.WriteLine(existingCommands.Count + " " + availableCommands.Count);
 
@@ -301,7 +304,7 @@ internal class Bot
         }
 
         // Console.WriteLine("Available slash commands: \n" + string.Join(", ",
-        // CommandMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
+        // InteractionMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
     }
     
 
@@ -341,7 +344,7 @@ public class CommandHandler
                 message.Author.IsBot)
                 return Task.CompletedTask;
 
-            CommandMaster.CheckTextCommand(new SocketCommandContext(client, message));
+            InteractionMaster.CheckTextCommand(new SocketCommandContext(client, message));
             return Task.CompletedTask;
         }
 
@@ -349,7 +352,7 @@ public class CommandHandler
         {
             try
             {
-                _ = CommandMaster.Execute(command);
+                _ = InteractionMaster.Execute(command);
             }
             catch (Exception e)
             {
@@ -373,7 +376,7 @@ public class CommandHandler
         {
             try
             {
-                _ = CommandMaster.ExecuteMessageCommand(command);
+                _ = InteractionMaster.ExecuteMessageCommand(command);
             }
             catch (Exception e)
             {
@@ -385,7 +388,7 @@ public class CommandHandler
 
         private Task HandleInteractionAsync(SocketMessageComponent component)
         {
-            _ = CommandMaster.HandleInteraction(component);
+            _ = InteractionMaster.HandleInteraction(component);
             
             return Task.CompletedTask;
         }
