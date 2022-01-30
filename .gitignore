@@ -276,7 +276,5 @@ FakesAssemblies/
 /dataSources/
 /dataSources.local.xml
 
-Secretes.cs
-
 # Personal
 .idea/
