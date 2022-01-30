@@ -131,16 +131,21 @@ public abstract class MessageCommandsModuleBase : ModuleBase
 
             try
             {
-
+                // Console.WriteLine(message.Message+ " " +message.Embed +" " +!string.IsNullOrEmpty(message.Message) + " " + !string.IsNullOrWhiteSpace(message.Message));
                 await Context.MessageCommand.ModifyOriginalResponseAsync(properties =>
                 {
                     properties.Embed = message.Embed?.Build();
                     properties.Components = message.Components?.Build();
-                    properties.Content = message.Message;
+                    if (!string.IsNullOrEmpty(message.Message) && !string.IsNullOrWhiteSpace(message.Message))
+                    {
+                        properties.Content = message.Message;
+                    }
                 });
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                // Console.WriteLine(e.Message);
+                // Console.WriteLine(e.StackTrace);
                 await Context.MessageCommand.ModifyOriginalResponseAsync(properties =>
                     properties.Content = "`Couldn't respond.`");
                 await (await Context.MessageCommand.GetOriginalResponseAsync()).DeleteAsync();

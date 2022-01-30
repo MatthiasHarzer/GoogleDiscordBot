@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -10,15 +11,20 @@ namespace GoogleBot.Interactions.Modules;
 public class MessageCommands : MessageCommandsModuleBase
 {
     [Command("echo")]
-    public async Task Test(string text)
+    public async Task Test(SocketMessage message)
     {
-        // Console.WriteLine("In Test Command " + text);
-        await ReplyAsync(text);
+        // Console.WriteLine("In Test Command " + message.Embeds.Count+" "  + message.Embeds?.FirstOrDefault()?.ToEmbedBuilder()!);
+        await ReplyAsync(new FormattedMessage
+        {
+            Message = message.Content,
+            Embed = message.Embeds?.FirstOrDefault()?.ToEmbedBuilder()!
+        });
     }
 
     [Command("play")]
-    public async Task Play(string query)
+    public async Task Play(SocketMessage message)
     {
+        string query = message.Content;
         IVoiceChannel channel = Context.VoiceChannel!;
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
 

@@ -450,7 +450,7 @@ public class Context
         CommandInfo = CommandMaster.GetMessageCommandFromName(command.CommandName);
         Guild = (SocketGuild?)guildUser?.Guild;
         User = command.User;
-        Arguments = new object[] { command.Data.Message.Content };
+        Arguments = new object[] { command.Data.Message };
         GuildConfig = GuildConfig.Get(guildUser?.GuildId);
         VoiceChannel = guildUser?.VoiceChannel;
     }

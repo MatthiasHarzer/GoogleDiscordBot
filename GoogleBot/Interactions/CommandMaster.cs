@@ -448,6 +448,11 @@ public static class CommandMaster
 
         IDisposable typing = null;
 
+        if (command.IsDevOnly && socketCommandContext.Guild.Id != Secrets.DevGuildID)
+        {
+            return;
+        }
+
 
         if (command.IsValid)
         {
