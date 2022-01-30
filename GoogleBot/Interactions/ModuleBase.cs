@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using GoogleBot.Interactions.Context;
+using ICommandContext = GoogleBot.Interactions.Context.ICommandContext;
 
 namespace GoogleBot.Interactions;
 
@@ -58,7 +60,7 @@ public abstract class ModuleBase : IModuleBase
                     }
                 });
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // Console.WriteLine(e.Message);
                 // Console.WriteLine(e.StackTrace);
@@ -98,7 +100,7 @@ public abstract class ModuleBase : IModuleBase
                 await InnerContext.Respondable.FollowupAsync(message.Message, embed: message.BuiltEmbed,
                     components: message.BuiltComponents);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // Console.WriteLine(e.Message);
                 // Console.WriteLine(e.StackTrace);

@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions;
+using GoogleBot.Interactions.Context;
 
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -23,48 +24,7 @@ public enum CommandType
     UserCommand = 2, //* Not implemented yet
 }
 
-public interface IContext
-{
-    /// <summary>
-    /// The user who triggered the interaction
-    /// </summary>
-    public SocketUser User { get; }
-    
-    /// <summary>
-    /// The Text Channel where the interaction was triggerd
-    /// </summary>
-    public ISocketMessageChannel TextChannel { get; }
-    
-    /// <summary>
-    /// The users voice channel, if the user is connected to one
-    /// </summary>
-    public IVoiceChannel? VoiceChannel { get; }
-    
-    /// <summary>
-    /// The guild where the interaction takes place
-    /// </summary>
-    public SocketGuild Guild { get; }
-    
-    /// <summary>
-    /// The <see cref="GoogleBot.GuildConfig"/> of the <see cref="Guild"/>
-    /// </summary>
-    public GuildConfig GuildConfig { get; }
-    
-    public IDiscordInteraction Respondable { get; }
-    
-}
 
-public interface ICommandContext : IContext
-{
-    /// <summary>
-    /// The <see cref="GoogleBot.CommandInfo"/> of interaction
-    /// </summary>
-    public CommandInfo CommandInfo { get; }
-    
-    
-
-    public bool IsEphemeral => false;
-}
 
 internal interface IJsonSerializable<out T>
 {
@@ -413,144 +373,7 @@ public class FormattedMessage
     }
 }
 
-public class SlashCommandContext : ICommandContext
-{
-    public SocketUser User { get; }
-    public ISocketMessageChannel TextChannel { get; }
-    public IVoiceChannel? VoiceChannel { get; }
-    public GuildConfig GuildConfig { get; }
-    public SocketGuild Guild { get; }
-    
-    /// <summary>
-    /// The CommandInfo from a given command
-    /// </summary>
-    public CommandInfo CommandInfo { get; }
-
-    public IDiscordInteraction Respondable => Command;
-
-    /// <summary>
-    /// Whether the command should be ephemeral or not
-    /// </summary>
-    public bool IsEphemeral { get; } = false;
-
-    /// <summary>
-    /// The arguments for the executed command (including default values for optional args)
-    /// </summary>
-    public object[] Arguments { get; }
-    
-    /// <summary>
-    /// The original command 
-    /// </summary>
-    public SocketSlashCommand Command { get; }
-    
-    
-    /// <summary>
-    /// Creates a new <see cref="SlashCommandContext"/> from a <see cref="SocketSlashCommand"/>
-    /// </summary>
-    /// <param name="command"></param>
-    /// <exception cref="ArgumentException"></exception>
-    public SlashCommandContext(SocketSlashCommand command)
-    {
-        IGuildUser guildUser = (command.User as IGuildUser)!;
-        
-        TextChannel = command.Channel;
-        
-        CommandInfo = CommandMaster.GetCommandFromName(command.CommandName);
-        Command = command;
-        Guild = (SocketGuild?)guildUser.Guild!;
-        User = command.User;
-        GuildConfig = GuildConfig.Get(guildUser.GuildId);
-        VoiceChannel = guildUser.VoiceChannel;
-
-        object[] args = new object[CommandInfo.Method!.GetParameters().Length];
-
-        object[] options = command.Data.Options.ToList().ConvertAll(option => option.Value).ToArray();
 
 
-        int i;
-        //* Fill the args with the provided option values
-        for (i = 0; i < Math.Min(options.Length, args.Length); i++)
-        {
-            args[i] = options[i];
-        }
 
-        //* Fill remaining args with their default values
-        for (; i < args.Length; i++)
-        {
-            if (!CommandInfo.Method.GetParameters()[i].HasDefaultValue)
-            {
-                throw new ArgumentException("Missing options.");
-            }
 
-            args[i] = CommandInfo.Method!.GetParameters()[i].DefaultValue!;
-        }
-
-        Arguments = args;
-
-        if (CommandInfo.IsOptionalEphemeral)
-        {
-            int optionsHidden = Command.Data.Options.ToList()
-                .FindAll(o => o.Name.ToLower() == "hidden" && (bool)o.Value).Count;
-            if (optionsHidden > 1)
-                throw new ArgumentException("Too many options for \"hidden\"");
-            IsEphemeral = optionsHidden > 0;
-        }
-    }
-}
-
-public class MessageCommandContext : ICommandContext
-{
-    public SocketUser User { get; }
-    public ISocketMessageChannel TextChannel { get; }
-    public IVoiceChannel? VoiceChannel { get; }
-    public SocketGuild Guild { get; }
-    public GuildConfig GuildConfig { get; }
-    public CommandInfo CommandInfo { get; }
-    public IDiscordInteraction Respondable => Command;
-    
-    /// <summary>
-    /// The raw <see cref="SocketMessageCommand"/> from discord
-    /// </summary>
-    public SocketMessageCommand Command { get; }
-
-    /// <summary>
-    /// The message the command was used for
-    /// </summary>
-    public SocketMessage Message => Command.Data.Message;
-    
-    public MessageCommandContext(SocketMessageCommand command)
-    {
-        IGuildUser guildUser = (command.User as IGuildUser)!;
-        TextChannel = command.Channel;
-        Command = command;
-        CommandInfo = CommandMaster.GetMessageCommandFromName(command.CommandName);
-        Guild = (SocketGuild?)guildUser.Guild!;
-        User = command.User;
-        GuildConfig = GuildConfig.Get(guildUser.GuildId);
-        VoiceChannel = guildUser.VoiceChannel;
-    }
-}
-
-public class InteractionContext : IContext
-{
-    public SocketUser User { get; }
-    public ISocketMessageChannel TextChannel { get; }
-    public IVoiceChannel? VoiceChannel { get; }
-    public SocketGuild Guild { get; }
-    public GuildConfig GuildConfig { get; }
-
-    public SocketMessageComponent Component { get; }
-    
-    public IDiscordInteraction Respondable => Component;
-    
-    public InteractionContext(SocketMessageComponent component)
-    {
-        IGuildUser guildUser = (component.User as IGuildUser)!;
-        GuildConfig = GuildConfig.Get(guildUser.GuildId);
-        User = component.User;
-        TextChannel = component.Channel;
-        VoiceChannel = guildUser.VoiceChannel;
-        Guild = (SocketGuild)guildUser.Guild;
-        Component = component;
-    }
-}
