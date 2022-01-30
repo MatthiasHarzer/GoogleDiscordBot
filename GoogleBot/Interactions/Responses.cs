@@ -1,6 +1,8 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Discord;
 using Discord.WebSocket;
+using YoutubeExplode.Videos;
 
 
 namespace GoogleBot.Interactions.Modules;
@@ -21,11 +23,57 @@ public class Responses
     /// <summary>
     /// For when a song was skipped
     /// </summary>
-    /// <param name="skippedSong">The skipped song</param>
+    /// <param name="nextSong">The skipped song</param>
     /// <returns>A FormattedMessage</returns>
-    public static FormattedMessage Skipped(string skippedSong)
+    public static FormattedMessage Skipped(Video nextSong)
     {
-        return new FormattedMessage(new EmbedBuilder().AddField("Skipping", $"Song {skippedSong} skipped"));
+        return nextSong == null
+            ? new FormattedMessage(new EmbedBuilder().AddField("Skipping", $"The queue is empty -> disconnecting"))
+            : new FormattedMessage(new EmbedBuilder().AddField("Skipping",
+                $"Now playing {Util.FormattedLinkedVideo(nextSong)}"));
+    }
+
+    public static FormattedMessage FromPlayReturnValue(PlayReturnValue playReturnValue)
+    {
+        EmbedBuilder embed = new();
+        switch (playReturnValue.AudioPlayState)
+        {
+            case AudioPlayState.Success:
+                embed.AddField("Now playing", Util.FormattedLinkedVideo(playReturnValue.Video));
+                break;
+            case AudioPlayState.PlayingAsPlaylist:
+                embed.WithTitle($"Added {playReturnValue.Videos?.Length} songs to queue");
+                embed.AddField("Now playing", Util.FormattedLinkedVideo(playReturnValue.Video));
+                break;
+            case AudioPlayState.Queued:
+                embed.AddField("Song added to queue", Util.FormattedLinkedVideo(playReturnValue.Video));
+                break;
+            case AudioPlayState.QueuedAsPlaylist:
+                embed.WithTitle($"Added {playReturnValue.Videos?.Length} songs to queue");
+                break;
+            case AudioPlayState.InvalidQuery:
+                embed.AddField("Query invalid", "`Couldn't find any results`");
+                break;
+            case AudioPlayState.NoVoiceChannel:
+                embed.AddField("No voice channel", "`Please connect to a voice channel first!`");
+                break;
+            case AudioPlayState.TooLong:
+                embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
+                break;
+            case AudioPlayState.JoiningChannelFailed:
+                embed.AddField("Couldn't join voice channel",
+                    "`Try checking the channels user limit and the bots permission.`");
+                break;
+            case AudioPlayState.DifferentVoiceChannels:
+                embed.AddField("Invalid voice channel",
+                    $"You have to be connect to the same voice channel `{playReturnValue.Note}` as the bot.");
+                break;
+            case AudioPlayState.CancelledEarly:
+                embed.AddField("Cancelled", "`Playing was stopped early.`");
+                break;
+        }
+
+        return new FormattedMessage(embed);
     }
 
     public static FormattedMessage NothingToSkip()
@@ -51,7 +99,7 @@ public class Responses
             $"Please use the application command `{Util.FormattedCommand(command)}` instead.")
         );
     }
-    
+
     public static FormattedMessage NoVoiceChannel()
     {
         return new FormattedMessage(new EmbedBuilder().AddField("No voice channel",

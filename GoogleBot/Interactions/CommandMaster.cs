@@ -52,7 +52,7 @@ public static class CommandMaster
 
         return null;
     }
-
+    
     /// <summary>
     /// Gets the message command with the given name
     /// </summary>
@@ -82,19 +82,38 @@ public static class CommandMaster
         foreach (CommandModuleBase module in commandModules)
         {
             // if (module != null) Helpers.Add(new ApplicationModuleHelper(module));
-            if (module != null) AddSlashCommandModule(module);
+            if(module == null) continue;
+
+            bool isMessageCommand = module.GetType().GetCustomAttribute<MessageCommandsModuleAttribute>()
+                ?.IsMessageCommandsModule ?? false;
+            if(isMessageCommand)
+                AddMessageCommandModule(module);
+            else
+                AddCommandModule(module);
         }
 
         //* Add message commands
-        IEnumerable<MessageCommandsModuleBase> messageCommandModules = typeof(MessageCommandsModuleBase).Assembly
+        // IEnumerable<CommandModuleBase> messageCommandModules = typeof(CommandModuleBase).Assembly
+        //     .GetTypes()
+        //     .Where(t => t.IsSubclassOf(typeof(CommandModuleBase)) && !t.IsAbstract)
+        //     .Select(t => (CommandModuleBase)Activator.CreateInstance(t));
+        //
+        // foreach (CommandModuleBase module in messageCommandModules)
+        // {
+        //     // if (module != null) MessageCommandHelpers.Add(new ApplicationModuleHelper(module));
+        //     if (module != null) AddCommandModule(module);
+        // }
+        
+        //* Add Interaction Modules
+        IEnumerable<InteractionModuleBase> interactionModules = typeof(InteractionModuleBase).Assembly
             .GetTypes()
-            .Where(t => t.IsSubclassOf(typeof(MessageCommandsModuleBase)) && !t.IsAbstract)
-            .Select(t => (MessageCommandsModuleBase)Activator.CreateInstance(t));
+            .Where(t => t.IsSubclassOf(typeof(InteractionModuleBase)) && !t.IsAbstract)
+            .Select(t => (InteractionModuleBase)Activator.CreateInstance(t));
 
-        foreach (MessageCommandsModuleBase module in messageCommandModules)
+        foreach (InteractionModuleBase module in interactionModules)
         {
             // if (module != null) MessageCommandHelpers.Add(new ApplicationModuleHelper(module));
-            if (module != null) AddMessageCommandModule(module);
+            if (module != null) AddInteractionModule(module);
         }
     }
 
@@ -103,11 +122,13 @@ public static class CommandMaster
     /// Add a <see cref="CommandModuleBase"/> and its commands (slash commands)
     /// </summary>
     /// <param name="module">The module to add</param>
-    private static void AddSlashCommandModule(CommandModuleBase module)
+    private static void AddCommandModule(CommandModuleBase module)
     {
         Type moduleType = module.GetType();
         // Console.WriteLine("app cmd  " + ModuleType.BaseType + " -> " + CommandModuleType);
         bool isDevOnlyModule = moduleType.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
+        
+        
 
         //* Get all methods in the module
         foreach (MethodInfo method in moduleType.GetMethods())
@@ -169,35 +190,22 @@ public static class CommandMaster
                             $"Slash Command {commandAttribute.Text} in {moduleType} already exists somewhere else! -> no new command was added");
                     }
                 }
-                else if (linkComponentAttribute != null)
-                {
-                    //* -> Is component interaction callback
-                    string customId = linkComponentAttribute.CustomId;
-
-                    if (ComponentCallbacks.Keys.Contains(customId))
-                    {
-                        ComponentCallbacks[customId].Add(method);
-                    }
-                    else
-                    {
-                        ComponentCallbacks.Add(customId, new List<MethodInfo> { method });
-                    }
-                }
+          
             }
         }
     }
 
 
     /// <summary>
-    /// Add a <see cref="MessageCommandsModuleBase"/> and its commands (message commands)
+    /// Add a <see cref="CommandModuleBase"/> and its commands (message commands)
     /// </summary>
     /// <param name="module">The module to add</param>
-    private static void AddMessageCommandModule(MessageCommandsModuleBase module)
+    private static void AddMessageCommandModule(CommandModuleBase module)
     {
         Type moduleType = module.GetType();
         // Console.WriteLine("MCMD " + ModuleType.BaseType + " -> " + CommandModuleType);
         bool isDevOnlyModule = moduleType.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
-
+    
         //* Get all methods in the module
         foreach (MethodInfo method in moduleType.GetMethods())
         {
@@ -205,9 +213,9 @@ public static class CommandMaster
             LinkComponentInteractionAttribute linkComponentAttribute =
                 method.GetCustomAttribute<LinkComponentInteractionAttribute>();
             PreconditionAttribute preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
-
+    
             bool devonly = isDevOnlyModule || (method.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false);
-
+    
             //* All methods must be async tasks
             if (method.ReturnType == typeof(Task))
             {
@@ -235,19 +243,39 @@ public static class CommandMaster
                             $"Message Command {commandAttribute.Text} in {moduleType} already exists somewhere else! -> no new command was added");
                     }
                 }
-                else if (linkComponentAttribute != null)
-                {
-                    //* -> Is component interaction callback
-                    string customId = linkComponentAttribute.CustomId;
+          
+            }
+        }
+    }
 
-                    if (ComponentCallbacks.ContainsKey(customId))
-                    {
-                        ComponentCallbacks[customId].Add(method);
-                    }
-                    else
-                    {
-                        ComponentCallbacks.Add(customId, new List<MethodInfo> { method });
-                    }
+    
+    /// <summary>
+    /// Add a <see cref="InteractionModuleBase"/> and its callback methods
+    /// </summary>
+    /// <param name="module">The module to add</param>
+    private static void AddInteractionModule(InteractionModuleBase module)
+    {
+        Console.WriteLine("adding module " + module);
+        Type moduleType = module.GetType();
+        foreach (MethodInfo method in moduleType.GetMethods())
+        {
+            LinkComponentInteractionAttribute linkComponentAttribute =
+                method.GetCustomAttribute<LinkComponentInteractionAttribute>();
+            
+            //* Only add if the linkComponentAttribute is set
+            if (linkComponentAttribute != null)
+            {
+                Console.WriteLine("  - " + method);
+                //* -> Is component interaction callback
+                string customId = linkComponentAttribute.CustomId;
+
+                if (ComponentCallbacks.ContainsKey(customId))
+                {
+                    ComponentCallbacks[customId].Add(method);
+                }
+                else
+                {
+                    ComponentCallbacks.Add(customId, new List<MethodInfo> { method });
                 }
             }
         }
@@ -288,7 +316,7 @@ public static class CommandMaster
     {
         try
         {
-            Context commandContext = new Context(command);
+            SlashCommandContext commandContext = new SlashCommandContext(command);
             CommandInfo commandInfo = commandContext.CommandInfo!;
 
             // if (commandContext.CommandInfo is not { OverrideDefer: true })
@@ -298,7 +326,8 @@ public static class CommandMaster
 
             if (commandInfo is { Method: not null })
             {
-                ModuleBase module = commandInfo.GetNewModuleInstanceWith(commandContext);
+                CommandModuleBase module = (CommandModuleBase)commandInfo.GetNewModuleInstanceWith(commandContext);
+                // module.Context = commandContext;
 
                 Console.WriteLine($"Found /{commandInfo?.Name} in {module}");
 
@@ -349,7 +378,7 @@ public static class CommandMaster
     /// <param name="command">The command to execute</param>
     public static async Task ExecuteMessageCommand(SocketMessageCommand command)
     {
-        Context commandContext = new Context(command);
+        MessageCommandContext commandContext = new MessageCommandContext(command);
         CommandInfo commandInfo = commandContext.CommandInfo!;
 
         await command.DeferAsync();
@@ -357,9 +386,10 @@ public static class CommandMaster
 
         if (commandInfo is { Method: not null })
         {
-            ModuleBase module = commandInfo.GetNewModuleInstanceWith(commandContext);
+            CommandModuleBase module = commandInfo.GetNewModuleInstanceWith(commandContext);
+            // module.Context = commandContext;
             Console.WriteLine($"Found message command {commandInfo?.Name} in {module}");
-            object[] args = commandContext.Arguments;
+            object[] args = new object[]{commandContext.Message};
 
             // Console.WriteLine(string.Join(", ", args));
             // Console.WriteLine(commandInfo);
@@ -430,8 +460,8 @@ public static class CommandMaster
                 // Console.WriteLine($"FOUND {string.Join(", ", componentCallback.Value.ConvertAll(m=>m.Name))}");
                 foreach (MethodInfo method in componentCallback.Value)
                 {
-                    var module = (ModuleBase)Activator.CreateInstance(method.DeclaringType!);
-                    module!.Context = new Context(component);
+                    var module = (InteractionModuleBase)Activator.CreateInstance(method.DeclaringType!);
+                    module!.SetContext(new InteractionContext(component));
                     await (Task)method.Invoke(module, new object[] { component })!;
                 }
             }

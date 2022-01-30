@@ -50,23 +50,9 @@ public class TestModule : CommandModuleBase
         [Name("message")] [Summary("The message to append")]
         string message = "")
     {
-        await SendMessage($"<@{user.Id}> \n {message}");
+        await SendMessage($"{user.Mention} \n {message}");
     }
-
-    [LinkComponentInteraction]
-    public async Task ComponentInteraction(SocketMessageComponent component)
-    {
-        // Console.WriteLine("ComponentInteration linked method called " + component.Data.CustomId);
-
-        await Task.CompletedTask;
-    }
-
-    [LinkComponentInteraction("cool-id2")]
-    public async Task IdComponentInteraction(SocketMessageComponent component)
-    {
-        await Task.CompletedTask;
-        // Console.WriteLine("ComponentInteration linked method called AT COOLD ID 2!!!!");
-    }
+    
 
     [Command("play-test")]
     [Summary("Play command as guild command (Dev only) ")]
@@ -74,27 +60,13 @@ public class TestModule : CommandModuleBase
     [Precondition(requiresMajority: true, majorityVoteButtonText: "Skip", requiresBotConnected: true)]
     public async Task PlayTest([Multiple] [Summary("A search term or YT-link +")] [Name("query")] string query)
     {
-        var am = new AudioModule
-        {
-            Context = Context
-        };
+        var am = new AudioModule();
+        am.SetContext(Context);
         await am.Play(query);
     }
 }
 
-public class MajorityWatchModule : CommandModuleBase
-{
-    [LinkComponentInteraction("majority-vote-*")]
-    public async Task MajorityVote(SocketMessageComponent component)
-    {
-        PreconditionWatcher watcher = Context.GuildConfig.GetWatcher(component.Data.CustomId);
-        await component.DeferAsync();
-        if (watcher != null)
-        {
-            _ = watcher.TryVote(component);
-        }
-    }
-}
+
 
 /// <summary>
 /// A general use module
@@ -153,44 +125,7 @@ public class AudioModule : CommandModuleBase
 
 
         //* User response
-        switch (returnValue.AudioPlayState)
-        {
-            case AudioPlayState.Success:
-                embed.AddField("Now playing",$"[`{Util.FormattedVideo(returnValue.Video)}`]({returnValue.Video.Url})");
-                break;
-            case AudioPlayState.PlayingAsPlaylist:
-                embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
-                embed.AddField("Now playing",$"[`{Util.FormattedVideo(returnValue.Video)}`]({returnValue.Video.Url})");
-                break;
-            case AudioPlayState.Queued:
-                embed.AddField("Song added to queue",$"[`{Util.FormattedVideo(returnValue.Video)}`]({returnValue.Video.Url})");
-                break;
-            case AudioPlayState.QueuedAsPlaylist:
-                embed.WithTitle($"Added {returnValue.Videos?.Length} songs to queue");
-                break;
-            case AudioPlayState.InvalidQuery:
-                embed.AddField("Query invalid", "`Couldn't find any results`");
-                break;
-            case AudioPlayState.NoVoiceChannel:
-                embed.AddField("No voice channel", "`Please connect to a voice channel first!`");
-                break;
-            case AudioPlayState.TooLong:
-                embed.AddField("Invalid query", "Song is too long (can't be longer than 1 hour)");
-                break;
-            case AudioPlayState.JoiningChannelFailed:
-                embed.AddField("Couldn't join voice channel",
-                    "`Try checking the channels user limit and the bots permission.`");
-                break;
-            case AudioPlayState.DifferentVoiceChannels:
-                embed.AddField("Invalid voice channel",
-                    $"You have to be connect to the same voice channel `{returnValue.Note}` as the bot.");
-                break;
-            case AudioPlayState.CancelledEarly:
-                embed.AddField("Cancelled", "`Playing was stopped early.`");
-                break;
-        }
-
-        await ReplyAsync(embed);
+        await ReplyAsync(Responses.FromPlayReturnValue(returnValue));
     }
 
 
@@ -206,8 +141,7 @@ public class AudioModule : CommandModuleBase
         if (Context.GuildConfig.AudioPlayer.Playing &&
             Context.GuildConfig.AudioPlayer.AudioClient.ConnectionState == ConnectionState.Connected)
         {
-            message = Responses.Skipped(Util.FormattedVideo(Context.GuildConfig.AudioPlayer.CurrentSong));
-            Context.GuildConfig.AudioPlayer.Skip();
+            message = Responses.Skipped(Context.GuildConfig.AudioPlayer.Skip());
         }
         else
         {

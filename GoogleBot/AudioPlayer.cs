@@ -408,10 +408,13 @@ namespace GoogleBot
         /// <summary>
         /// Skips the currently playing sound 
         /// </summary>
-        public void Skip()
+        /// <returns>The now playing song</returns>
+        public Video Skip()
         {
+            Video newSong = Queue.Count > 0 ? Queue[0] : null;
             taskCanceller?.Cancel();
             Playing = false;
+            return newSong;
         }
 
         /// <summary>

@@ -31,9 +31,9 @@ public class PreconditionWatcher
 
     private object[] commandsArgs = Array.Empty<object>();
 
-    private Context Context { get; set; }
+    private ICommandContext Context { get; set; }
 
-    private ModuleBase Module { get; set; }
+    private CommandModuleBase Module { get; set; }
 
     public string Id { get; private set; } = string.Empty;
 
@@ -89,7 +89,7 @@ public class PreconditionWatcher
     private async Task Reset()
     {
         //* Only delete the message when the voted wasn't completed
-        if (Context is { Command: { HasResponded: true } } && running)
+        if (running)
         {
             try
             {
@@ -98,7 +98,7 @@ public class PreconditionWatcher
                 //     properties.Embed = new EmbedBuilder().AddField("Cancelled", "The vote was cancelled").Build();
                 //     properties.Components = Optional<MessageComponent>.Unspecified;
                 // });
-                await (await Context.Command.GetOriginalResponseAsync()).DeleteAsync();
+                await (await Context.Respondable.GetOriginalResponseAsync()).DeleteAsync();
             }
             catch (Exception e)
             {
@@ -123,7 +123,7 @@ public class PreconditionWatcher
     /// <param name="module">The commands module</param>
     /// <param name="args">The commands args</param>
     /// <returns>True if all conditions have been met</returns>
-    public async Task<bool> CheckPreconditions(Context context, ModuleBase module, object[] args)
+    public async Task<bool> CheckPreconditions(ICommandContext context, CommandModuleBase module, object[] args)
     {
         // Console.WriteLine(requiresVc + " " + requiresMajority);
 
@@ -168,7 +168,7 @@ public class PreconditionWatcher
 
         if (context.IsEphemeral)
         {
-            await Context.Command!.ModifyOriginalResponseAsync(properties =>
+            await Context.Respondable.ModifyOriginalResponseAsync(properties =>
             {
                 properties.Embed = Responses.CommandRequiresMajorityEphemeralHint(CommandInfo).BuiltEmbed;
             });
@@ -180,7 +180,7 @@ public class PreconditionWatcher
         running = true;
 
 
-        await Context.Command?.ModifyOriginalResponseAsync(properties =>
+        await Context.Respondable.ModifyOriginalResponseAsync(properties =>
         {
             properties.Embed = Responses.VoteRequired(Context.User,
                     $"/{CommandInfo.Name}{(UsedArgs.Length <= 0 ? "" : $" {string.Join(" ", UsedArgs)}")}",
@@ -200,13 +200,25 @@ public class PreconditionWatcher
     /// <param name="component">The messages component</param>
     public async Task TryVote(SocketMessageComponent component)
     {
+        // Console.WriteLine("TRYING TO VOTE");
+        
+       
+        IGuildUser user = component.User as IGuildUser;
+        IVoiceChannel vc = guildConfig.BotsVoiceChannel ?? user!.VoiceChannel;
+        
         //* If the id doesnt match or the users isn't connected to the vc, ignore (return)
-        var usersInVc = (await guildConfig.BotsVoiceChannel.GetUsersAsync().ToListAsync().AsTask()).First();
-        if (component.Data.CustomId != Id || usersInVc.ToList().ConvertAll(u=>u.Id).Contains(component.Id))
+        var usersInVc = (await vc.GetUsersAsync().ToListAsync().AsTask()).First();
+        
+        // Console.WriteLine(component.Data.CustomId + " " + Id);
+        // Console.WriteLine(string.Join(", ", usersInVc.ToList().ConvertAll(u=>u.Id)) + " \n me: " + component.User.Id);
+        
+        if (component.Data.CustomId != Id || !usersInVc.ToList().ConvertAll(u=>u.Id).Contains(component.User.Id))
             return;
-
+        // Console.WriteLine("VOTING");
         if (!votedUsers.Contains(component.User.Id))
             votedUsers.Add(component.User.Id);
+        else
+            await component.FollowupAsync("`You already voted!`", ephemeral: true);
 
         await component.Message.ModifyAsync(properties =>
         {
@@ -251,24 +263,23 @@ public class PreconditionWatcher
     /// <summary>
     /// Reply to the command in the given context
     /// </summary>
-    /// <param name="context">The commands <see cref="GoogleBot.Context"/></param>
+    /// <param name="context">The commands <see cref="SlashCommandContext"/></param>
     /// <param name="message">The <see cref="FormattedMessage"/> to send</param>
     /// <param name="ephemeralIfPossible">If not deferred yet, do so with ephemeral (or not)</param>
-    private async Task ReplyAsync(Context context, FormattedMessage message, bool ephemeralIfPossible = false)
+    private async Task ReplyAsync(ICommandContext context, FormattedMessage message, bool ephemeralIfPossible = false)
     {
-        if (!context.Command!.HasResponded)
-        {
-            try
-            {
-                await context.Command.DeferAsync(ephemeralIfPossible);
-            }
-            catch (Exception)
-            {
-                //Ignored}
-            }
-        }
 
-        await context.Command.ModifyOriginalResponseAsync(properties =>
+        try
+        {
+            await context.Respondable.DeferAsync(ephemeralIfPossible);
+        }
+        catch (Exception)
+        {
+            //Ignored}
+        }
+        
+
+        await context.Respondable.ModifyOriginalResponseAsync(properties =>
         {
             properties.Embed = message.BuiltEmbed;
             properties.Components = message.BuiltComponents;
@@ -305,23 +316,7 @@ public class GuildConfig
     {
         return watchers.Find(w => w.Id == id);
     }
-
-    public List<ulong> VotedUsers { get; set; } = new();
-    public int RequiredVotes { get; set; } = 0;
-
-    public string ValidSkipVoteId { get; set; } = string.Empty;
-
-    public void GenerateSkipId()
-    {
-        ValidSkipVoteId = $"sv-{Id}-{DateTime.Now.TimeOfDay.TotalMilliseconds}-{Util.RandomString()}";
-    }
-
-    public void InvalidateVoteData()
-    {
-        VotedUsers.Clear();
-        RequiredVotes = 0;
-        ValidSkipVoteId = null;
-    }
+    
 
 
     private GuildConfig(ulong id)

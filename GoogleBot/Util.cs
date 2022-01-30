@@ -249,6 +249,11 @@ public static class Util
         return $"{video.Title} - {video.Author.Title} ({FormattedVideoDuration(video)})";
     }
 
+    public static string FormattedLinkedVideo(Video video)
+    {
+        return $"[`{FormattedVideo(video)}`]({video.Url})";
+    }
+
     /// <summary>
     /// Formats a command to a usage hint when needed
     /// </summary>
