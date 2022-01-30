@@ -5,6 +5,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using GoogleBot.Interactions.CustomAttributes;
+using GoogleBot.Services;
 
 
 namespace GoogleBot.Interactions.Modules;
@@ -33,14 +34,12 @@ public class MessageCommands : CommandModuleBase
             }
             else
             {
-                
                 await ReplyAsync(new FormattedMessage
                 {
                     Message = message.Content,
                 });
             }
         }
-        
     }
 
     [Command("play")]

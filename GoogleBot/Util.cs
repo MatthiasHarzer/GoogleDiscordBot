@@ -359,7 +359,7 @@ public static class Util
                 return "string";
         }
     }
-    
+
 
     public static bool ApproximatelyEqual(CommandInfo command1, CommandInfo command2)
     {

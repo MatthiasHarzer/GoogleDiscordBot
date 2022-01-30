@@ -3,6 +3,7 @@ using System.Linq;
 using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions.Commands;
+using GoogleBot.Services;
 
 namespace GoogleBot.Interactions.Context;
 
@@ -16,7 +17,7 @@ public class SlashCommandContext : ICommandContext
     public IVoiceChannel? VoiceChannel { get; }
     public GuildConfig GuildConfig { get; }
     public SocketGuild Guild { get; }
-    
+
     /// <summary>
     /// The CommandInfo from a given command
     /// </summary>
@@ -33,13 +34,13 @@ public class SlashCommandContext : ICommandContext
     /// The arguments for the executed command (including default values for optional args)
     /// </summary>
     public object[] Arguments { get; }
-    
+
     /// <summary>
     /// The original command 
     /// </summary>
     public SocketSlashCommand Command { get; }
-    
-    
+
+
     /// <summary>
     /// Creates a new <see cref="SlashCommandContext"/> from a <see cref="SocketSlashCommand"/>
     /// </summary>
@@ -48,9 +49,9 @@ public class SlashCommandContext : ICommandContext
     public SlashCommandContext(SocketSlashCommand command)
     {
         IGuildUser guildUser = (command.User as IGuildUser)!;
-        
+
         TextChannel = command.Channel;
-        
+
         CommandInfo = InteractionMaster.GetCommandFromName(command.CommandName);
         Command = command;
         Guild = (SocketGuild?)guildUser.Guild!;

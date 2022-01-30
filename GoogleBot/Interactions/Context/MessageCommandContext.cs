@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions.Commands;
+using GoogleBot.Services;
 
 namespace GoogleBot.Interactions.Context;
 
@@ -16,7 +17,7 @@ public class MessageCommandContext : ICommandContext
     public GuildConfig GuildConfig { get; }
     public CommandInfo CommandInfo { get; }
     public IDiscordInteraction Respondable => Command;
-    
+
     /// <summary>
     /// The raw <see cref="SocketMessageCommand"/> from discord
     /// </summary>
@@ -26,7 +27,7 @@ public class MessageCommandContext : ICommandContext
     /// The message the command was used for
     /// </summary>
     public SocketMessage Message => Command.Data.Message;
-    
+
     public MessageCommandContext(SocketMessageCommand command)
     {
         IGuildUser guildUser = (command.User as IGuildUser)!;

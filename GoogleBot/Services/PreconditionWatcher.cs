@@ -9,9 +9,7 @@ using GoogleBot.Interactions.Commands;
 using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.Modules;
 
-
-
-namespace GoogleBot;
+namespace GoogleBot.Services;
 
 /// <summary>
 /// Keeps track of a commands preconditions for one guild
@@ -178,7 +176,8 @@ public class PreconditionWatcher
         }
 
         votedUsers.Add(context.User.Id);
-        Id = $"majority-vote-{CommandInfo.Name}-{guildConfig.Id}-{DateTime.Now.TimeOfDay.TotalMilliseconds}-{Util.RandomString()}";
+        Id =
+            $"majority-vote-{CommandInfo.Name}-{guildConfig.Id}-{DateTime.Now.TimeOfDay.TotalMilliseconds}-{Util.RandomString()}";
         running = true;
 
 
@@ -203,18 +202,18 @@ public class PreconditionWatcher
     public async Task TryVote(SocketMessageComponent component)
     {
         // Console.WriteLine("TRYING TO VOTE");
-        
-       
+
+
         IGuildUser user = component.User as IGuildUser;
         IVoiceChannel vc = guildConfig.BotsVoiceChannel ?? user!.VoiceChannel;
-        
+
         //* If the id doesnt match or the users isn't connected to the vc, ignore (return)
         var usersInVc = (await vc.GetUsersAsync().ToListAsync().AsTask()).First();
-        
+
         // Console.WriteLine(component.Data.CustomId + " " + Id);
         // Console.WriteLine(string.Join(", ", usersInVc.ToList().ConvertAll(u=>u.Id)) + " \n me: " + component.User.Id);
-        
-        if (component.Data.CustomId != Id || !usersInVc.ToList().ConvertAll(u=>u.Id).Contains(component.User.Id))
+
+        if (component.Data.CustomId != Id || !usersInVc.ToList().ConvertAll(u => u.Id).Contains(component.User.Id))
             return;
         // Console.WriteLine("VOTING");
         if (!votedUsers.Contains(component.User.Id))
@@ -270,7 +269,6 @@ public class PreconditionWatcher
     /// <param name="ephemeralIfPossible">If not deferred yet, do so with ephemeral (or not)</param>
     private async Task ReplyAsync(ICommandContext context, FormattedMessage message, bool ephemeralIfPossible = false)
     {
-
         try
         {
             await context.Respondable.DeferAsync(ephemeralIfPossible);
@@ -279,7 +277,7 @@ public class PreconditionWatcher
         {
             //Ignored}
         }
-        
+
 
         await context.Respondable.ModifyOriginalResponseAsync(properties =>
         {
@@ -288,62 +286,4 @@ public class PreconditionWatcher
             properties.Content = message.Message;
         });
     }
-}
-
-/// <summary>
-/// Additional params for a guild, like an AudioPlayer for playing sound
-/// </summary>
-public class GuildConfig
-{
-    private static readonly List<GuildConfig> GuildMaster = new();
-    public AudioPlayer AudioPlayer { get; }
-    public ulong Id { get; }
-
-    private readonly List<PreconditionWatcher> watchers = new();
-
-    public bool BotConnectedToVC => BotsVoiceChannel != null;
-
-    public IVoiceChannel BotsVoiceChannel => AudioPlayer.VoiceChannel;
-
-    public PreconditionWatcher GetWatcher(CommandInfo command)
-    {
-        PreconditionWatcher w = watchers.Find(w => w.CommandInfo.Id == command.Id);
-        if (w != null) return w;
-        w = new PreconditionWatcher(command, this);
-        watchers.Add(w);
-        return w;
-    }
-
-    public PreconditionWatcher GetWatcher(string id)
-    {
-        return watchers.Find(w => w.Id == id);
-    }
-    
-
-
-    private GuildConfig(ulong id)
-    {
-        AudioPlayer = new AudioPlayer();
-        Id = id;
-        GuildMaster.Add(this);
-    }
-
-
-    /// <summary>
-    /// Creates or gets existing Guild object with the ID
-    /// </summary>
-    /// <param name="guildId">The guilds ID</param>
-    /// <returns>New or existing guild object</returns>
-    public static GuildConfig Get(ulong? guildId)
-    {
-        if (guildId == null)
-            return null;
-        return GuildMaster.Find(guild => guild.Id.Equals(guildId)) ?? new GuildConfig((ulong)guildId);
-    }
-
-    // public static GuildConfig Get(SocketGuild guild)
-    // {
-    //     
-    //     return GuildMaster.Find(g => g.Id.Equals(guild.Id)) ?? new GuildConfig((ulong)guildId);
-    // }
 }

@@ -12,6 +12,7 @@ using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Commands;
+using GoogleBot.Services;
 using YoutubeExplode.Videos;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 using Precondition = GoogleBot.Interactions.CustomAttributes.PreconditionAttribute;
@@ -54,7 +55,7 @@ public class TestModule : CommandModuleBase
     {
         await SendMessage($"{user.Mention} \n {message}");
     }
-    
+
 
     [Command("play-test")]
     [Summary("Play command as guild command (Dev only) ")]
@@ -67,8 +68,6 @@ public class TestModule : CommandModuleBase
         await am.Play(query);
     }
 }
-
-
 
 /// <summary>
 /// A general use module
@@ -205,7 +204,7 @@ public class AudioModule : CommandModuleBase
 
         if (player.Playing && currentSong != null)
         {
-            embed.AddField("Currently playing",$"[`{Util.FormattedVideo(currentSong)}`]({currentSong.Url})");
+            embed.AddField("Currently playing", $"[`{Util.FormattedVideo(currentSong)}`]({currentSong.Url})");
         }
 
         if (queue.Count > 0)

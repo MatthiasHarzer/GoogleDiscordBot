@@ -17,17 +17,11 @@ using GoogleBot.Interactions.Context;
 
 namespace GoogleBot;
 
-
-
-
-
 internal interface IJsonSerializable<out T>
 {
     JsonObject ToJson();
     T FromJson(JsonObject jsonObject);
 }
-
-
 
 /// <summary>
 /// A message to send/reply of type text or embed with additional optional Components.
@@ -123,8 +117,3 @@ public class FormattedMessage
         return this;
     }
 }
-
-
-
-
-

@@ -1,8 +1,8 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using GoogleBot.Services;
 
 namespace GoogleBot.Interactions.Context;
-
 
 /// <summary>
 /// A context for modules using interaction commands
@@ -16,9 +16,9 @@ public class InteractionContext : IContext
     public GuildConfig GuildConfig { get; }
 
     public SocketMessageComponent Component { get; }
-    
+
     public IDiscordInteraction Respondable => Component;
-    
+
     public InteractionContext(SocketMessageComponent component)
     {
         IGuildUser guildUser = (component.User as IGuildUser)!;

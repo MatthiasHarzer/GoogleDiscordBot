@@ -169,7 +169,6 @@ public class OptionalEphemeralAttribute : Attribute
     public static bool Default => new OptionalEphemeralAttribute().IsOptionalEphemeral;
 }
 
-
 /// <summary>
 /// Defines the module as message commands
 /// </summary>

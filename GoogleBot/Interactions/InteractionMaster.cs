@@ -13,6 +13,7 @@ using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Modules;
 using GoogleBot.Interactions.Commands;
+using GoogleBot.Services;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 using ParameterInfo = GoogleBot.Interactions.Commands.ParameterInfo;
 using PreconditionAttribute = GoogleBot.Interactions.CustomAttributes.PreconditionAttribute;
@@ -56,7 +57,7 @@ public static class InteractionMaster
 
         return null;
     }
-    
+
     /// <summary>
     /// Gets the message command with the given name
     /// </summary>
@@ -86,11 +87,11 @@ public static class InteractionMaster
         foreach (CommandModuleBase module in commandModules)
         {
             // if (module != null) Helpers.Add(new ApplicationModuleHelper(module));
-            if(module == null) continue;
+            if (module == null) continue;
 
             bool isMessageCommand = module.GetType().GetCustomAttribute<MessageCommandsModuleAttribute>()
                 ?.IsMessageCommandsModule ?? false;
-            if(isMessageCommand)
+            if (isMessageCommand)
                 AddMessageCommandModule(module);
             else
                 AddCommandModule(module);
@@ -107,7 +108,7 @@ public static class InteractionMaster
         //     // if (module != null) MessageCommandHelpers.Add(new ApplicationModuleHelper(module));
         //     if (module != null) AddCommandModule(module);
         // }
-        
+
         //* Add Interaction Modules
         IEnumerable<InteractionModuleBase> interactionModules = typeof(InteractionModuleBase).Assembly
             .GetTypes()
@@ -131,8 +132,7 @@ public static class InteractionMaster
         Type moduleType = module.GetType();
         // Console.WriteLine("app cmd  " + ModuleType.BaseType + " -> " + CommandModuleType);
         bool isDevOnlyModule = moduleType.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
-        
-        
+
 
         //* Get all methods in the module
         foreach (MethodInfo method in moduleType.GetMethods())
@@ -194,7 +194,6 @@ public static class InteractionMaster
                             $"Slash Command {commandAttribute.Text} in {moduleType} already exists somewhere else! -> no new command was added");
                     }
                 }
-          
             }
         }
     }
@@ -209,7 +208,7 @@ public static class InteractionMaster
         Type moduleType = module.GetType();
         // Console.WriteLine("MCMD " + ModuleType.BaseType + " -> " + CommandModuleType);
         bool isDevOnlyModule = moduleType.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
-    
+
         //* Get all methods in the module
         foreach (MethodInfo method in moduleType.GetMethods())
         {
@@ -217,9 +216,9 @@ public static class InteractionMaster
             LinkComponentInteractionAttribute linkComponentAttribute =
                 method.GetCustomAttribute<LinkComponentInteractionAttribute>();
             PreconditionAttribute preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
-    
+
             bool devonly = isDevOnlyModule || (method.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false);
-    
+
             //* All methods must be async tasks
             if (method.ReturnType == typeof(Task))
             {
@@ -247,12 +246,11 @@ public static class InteractionMaster
                             $"Message Command {commandAttribute.Text} in {moduleType} already exists somewhere else! -> no new command was added");
                     }
                 }
-          
             }
         }
     }
 
-    
+
     /// <summary>
     /// Add a <see cref="InteractionModuleBase"/> and its callback methods
     /// </summary>
@@ -265,7 +263,7 @@ public static class InteractionMaster
         {
             LinkComponentInteractionAttribute linkComponentAttribute =
                 method.GetCustomAttribute<LinkComponentInteractionAttribute>();
-            
+
             //* Only add if the linkComponentAttribute is set
             if (linkComponentAttribute != null)
             {
@@ -393,7 +391,7 @@ public static class InteractionMaster
             CommandModuleBase module = commandInfo.GetNewModuleInstanceWith(commandContext);
             // module.Context = commandContext;
             Console.WriteLine($"Found message command {commandInfo?.Name} in {module}");
-            object[] args = new object[]{commandContext.Message};
+            object[] args = new object[] { commandContext.Message };
 
             // Console.WriteLine(string.Join(", ", args));
             // Console.WriteLine(commandInfo);

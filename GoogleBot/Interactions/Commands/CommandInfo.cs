@@ -51,7 +51,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             return true;
         }
     }
-    
+
 
     public ParameterInfo[] Parameters { get; init; } = Array.Empty<ParameterInfo>();
 
@@ -83,7 +83,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             case CommandType.UserCommand:
                 return new JsonObject
                 {
-                    { "id", Id},
+                    { "id", Id },
                     { "name", Name },
                     { "type", (int)Type },
                 };
@@ -91,10 +91,10 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
             default:
                 return new JsonObject
                 {
-                    { "id", Id},
+                    { "id", Id },
                     { "name", Name },
                     { "summery", Summary },
-                    { "type", (int)Type},
+                    { "type", (int)Type },
                     { "private", IsPrivate },
                     { "overrideDefer", OverrideDefer },
                     { "devonly", IsDevOnly },
@@ -108,13 +108,16 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     {
         CommandInfo defaults = new CommandInfo();
         string name = defaults.Name, summery = defaults.Summary;
-        bool isPrivate = defaults.IsPrivate, overrideDefer = defaults.OverrideDefer, devonly = defaults.IsDevOnly, optionalEphemeral = defaults.IsOptionalEphemeral;
+        bool isPrivate = defaults.IsPrivate,
+            overrideDefer = defaults.OverrideDefer,
+            devonly = defaults.IsDevOnly,
+            optionalEphemeral = defaults.IsOptionalEphemeral;
         CommandType type = defaults.Type;
         JsonArray parameters = new JsonArray();
 
         if (jsonObject.TryGetPropertyValue("type", out JsonNode? t))
         {
-            type = (CommandType)Math.Min((t?.GetValue<int>() ?? 0), Enum.GetNames(typeof(CommandType)).Length-1);
+            type = (CommandType)Math.Min((t?.GetValue<int>() ?? 0), Enum.GetNames(typeof(CommandType)).Length - 1);
         }
 
         if (jsonObject.TryGetPropertyValue("name", out JsonNode? n))

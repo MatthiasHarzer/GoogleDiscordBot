@@ -121,9 +121,8 @@ internal class Bot
                         newOrChangedCommands.Add(command);
                         changed = true;
                         break;
-                    }                           
+                    }
                     // Console.WriteLine("NOT changed");
-
                 }
             }
 
@@ -175,7 +174,7 @@ internal class Bot
 
             applicationCommandProperties.Add(builder.Build());
         }
-        
+
         //* Add message commands
         foreach (CommandInfo command in availableMessageCommands)
         {
@@ -306,90 +305,89 @@ internal class Bot
         // Console.WriteLine("Available slash commands: \n" + string.Join(", ",
         // InteractionMaster.CommandList.AsParallel().ToList().ConvertAll(c => c.Aliases[0].ToString())));
     }
-    
-
 }
 
 public class CommandHandler
+{
+    private readonly DiscordSocketClient client;
+    private readonly CommandService commands;
+
+    public CommandHandler(DiscordSocketClient client, CommandService commands)
     {
-        private readonly DiscordSocketClient client;
-        private readonly CommandService commands;
+        this.client = client;
+        this.commands = commands;
+    }
 
-        public CommandHandler(DiscordSocketClient client, CommandService commands)
-        {
-            this.client = client;
-            this.commands = commands;
-        }
+    public async Task InstallCommandsAsync()
+    {
+        client.MessageReceived += HandleCommandAsync;
+        client.SlashCommandExecuted += HandleSlashCommandAsync;
+        client.ButtonExecuted += HandleInteractionAsync;
+        client.MessageCommandExecuted += HandleMessageCommandAsync;
+        await commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
+        // await commands.AddModuleAsync(typeof(GoogleModule), null);
+    }
 
-        public async Task InstallCommandsAsync()
-        {
-            client.MessageReceived += HandleCommandAsync;
-            client.SlashCommandExecuted += HandleSlashCommandAsync;
-            client.ButtonExecuted += HandleInteractionAsync;
-            client.MessageCommandExecuted += HandleMessageCommandAsync;
-            await commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
-            // await commands.AddModuleAsync(typeof(GoogleModule), null);
-        }
+    private Task HandleCommandAsync(SocketMessage messageParam)
+    {
+        SocketUserMessage message = messageParam as SocketUserMessage;
+        if (message == null) return Task.CompletedTask;
 
-        private Task HandleCommandAsync(SocketMessage messageParam)
-        {
-            SocketUserMessage message = messageParam as SocketUserMessage;
-            if (message == null) return Task.CompletedTask;
+        int argPos = 0;
 
-            int argPos = 0;
+        // Console.WriteLine("Received: " + message.ToString());
 
-            // Console.WriteLine("Received: " + message.ToString());
-
-            if (!(message.HasCharPrefix('!', ref argPos) || message.HasMentionPrefix(client.CurrentUser, ref argPos)) ||
-                message.Author.IsBot)
-                return Task.CompletedTask;
-
-            InteractionMaster.CheckTextCommand(new SocketCommandContext(client, message));
+        if (!(message.HasCharPrefix('!', ref argPos) || message.HasMentionPrefix(client.CurrentUser, ref argPos)) ||
+            message.Author.IsBot)
             return Task.CompletedTask;
-        }
 
-        private async Task HandleSlashCommandAsync(SocketSlashCommand command)
+        InteractionMaster.CheckTextCommand(new SocketCommandContext(client, message));
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleSlashCommandAsync(SocketSlashCommand command)
+    {
+        try
         {
+            _ = InteractionMaster.Execute(command);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            Console.WriteLine(e.StackTrace);
             try
             {
-                _ = InteractionMaster.Execute(command);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-                Console.WriteLine(e.StackTrace);
-                try
+                await command.ModifyOriginalResponseAsync(properties =>
                 {
-                    await command.ModifyOriginalResponseAsync(properties =>
-                    {
-                        properties.Content = "Something went wrong. Please try again.";
-                    });
-                }
-                catch (Exception)
-                {
-                    //* if the command doesnt exist, it throws an exception -> ignore
-                }
+                    properties.Content = "Something went wrong. Please try again.";
+                });
             }
-        }
-
-        private Task HandleMessageCommandAsync(SocketMessageCommand command)
-        {
-            try
+            catch (Exception)
             {
-                _ = InteractionMaster.ExecuteMessageCommand(command);
+                //* if the command doesnt exist, it throws an exception -> ignore
             }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-                Console.WriteLine(e.StackTrace);
-            }
-            return Task.CompletedTask;
-        }
-
-        private Task HandleInteractionAsync(SocketMessageComponent component)
-        {
-            _ = InteractionMaster.HandleInteraction(component);
-            
-            return Task.CompletedTask;
         }
     }
+
+    private Task HandleMessageCommandAsync(SocketMessageCommand command)
+    {
+        try
+        {
+            _ = InteractionMaster.ExecuteMessageCommand(command);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            Console.WriteLine(e.StackTrace);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task HandleInteractionAsync(SocketMessageComponent component)
+    {
+        _ = InteractionMaster.HandleInteraction(component);
+
+        return Task.CompletedTask;
+    }
+}
