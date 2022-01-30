@@ -160,7 +160,7 @@ public class PreconditionWatcher
 
 
         requiredVotes = (int)MathF.Ceiling((float)userCount / 2);
-        requiredVotes = 2;
+        // requiredVotes = 2;
         if (requiredVotes <= 1)
         {
             return true;
@@ -176,7 +176,7 @@ public class PreconditionWatcher
         }
 
         votedUsers.Add(context.User.Id);
-        Id = $"mv-{CommandInfo.Name}-{guildConfig.Id}-{DateTime.Now.TimeOfDay.TotalMilliseconds}-{Util.RandomString()}";
+        Id = $"majority-vote-{CommandInfo.Name}-{guildConfig.Id}-{DateTime.Now.TimeOfDay.TotalMilliseconds}-{Util.RandomString()}";
         running = true;
 
 

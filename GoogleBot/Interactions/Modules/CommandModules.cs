@@ -84,7 +84,7 @@ public class TestModule : CommandModuleBase
 
 public class MajorityWatchModule : CommandModuleBase
 {
-    [LinkComponentInteraction("mv-*")]
+    [LinkComponentInteraction("majority-vote-*")]
     public async Task MajorityVote(SocketMessageComponent component)
     {
         PreconditionWatcher watcher = Context.GuildConfig.GetWatcher(component.Data.CustomId);
