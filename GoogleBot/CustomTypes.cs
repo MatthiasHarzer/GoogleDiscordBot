@@ -129,17 +129,48 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     public bool IsDevOnly { get; init; } = false;
 
     public bool IsOptionalEphemeral { get; init; }
-    public Preconditions Preconditions { get; init; } = new Preconditions();
+    public Preconditions Preconditions { get; init; } = new();
+
+    public Type Module => Method?.DeclaringType!;
 
     public bool OverrideDefer { get; init; } = false;
 
     public CommandType Type;
 
+    /// <summary>
+    /// A unique identifier for the command. There can't be two commands with the same name and type.
+    /// </summary>
     public string Id => $"{Name}-{Type}";
+
+    /// <summary>
+    /// Check if the command can be executed as is
+    /// </summary>
+    public bool IsValid
+    {
+        get
+        {
+            if (Method == null)
+                return false;
+            return true;
+        }
+    }
+    
 
     public ParameterInfo[] Parameters { get; init; } = Array.Empty<ParameterInfo>();
 
     public MethodInfo? Method { get; init; }
+
+    /// <summary>
+    /// Creates a new module instance for the command with a context
+    /// </summary>
+    /// <param name="context">The commands <see cref="Context"/>></param>
+    /// <returns>A new instance of the module</returns>
+    public ModuleBase GetNewModuleInstanceWith(Context context)
+    {
+        ModuleBase module = (ModuleBase)Activator.CreateInstance(Module)!;
+        module.Context = context;
+        return module;
+    }
 
     public override string ToString()
     {
@@ -184,42 +215,42 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
         CommandType type = defaults.Type;
         JsonArray parameters = new JsonArray();
 
-        if (jsonObject.TryGetPropertyValue("type", out var t))
+        if (jsonObject.TryGetPropertyValue("type", out JsonNode? t))
         {
             type = (CommandType)Math.Min((t?.GetValue<int>() ?? 0), Enum.GetNames(typeof(CommandType)).Length-1);
         }
 
-        if (jsonObject.TryGetPropertyValue("name", out var n))
+        if (jsonObject.TryGetPropertyValue("name", out JsonNode? n))
         {
             name = n?.ToString() ?? throw new InvalidOperationException();
         }
 
-        if (jsonObject.TryGetPropertyValue("summery", out var s))
+        if (jsonObject.TryGetPropertyValue("summery", out JsonNode? s))
         {
             summery = s?.ToString() ?? "";
         }
 
-        if (jsonObject.TryGetPropertyValue("private", out var ip))
+        if (jsonObject.TryGetPropertyValue("private", out JsonNode? ip))
         {
             isPrivate = ip?.GetValue<bool>() ?? isPrivate;
         }
 
-        if (jsonObject.TryGetPropertyValue("private", out var d))
+        if (jsonObject.TryGetPropertyValue("private", out JsonNode? d))
         {
             overrideDefer = d?.GetValue<bool>() ?? overrideDefer;
         }
 
-        if (jsonObject.TryGetPropertyValue("devonly", out var dev))
+        if (jsonObject.TryGetPropertyValue("devonly", out JsonNode? dev))
         {
             devonly = dev?.GetValue<bool>() ?? devonly;
         }
 
-        if (jsonObject.TryGetPropertyValue("optionalEphemeral", out var oe))
+        if (jsonObject.TryGetPropertyValue("optionalEphemeral", out JsonNode? oe))
         {
             optionalEphemeral = oe?.GetValue<bool>() ?? optionalEphemeral;
         }
 
-        if (jsonObject.TryGetPropertyValue("parameters", out var pa))
+        if (jsonObject.TryGetPropertyValue("parameters", out JsonNode? pa))
         {
             parameters = pa?.AsArray() ?? new JsonArray();
         }
@@ -254,7 +285,7 @@ public class FormattedMessage
     /// <summary>
     /// The embed of the message
     /// </summary>
-    public EmbedBuilder? Embed { get; set; } = null;
+    public EmbedBuilder? Embed { get; set; }
 
     /// <summary>
     /// Gets the built embed
@@ -267,12 +298,12 @@ public class FormattedMessage
     /// <summary>
     /// The components of the message
     /// </summary>
-    public ComponentBuilder? Components { get; set; } = null;
+    public ComponentBuilder? Components { get; set; }
 
     /// <summary>
     /// The text of the message
     /// </summary>
-    public string? Message { get; set; } = null;
+    public string? Message { get; set; }
 
     public FormattedMessage()
     {

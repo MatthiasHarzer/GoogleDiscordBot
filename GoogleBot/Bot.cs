@@ -322,7 +322,7 @@ public class CommandHandler
         {
             client.MessageReceived += HandleCommandAsync;
             client.SlashCommandExecuted += HandleSlashCommandAsync;
-            client.ButtonExecuted += ApplicationModuleHelper.InteractionHandler;
+            client.ButtonExecuted += HandleInteractionAsync;
             client.MessageCommandExecuted += HandleMessageCommandAsync;
             await commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
             // await commands.AddModuleAsync(typeof(GoogleModule), null);
@@ -380,6 +380,13 @@ public class CommandHandler
                 Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
             }
+            return Task.CompletedTask;
+        }
+
+        private Task HandleInteractionAsync(SocketMessageComponent component)
+        {
+            _ = CommandMaster.HandleInteraction(component);
+            
             return Task.CompletedTask;
         }
     }
