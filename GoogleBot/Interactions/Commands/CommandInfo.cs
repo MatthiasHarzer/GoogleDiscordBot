@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
 using GoogleBot.Interactions.Context;
+using GoogleBot.Interactions.Modules;
 
 namespace GoogleBot.Interactions.Commands;
 

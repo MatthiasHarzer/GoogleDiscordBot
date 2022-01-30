@@ -6,7 +6,7 @@ using Discord.Commands;
 using GoogleBot.Interactions.Context;
 using ICommandContext = GoogleBot.Interactions.Context.ICommandContext;
 
-namespace GoogleBot.Interactions;
+namespace GoogleBot.Interactions.Modules;
 
 public interface IModuleBase
 {
