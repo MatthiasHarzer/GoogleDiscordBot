@@ -13,6 +13,7 @@ using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using YoutubeExplode;
 using YoutubeExplode.Common;
+using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos.Streams;
 using Video = YoutubeExplode.Videos.Video;
 
@@ -22,7 +23,7 @@ public class PlayReturnValue
 {
     public AudioPlayState AudioPlayState { get; init; }
     public Video Video { get; init; }
-    public string[] Videos { get; init; }
+    public PlaylistVideo[] Videos { get; init; }
 
     /// <summary>
     /// Space for some notes ¬_¬
@@ -65,11 +66,19 @@ public class AudioPlayer
     /// Add an youtube video to the queue without blocking the main thread
     /// </summary>
     /// <param name="id">The id of the video</param>
-    private async Task AddToQueueAsync(string id)
+    private async Task AddToQueueExceptAsync(PlaylistVideo[] videos, Video videoNotToAdd=null)
     {
         if (youtube == null) return;
-        Video video = await youtube.Videos.GetAsync(id);
-        Queue.Add(video);
+        foreach (PlaylistVideo playlistVideo in videos)
+        {
+            if (videoNotToAdd != null && playlistVideo.Id != videoNotToAdd.Id && playlistVideo.Duration != null &&
+                playlistVideo.Duration.Value.TotalHours <= 1)
+            {
+                Video video = await youtube.Videos.GetAsync(playlistVideo.Id);
+                Queue.Add(video);
+            }
+        }
+        
     }
 
     /// <summary>
@@ -78,8 +87,7 @@ public class AudioPlayer
     /// <param name="audioClient">The Discord audio client</param>
     /// <param name="memoryStream">The audio as a memory stream</param>
     /// <param name="onFinished">Callback when memory stream ends</param>
-    private async void PlaySoundFromMemoryStream(IAudioClient audioClient, MemoryStream memoryStream,
-        Action onFinished = null)
+    private async void PlaySoundFromMemoryStream(IAudioClient audioClient, MemoryStream memoryStream, Action onFinished = null)
     {
         await using (var discord = audioClient.CreatePCMStream(AudioApplication.Mixed))
         {
@@ -89,11 +97,6 @@ public class AudioPlayer
             {
                 //* Canceller to completly stop playback
                 taskCanceller = new CancellationTokenSource();
-
-
-                // await streamProcess.StandardOutput.BaseStream.CopyToAsync(discord, taskCanceller.Token);
-
-
                 try
                 {
                     await discord.WriteAsync(memoryStream.ToArray().AsMemory(0, memoryStream.ToArray().Length),
@@ -163,7 +166,7 @@ public class AudioPlayer
 
         //* Initialize youtube streaming client
         Video video = null;
-        List<string> playlistVideos = new();
+        List<PlaylistVideo> playlistVideos = new();
         bool isNewPlaylist = false;
 
         //* Check if video exists (only ids or urls)
@@ -176,22 +179,15 @@ public class AudioPlayer
             }
             catch (ArgumentException)
             {
-                Console.WriteLine("ArgumentException 1");
-                var videos = await youtube.Playlists.GetVideosAsync(query);
-                if (videos.Count > 0)
+                Console.WriteLine("Check if playlist");
+                playlistVideos = await youtube.Playlists.GetVideosAsync(query).ToListAsync();
+                
+                if (playlistVideos.Count > 0)
                 {
-                    video = await youtube.Videos.GetAsync(videos[0].Id);
-                    playlistVideos = videos.AsParallel().ToList().ConvertAll(v => v.Id.ToString());
+                    video = await youtube.Videos.GetAsync(playlistVideos[0].Id);
                     isNewPlaylist = true;
 
-                    foreach (var v in videos)
-                    {
-                        if (v.Duration != null && v.Id != video.Id && v.Duration.Value.TotalHours <= 1)
-                        {
-                            //* no warning
-                            _ = AddToQueueAsync(v.Id);
-                        }
-                    }
+                    _ = AddToQueueExceptAsync(playlistVideos.ToArray(), video);
                 }
                 else
                 {
@@ -201,7 +197,7 @@ public class AudioPlayer
         }
         catch (ArgumentException)
         {
-            Console.WriteLine("ArgumentException 2");
+            Console.WriteLine("Search for video on youtube");
             //* If catches, query wasn't url or id -> search youtube for video
             YouTubeService service = new YouTubeService(new BaseClientService.Initializer
             {
