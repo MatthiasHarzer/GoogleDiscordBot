@@ -4,13 +4,11 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Services;
 
 namespace GoogleBot.Interactions.Modules;
 
-[MessageCommandsModule]
-public class MessageCommands : CommandModuleBase
+public class MessageCommands : MessageCommandModuleBase
 {
     [Command("echo")]
     public async Task Test(SocketMessage message)
@@ -18,6 +16,7 @@ public class MessageCommands : CommandModuleBase
         // Console.WriteLine("In Test Command " + message.Embeds.Count+" "  + message.Embeds?.FirstOrDefault()?.ToEmbedBuilder()!);
         try
         {
+            
             await ReplyAsync(new FormattedMessage
             {
                 Message = message.Content,

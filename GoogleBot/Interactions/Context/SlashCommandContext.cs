@@ -17,17 +17,8 @@ public class SlashCommandContext : ICommandContext
     public IVoiceChannel? VoiceChannel { get; }
     public GuildConfig GuildConfig { get; }
     public SocketGuild Guild { get; }
-
-    /// <summary>
-    /// The CommandInfo from a given command
-    /// </summary>
     public CommandInfo CommandInfo { get; }
-
     public IDiscordInteraction Respondable => Command;
-
-    /// <summary>
-    /// Whether the command should be ephemeral or not
-    /// </summary>
     public bool IsEphemeral { get; } = false;
 
     /// <summary>

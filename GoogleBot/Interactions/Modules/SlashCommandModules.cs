@@ -12,12 +12,13 @@ using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Services;
 using YoutubeExplode.Videos;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
+using ICommandContext = GoogleBot.Interactions.Context.ICommandContext;
 using Precondition = GoogleBot.Interactions.CustomAttributes.PreconditionAttribute;
 
 namespace GoogleBot.Interactions.Modules;
 
 [DevOnly]
-public class TestModule : CommandModuleBase
+public class TestModule : SlashCommandModuleBase
 {
     [Command("component-test")]
     [Summary("Used for testing with buttons and drop-downs")]
@@ -69,7 +70,7 @@ public class TestModule : CommandModuleBase
 /// <summary>
 /// A general use module
 /// </summary>
-public class InfoModule : CommandModuleBase
+public class InfoModule : SlashCommandModuleBase
 {
     [Command("help")]
     [Summary("Shows a help dialog with all available commands")]
@@ -97,7 +98,7 @@ public class InfoModule : CommandModuleBase
 /// <summary>
 /// An module responsible for playing, queueing and skipping songs.
 /// </summary>
-public class AudioModule : CommandModuleBase
+public class AudioModule : SlashCommandModuleBase
 {
     [Command("play")]
     [Summary("Plays music in the current voice channel from an YT-link or query")]
@@ -245,7 +246,7 @@ public class AudioModule : CommandModuleBase
 /// <summary>
 /// A module responsible for googleing
 /// </summary>
-public class GoogleModule : CommandModuleBase
+public class GoogleModule : SlashCommandModuleBase
 {
     [Command("google")]
     [Summary("Google something")]

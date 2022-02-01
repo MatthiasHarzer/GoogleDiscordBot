@@ -13,7 +13,6 @@ public interface IModuleBase
     /// <param name="message">The message to reply with</param>
     public Task ReplyAsync(FormattedMessage message);
 
-
     /// <summary>
     /// Sends a new message in the channel
     /// </summary>
@@ -23,10 +22,13 @@ public interface IModuleBase
 }
 
 /// <summary>
-/// The base module for <see cref="CommandModuleBase"/>
+/// The base module for <see cref="MessageCommandModuleBase"/> and <see cref="SlashCommandModuleBase"/>
 /// </summary>
 public abstract class ModuleBase : IModuleBase
 {
+    /// <summary>
+    /// The context for replying and sending messages internaly
+    /// </summary>
     private IContext InnerContext { get; set; }
 
     public async Task ReplyAsync(FormattedMessage message)
@@ -122,20 +124,41 @@ public abstract class ModuleBase : IModuleBase
 }
 
 /// <summary>
-/// Defines the class as a command module (slash or message( with) <seealso cref="GoogleBot.Interactions.CustomAttributes.MessageCommandsModuleAttribute"/>
+/// Defines the class as a message command module
 /// </summary>
-public abstract class CommandModuleBase : ModuleBase
+public abstract class MessageCommandModuleBase : ModuleBase
 {
     /// <summary>
     /// The context in which the command gets executed
     /// </summary>
-    protected ICommandContext Context { get; private set; }
+    protected MessageCommandContext Context { get; private set; }
 
     /// <summary>
     /// Set the context of the module
     /// </summary>
     /// <param name="context">The context</param>
-    public void SetContext(ICommandContext context)
+    public void SetContext(MessageCommandContext context)
+    {
+        SetInnerContext(context);
+        Context = context;
+    }
+}
+
+/// <summary>
+/// Defines the class as a slash command module
+/// </summary>
+public abstract class SlashCommandModuleBase : ModuleBase
+{
+    /// <summary>
+    /// The context in which the command gets executed
+    /// </summary>
+    protected SlashCommandContext Context { get; private set; }
+
+    /// <summary>
+    /// Set the context of the module
+    /// </summary>
+    /// <param name="context">The context</param>
+    public void SetContext(SlashCommandContext context)
     {
         SetInnerContext(context);
         Context = context;

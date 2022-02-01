@@ -5,6 +5,7 @@ using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
 using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.Modules;
+using ModuleBase = Discord.Commands.ModuleBase;
 
 namespace GoogleBot.Interactions.Commands;
 
@@ -18,7 +19,7 @@ public enum CommandType
 /// <summary>
 /// Describes a command
 /// </summary>
-public class CommandInfo : IJsonSerializable<CommandInfo>
+public class CommandInfo : IJsonSerializable<CommandInfo> 
 {
     public bool IsPrivate { get; init; } = false;
     public string Name { get; init; } = string.Empty;
@@ -62,9 +63,21 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     /// </summary>
     /// <param name="context">The commands <see cref="SlashCommandContext"/>></param>
     /// <returns>A new instance of the module</returns>
-    public CommandModuleBase GetNewModuleInstanceWith(ICommandContext context)
+    public SlashCommandModuleBase GetNewModuleInstanceWith(SlashCommandContext context)
     {
-        CommandModuleBase module = (CommandModuleBase)Activator.CreateInstance(Module)!;
+        SlashCommandModuleBase module = (SlashCommandModuleBase)Activator.CreateInstance(Module)!;
+        module.SetContext(context);
+        return module;
+    }
+    
+    /// <summary>
+    /// Creates a new module instance for the command with a context
+    /// </summary>
+    /// <param name="context">The commands <see cref="SlashCommandContext"/>></param>
+    /// <returns>A new instance of the module</returns>
+    public MessageCommandModuleBase GetNewModuleInstanceWith(MessageCommandContext context)
+    {
+        MessageCommandModuleBase module = (MessageCommandModuleBase)Activator.CreateInstance(Module)!;
         module.SetContext(context);
         return module;
     }

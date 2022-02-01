@@ -33,7 +33,7 @@ public class PreconditionWatcher
 
     private ICommandContext Context { get; set; }
 
-    private CommandModuleBase Module { get; set; }
+    private ModuleBase Module { get; set; }
 
     public string Id { get; private set; } = string.Empty;
 
@@ -123,7 +123,7 @@ public class PreconditionWatcher
     /// <param name="module">The commands module</param>
     /// <param name="args">The commands args</param>
     /// <returns>True if all conditions have been met</returns>
-    public async Task<bool> CheckPreconditions(ICommandContext context, CommandModuleBase module, object[] args)
+    public async Task<bool> CheckPreconditions(ICommandContext context, ModuleBase module, object[] args)
     {
         // Console.WriteLine(requiresVc + " " + requiresMajority);
 

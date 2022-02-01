@@ -75,39 +75,33 @@ public static class InteractionMaster
     }
 
     /// <summary>
-    /// Get all modules with base class <see cref="CommandModuleBase"/> for SlashCommands or <see cref="MessageCommandsModuleBase"/> for message commands
+    /// Get all modules with base class <see cref="CommandModuleBase"/> for SlashCommands or <see cref="MessageCommandModuleBase"/> for message commands
     /// </summary>
     public static void MountModules()
     {
         //* Add regular commands
-        IEnumerable<CommandModuleBase> commandModules = typeof(CommandModuleBase).Assembly.GetTypes()
-            .Where(t => t.IsSubclassOf(typeof(CommandModuleBase)) && !t.IsAbstract)
-            .Select(t => (CommandModuleBase)Activator.CreateInstance(t));
+        IEnumerable<SlashCommandModuleBase> slashCommandModules = typeof(SlashCommandModuleBase).Assembly.GetTypes()
+            .Where(t => t.IsSubclassOf(typeof(SlashCommandModuleBase)) && !t.IsAbstract)
+            .Select(t => (SlashCommandModuleBase)Activator.CreateInstance(t));
 
-        foreach (CommandModuleBase module in commandModules)
+        foreach (SlashCommandModuleBase module in slashCommandModules)
         {
             // if (module != null) Helpers.Add(new ApplicationModuleHelper(module));
-            if (module == null) continue;
-
-            bool isMessageCommand = module.GetType().GetCustomAttribute<MessageCommandsModuleAttribute>()
-                ?.IsMessageCommandsModule ?? false;
-            if (isMessageCommand)
-                AddMessageCommandModule(module);
-            else
+            if (module != null)
                 AddCommandModule(module);
         }
 
         //* Add message commands
-        // IEnumerable<CommandModuleBase> messageCommandModules = typeof(CommandModuleBase).Assembly
-        //     .GetTypes()
-        //     .Where(t => t.IsSubclassOf(typeof(CommandModuleBase)) && !t.IsAbstract)
-        //     .Select(t => (CommandModuleBase)Activator.CreateInstance(t));
-        //
-        // foreach (CommandModuleBase module in messageCommandModules)
-        // {
-        //     // if (module != null) MessageCommandHelpers.Add(new ApplicationModuleHelper(module));
-        //     if (module != null) AddCommandModule(module);
-        // }
+        IEnumerable<MessageCommandModuleBase> messageCommandModules = typeof(MessageCommandModuleBase).Assembly
+            .GetTypes()
+            .Where(t => t.IsSubclassOf(typeof(MessageCommandModuleBase)) && !t.IsAbstract)
+            .Select(t => (MessageCommandModuleBase)Activator.CreateInstance(t));
+        
+        foreach (MessageCommandModuleBase module in messageCommandModules)
+        {
+            // if (module != null) MessageCommandHelpers.Add(new ApplicationModuleHelper(module));
+            if (module != null) AddMessageCommandModule(module);
+        }
 
         //* Add Interaction Modules
         IEnumerable<InteractionModuleBase> interactionModules = typeof(InteractionModuleBase).Assembly
@@ -124,10 +118,10 @@ public static class InteractionMaster
 
 
     /// <summary>
-    /// Add a <see cref="CommandModuleBase"/> and its commands (slash commands)
+    /// Add a <see cref="SlashCommandModuleBase"/> and its slash commands 
     /// </summary>
     /// <param name="module">The module to add</param>
-    private static void AddCommandModule(CommandModuleBase module)
+    private static void AddCommandModule(SlashCommandModuleBase module)
     {
         Type moduleType = module.GetType();
         // Console.WriteLine("app cmd  " + ModuleType.BaseType + " -> " + CommandModuleType);
@@ -200,10 +194,10 @@ public static class InteractionMaster
 
 
     /// <summary>
-    /// Add a <see cref="CommandModuleBase"/> and its commands (message commands)
+    /// Add a <see cref="SlashCommandModuleBase"/> and its message commands
     /// </summary>
     /// <param name="module">The module to add</param>
-    private static void AddMessageCommandModule(CommandModuleBase module)
+    private static void AddMessageCommandModule(MessageCommandModuleBase module)
     {
         Type moduleType = module.GetType();
         // Console.WriteLine("MCMD " + ModuleType.BaseType + " -> " + CommandModuleType);
@@ -328,7 +322,7 @@ public static class InteractionMaster
 
             if (commandInfo is { Method: not null })
             {
-                CommandModuleBase module = (CommandModuleBase)commandInfo.GetNewModuleInstanceWith(commandContext);
+                SlashCommandModuleBase module = (SlashCommandModuleBase)commandInfo.GetNewModuleInstanceWith(commandContext);
                 // module.Context = commandContext;
 
                 Console.WriteLine($"Found /{commandInfo?.Name} in {module}");
@@ -388,10 +382,10 @@ public static class InteractionMaster
 
         if (commandInfo is { Method: not null })
         {
-            CommandModuleBase module = commandInfo.GetNewModuleInstanceWith(commandContext);
+            MessageCommandModuleBase module = (MessageCommandModuleBase)commandInfo.GetNewModuleInstanceWith(commandContext);
             // module.Context = commandContext;
             Console.WriteLine($"Found message command {commandInfo?.Name} in {module}");
-            object[] args = new object[] { commandContext.Message };
+            object[] args = { commandContext.Message };
 
             // Console.WriteLine(string.Join(", ", args));
             // Console.WriteLine(commandInfo);

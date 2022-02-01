@@ -5,6 +5,9 @@ using GoogleBot.Services;
 
 namespace GoogleBot.Interactions.Context;
 
+/// <summary>
+/// The base context of every interaction with the bot
+/// </summary>
 public interface IContext
 {
     /// <summary>
@@ -35,6 +38,11 @@ public interface IContext
     public IDiscordInteraction Respondable { get; }
 }
 
+/// <summary>
+/// The context of every command-based interaction with the bot
+/// <seealso cref="GoogleBot.Interactions.Modules.SlashCommandModuleBase"/>
+/// <seealso cref="GoogleBot.Interactions.Modules.MessageCommandModuleBase"/>
+/// </summary>
 public interface ICommandContext : IContext
 {
     /// <summary>
@@ -42,6 +50,8 @@ public interface ICommandContext : IContext
     /// </summary>
     public CommandInfo CommandInfo { get; }
 
-
+    /// <summary>
+    /// Whether the command should be ephemeral or not
+    /// </summary>
     public bool IsEphemeral => false;
 }
