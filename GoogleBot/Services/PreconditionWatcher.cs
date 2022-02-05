@@ -73,7 +73,7 @@ public class PreconditionWatcher
     }
 
     /// <summary>
-    /// Creates a new <see cref="PreconditionWatcher"/> for the specified <see cref="Interactions.Commands.CommandInfo"/> and <see cref="GoogleBot.GuildConfig"/>
+    /// Creates a new <see cref="PreconditionWatcher"/> for the specified <see cref="Interactions.Commands.CommandInfo"/> and <see cref="GoogleBot.Services.GuildConfig"/>
     /// </summary>
     /// <param name="commandInfo"></param>
     /// <param name="guildConfig"></param>
