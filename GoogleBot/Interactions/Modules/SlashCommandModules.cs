@@ -82,10 +82,8 @@ public class InfoModule : SlashCommandModuleBase
             Title = "Here's a list of commands and their description:"
         };
 
-        foreach (CommandInfo command in InteractionMaster.CommandList)
+        foreach (CommandInfo command in InteractionMaster.CommandList.Where(command => !command.IsDevOnly || (command.IsDevOnly && Context.Guild.Id == Secrets.DevGuildID)))
         {
-            if (command.IsDevOnly && Context.Guild != null && Context.Guild.Id != Secrets.DevGuildID) continue;
-            // Get the command Summary attribute information
             embedBuilder.AddField(Util.FormattedCommand(command), command.Summary);
         }
 
