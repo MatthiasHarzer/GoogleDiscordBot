@@ -10,7 +10,17 @@ namespace GoogleBot;
 
 internal interface IJsonSerializable<out T>
 {
+    /// <summary>
+    /// Returns the instance represented as json
+    /// </summary>
+    /// <returns></returns>
     JsonObject ToJson();
+    
+    /// <summary>
+    /// Builds an instance from json
+    /// </summary>
+    /// <param name="jsonObject">The json data</param>
+    /// <returns>The new instance</returns>
     T FromJson(JsonObject jsonObject);
 }
 
@@ -78,7 +88,7 @@ public class FormattedMessage
     /// </summary>
     /// <param name="components">The components to add</param>
     /// <returns>The instance with added components</returns>
-    public FormattedMessage WithComponents(ComponentBuilder components)
+    public FormattedMessage WithComponents(ComponentBuilder? components)
     {
         Components = components;
         return this;

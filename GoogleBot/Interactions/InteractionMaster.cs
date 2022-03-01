@@ -75,7 +75,10 @@ public static class InteractionMaster
     }
 
     /// <summary>
-    /// Get all modules with base class <see cref="CommandModuleBase"/> for SlashCommands or <see cref="MessageCommandModuleBase"/> for message commands
+    /// Get all modules with their commands
+    /// <seealso cref="SlashCommandModuleBase"/>
+    /// <seealso cref="MessageCommandModuleBase"/>
+    /// <seealso cref="InteractionModuleBase"/>
     /// </summary>
     public static void MountModules()
     {
@@ -325,15 +328,16 @@ public static class InteractionMaster
                 SlashCommandModuleBase module = (SlashCommandModuleBase)commandInfo.GetNewModuleInstanceWith(commandContext);
                 // module.Context = commandContext;
 
-                Console.WriteLine($"Found /{commandInfo?.Name} in {module}");
+                Console.WriteLine($"Found /{commandInfo.Name} in {module}");
 
                 object[] args = commandContext.Arguments;
 
                 await command.DeferAsync(commandContext.IsEphemeral);
 
-                PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
+                PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo!);
                 bool preconditionsMet =
                     await watcher.CheckPreconditions(commandContext, module, args);
+                
                 if (!preconditionsMet)
                     return;
 
@@ -345,7 +349,7 @@ public static class InteractionMaster
                 try
                 {
                     // Console.WriteLine(args.Length);
-                    await ((Task)commandInfo.Method!.Invoke(module, args))!;
+                    await ((Task)commandInfo.Method!.Invoke(module, args)!)!;
                 }
                 catch (Exception e)
                 {
@@ -382,7 +386,7 @@ public static class InteractionMaster
 
         if (commandInfo is { Method: not null })
         {
-            MessageCommandModuleBase module = (MessageCommandModuleBase)commandInfo.GetNewModuleInstanceWith(commandContext);
+            MessageCommandModuleBase module = commandInfo.GetNewModuleInstanceWith(commandContext);
             // module.Context = commandContext;
             Console.WriteLine($"Found message command {commandInfo?.Name} in {module}");
             object[] args = { commandContext.Message };
@@ -391,7 +395,7 @@ public static class InteractionMaster
             // Console.WriteLine(commandInfo);
 
 
-            PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
+            PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo!);
             bool preconditionsMet =
                 await watcher.CheckPreconditions(commandContext, module, args);
             // Console.WriteLine(preconditionsMet);
@@ -406,7 +410,7 @@ public static class InteractionMaster
                 // Console.WriteLine(module + " " + commandInfo.NewModule);
 
 
-                await ((Task)commandInfo.Method!.Invoke(module, args))!;
+                await (Task)commandInfo!.Method!.Invoke(module, args)!;
             }
             catch (Exception e)
             {
@@ -456,7 +460,7 @@ public static class InteractionMaster
                 // Console.WriteLine($"FOUND {string.Join(", ", componentCallback.Value.ConvertAll(m=>m.Name))}");
                 foreach (MethodInfo method in componentCallback.Value)
                 {
-                    var module = (InteractionModuleBase)Activator.CreateInstance(method.DeclaringType!);
+                    var module = (InteractionModuleBase)Activator.CreateInstance(method.DeclaringType!)!;
                     module!.SetContext(new InteractionContext(component));
                     await (Task)method.Invoke(module, new object[] { component })!;
                 }
@@ -472,7 +476,7 @@ public static class InteractionMaster
     {
         CommandInfo command = Util.GetTextCommandFromMessage(socketCommandContext.Message);
 
-        IDisposable typing = null;
+        IDisposable? typing = null;
 
         if (command.IsDevOnly && socketCommandContext.Guild.Id != Secrets.DevGuildID)
         {

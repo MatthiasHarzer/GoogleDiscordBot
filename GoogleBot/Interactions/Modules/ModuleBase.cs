@@ -112,9 +112,9 @@ public abstract class ModuleBase : IModuleBase
         await SendMessage(new FormattedMessage(text));
     }
 
-    public async Task SendMessage(EmbedBuilder embed, ComponentBuilder components = null)
+    public async Task SendMessage(EmbedBuilder embed, ComponentBuilder? components = null)
     {
-        await SendMessage(new FormattedMessage(embed).WithComponents(components!));
+        await SendMessage(new FormattedMessage(embed).WithComponents(components));
     }
 
     protected void SetInnerContext(IContext context)

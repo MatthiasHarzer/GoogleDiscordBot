@@ -24,7 +24,7 @@ public class Responses
     /// </summary>
     /// <param name="nextSong">The skipped song</param>
     /// <returns>A FormattedMessage</returns>
-    public static FormattedMessage Skipped(Video nextSong)
+    public static FormattedMessage Skipped(Video? nextSong)
     {
         return nextSong == null
             ? new FormattedMessage(new EmbedBuilder().AddField("Skipping", $"The queue is empty -> disconnecting"))
@@ -34,7 +34,7 @@ public class Responses
 
     public static FormattedMessage FromPlayReturnValue(PlayReturnValue playReturnValue)
     {
-        EmbedBuilder embed = new();
+        EmbedBuilder embed = new EmbedBuilder();
         switch (playReturnValue.AudioPlayState)
         {
             case AudioPlayState.Success:

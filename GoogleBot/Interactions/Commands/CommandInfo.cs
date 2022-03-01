@@ -43,15 +43,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     /// <summary>
     /// Check if the command can be executed as is
     /// </summary>
-    public bool IsValid
-    {
-        get
-        {
-            if (Method == null)
-                return false;
-            return true;
-        }
-    }
+    public bool IsValid => Method != null;
 
 
     public ParameterInfo[] Parameters { get; init; } = Array.Empty<ParameterInfo>();
@@ -61,7 +53,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     /// <summary>
     /// Creates a new module instance for the command with a context
     /// </summary>
-    /// <param name="context">The commands <see cref="SlashCommandContext"/>></param>
+    /// <param name="context">The commands <see cref="SlashCommandContext"/></param>
     /// <returns>A new instance of the module</returns>
     public SlashCommandModuleBase GetNewModuleInstanceWith(SlashCommandContext context)
     {
@@ -73,7 +65,7 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     /// <summary>
     /// Creates a new module instance for the command with a context
     /// </summary>
-    /// <param name="context">The commands <see cref="SlashCommandContext"/>></param>
+    /// <param name="context">The commands <see cref="SlashCommandContext"/></param>
     /// <returns>A new instance of the module</returns>
     public MessageCommandModuleBase GetNewModuleInstanceWith(MessageCommandContext context)
     {

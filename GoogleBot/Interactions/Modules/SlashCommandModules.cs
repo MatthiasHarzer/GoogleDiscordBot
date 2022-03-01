@@ -145,7 +145,7 @@ public class AudioModule : SlashCommandModuleBase
             message = Responses.NothingToSkip();
         }
 
-        await ReplyAsync(message?.Embed, components);
+        if (message.Embed != null) await ReplyAsync(message.Embed, components);
     }
 
 
@@ -216,7 +216,7 @@ public class AudioModule : SlashCommandModuleBase
 
             foreach (var video in queue)
             {
-                string content = $"\n\n[`{Util.FormattedVideo(video)})`]({video.Url})";
+                string content = $"\n\n{Util.FormattedLinkedVideo(video)}";
 
                 if (content.Length + approxLength > max_length)
                 {

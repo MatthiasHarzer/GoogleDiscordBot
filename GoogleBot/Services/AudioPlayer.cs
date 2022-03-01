@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using CliWrap;
 using Discord;
 using Discord.Audio;
 using Google.Apis.Services;
@@ -60,7 +61,7 @@ public class AudioPlayer
     private readonly YoutubeClient youtube = new YoutubeClient();
 
     private CancellationTokenSource audioCancellationToken = new CancellationTokenSource();
-    private Process ffmpegProcess;
+    // private Process ffmpegProcess;
     
     /// <summary>
     /// Add an youtube video to the queue without blocking the main thread
@@ -87,7 +88,7 @@ public class AudioPlayer
     /// <param name="audioClient">The Discord audio client</param>
     /// <param name="stream">The audio as a memory stream</param>
     /// <param name="onFinished">Callback when memory stream ends</param>
-    private async void PlayAudioFromStream(IAudioClient audioClient, Stream stream, Action onFinished = null)
+    private async void PlayAudioFromStream(IAudioClient audioClient, MemoryStream stream, Action onFinished = null)
     {
         await using var discord = audioClient.CreatePCMStream(AudioApplication.Mixed);
         //* Know if track end was error or other
@@ -97,7 +98,9 @@ public class AudioPlayer
             //* Create a new cancellation Token for discord memory playback
             audioCancellationToken = new CancellationTokenSource();
             
-            await stream.CopyToAsync(discord, audioCancellationToken.Token);
+            // await stream.CopyToAsync(discord, audioCancellationToken.Token);
+            await discord.WriteAsync(stream.ToArray().AsMemory(0, stream.ToArray().Length),
+                audioCancellationToken.Token);
         }
         catch (Exception)
         {
@@ -117,18 +120,18 @@ public class AudioPlayer
     /// </summary>
     /// <param name="url">The url to stream the audio from</param>
     /// <returns>The created process</returns>
-    private Process CreateFfmpegProcess(string url)
-    {
-        return Process.Start(new ProcessStartInfo
-        {
-            FileName = "ffmpeg",
-            Arguments = $"-hide_banner -loglevel panic -i {url} -ac 2 -f s16le -ar 48000 pipe:1",
-            // RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-        });
-      
-    }
+    // private Process CreateFfmpegProcess(string url)
+    // {
+    //     return Process.Start(new ProcessStartInfo
+    //     {
+    //         FileName = "ffmpeg",
+    //         Arguments = $"-hide_banner -loglevel panic -i {url} -ac 2 -f s16le -ar 48000 pipe:1",
+    //         // RedirectStandardInput = true,
+    //         RedirectStandardOutput = true,
+    //         UseShellExecute = false,
+    //     });
+    //   
+    // }
 
     /// <summary>
     /// Tries to play some audio from youtube in a given voice channel
@@ -296,8 +299,15 @@ public class AudioPlayer
         Stream stream = await youtube.Videos.Streams.GetAsync(streamInfo);
         
 
+        MemoryStream memoryStream = new MemoryStream();
+        
         //* Start ffmpeg process to convert stream to memory stream
-        ffmpegProcess = CreateFfmpegProcess(streamInfo.Url);
+        await Cli.Wrap("ffmpeg")
+            .WithArguments("-hide_banner -loglevel panic -i pipe:0 -ac 2 -f s16le -ar 48000 pipe:1")
+            .WithStandardInputPipe(PipeSource.FromStream(stream))
+            .WithStandardOutputPipe(PipeTarget.ToStream(memoryStream))
+            .ExecuteAsync();
+        // ffmpegProcess = CreateFfmpegProcess(streamInfo.Url);
 
         //* If bot isn't connected -> connect 
         if (AudioClient is not { ConnectionState: ConnectionState.Connected })
@@ -327,7 +337,7 @@ public class AudioPlayer
         Console.WriteLine("Starting audio stream");
 
         //* Play sound async
-        PlayAudioFromStream(AudioClient, ffmpegProcess.StandardOutput.BaseStream, NextSong);
+        PlayAudioFromStream(AudioClient, memoryStream, NextSong);
 
         if (isNewPlaylist)
         {
@@ -353,7 +363,7 @@ public class AudioPlayer
     private void CancelPlayback()
     {
         audioCancellationToken?.Cancel();
-        ffmpegProcess?.Close();
+        // ffmpegProcess?.Close();
         Playing = false;
     }
     
@@ -396,9 +406,9 @@ public class AudioPlayer
     /// Skips the currently playing sound 
     /// </summary>
     /// <returns>The now playing song</returns>
-    public Video Skip()
+    public Video? Skip()
     {
-        Video newSong = Queue.Count > 0 ? Queue[0] : null;
+        Video? newSong = Queue.Count > 0 ? Queue[0] : null;
         CancelPlayback();
         return newSong;
     }
