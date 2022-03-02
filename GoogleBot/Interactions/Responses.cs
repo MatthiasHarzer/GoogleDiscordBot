@@ -38,14 +38,14 @@ public class Responses
         switch (playReturnValue.AudioPlayState)
         {
             case AudioPlayState.Success:
-                embed.AddField("Now playing", Util.FormattedLinkedVideo(playReturnValue.Video));
+                embed.AddField("Now playing", Util.FormattedLinkedVideo(playReturnValue.Video!));
                 break;
             case AudioPlayState.PlayingAsPlaylist:
                 embed.WithTitle($"Added {playReturnValue.Videos?.Length} songs to queue");
-                embed.AddField("Now playing", Util.FormattedLinkedVideo(playReturnValue.Video));
+                embed.AddField("Now playing", Util.FormattedLinkedVideo(playReturnValue.Video!));
                 break;
             case AudioPlayState.Queued:
-                embed.AddField("Song added to queue", Util.FormattedLinkedVideo(playReturnValue.Video));
+                embed.AddField("Song added to queue", Util.FormattedLinkedVideo(playReturnValue.Video!));
                 break;
             case AudioPlayState.QueuedAsPlaylist:
                 embed.WithTitle($"Added {playReturnValue.Videos?.Length} songs to queue");
@@ -116,5 +116,20 @@ public class Responses
         return new FormattedMessage(new EmbedBuilder().AddField(
             $"The command `/{commandInfo.Name}` requires the consent of the majority of members in your voice channel to execute",
             "Consider removing the `hidden` option from the command to trigger a vote"));
+    }
+
+    public static FormattedMessage AutoPlayState(bool autoPlay)
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField(
+            "Autoplay:",
+            $"Autoplay is currently `{(autoPlay ? "enabled" : "disabled")}`."
+        ));
+    }
+    public static FormattedMessage AutoPlayStateChange(bool newAutoPlay)
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField(
+            "Autoplay:",
+            $"Autoplay is now `{(newAutoPlay ? "enabled" : "disabled")}`."
+        ));
     }
 }

@@ -65,6 +65,8 @@ public class TestModule : SlashCommandModuleBase
         am.SetContext(Context);
         await am.Play(query);
     }
+    
+    
 }
 
 /// <summary>
@@ -82,7 +84,7 @@ public class InfoModule : SlashCommandModuleBase
             Title = "Here's a list of commands and their description:"
         };
 
-        foreach (CommandInfo command in InteractionMaster.CommandList.Where(command => !command.IsDevOnly || (command.IsDevOnly && Context.Guild.Id == Secrets.DevGuildID)))
+        foreach (CommandInfo command in InteractionMaster.CommandList.Where(command => !command.IsDevOnly || (command.IsDevOnly && Context.Guild.Id == Secrets.DevGuildId)))
         {
             embedBuilder.AddField(Util.FormattedCommand(command), command.Summary);
         }
@@ -136,9 +138,9 @@ public class AudioModule : SlashCommandModuleBase
         ComponentBuilder? components = null;
 
         if (Context.GuildConfig.AudioPlayer.Playing &&
-            Context.GuildConfig.AudioPlayer.AudioClient.ConnectionState == ConnectionState.Connected)
+            Context.GuildConfig.AudioPlayer.AudioClient!.ConnectionState == ConnectionState.Connected)
         {
-            message = Responses.Skipped(Context.GuildConfig.AudioPlayer.Skip());
+            message = Responses.Skipped(await Context.GuildConfig.AudioPlayer.Skip());
         }
         else
         {
@@ -194,7 +196,7 @@ public class AudioModule : SlashCommandModuleBase
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
 
-        Video currentSong = player.CurrentSong;
+        Video? currentSong = player.CurrentSong;
 
         List<Video> queue = player.Queue;
 
@@ -234,10 +236,31 @@ public class AudioModule : SlashCommandModuleBase
         else
         {
             embed.AddField("Queue is empty", "Nothing to show.");
+            if(player.NextTargetAutoPlaySong != null)
+            {
+                embed.AddField("Autoplay:", Util.FormattedLinkedVideo(player.NextTargetAutoPlaySong));
+            }
         }
+       
 
 
         await ReplyAsync(embed);
+    }
+
+    [Command("autoplay")]
+    [Summary("Gets and/or sets autoplay. When enabled related songs will play after queue end.")]
+    public async Task ToggleAutoplay([Summary("The new autoplay value")] [Name("set")][OptionType(ApplicationCommandOptionType.Boolean)] bool? autoplay = null)
+    {
+        if (autoplay == null)
+        {
+            await ReplyAsync(Responses.AutoPlayState(Context.GuildConfig.AutoPlay));
+        }
+        else
+        {
+            Context.GuildConfig.AutoPlay = (bool)autoplay;
+            await ReplyAsync(Responses.AutoPlayStateChange(Context.GuildConfig.AutoPlay));
+        }
+        
     }
 }
 

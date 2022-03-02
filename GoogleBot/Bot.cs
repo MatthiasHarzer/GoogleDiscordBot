@@ -17,8 +17,8 @@ namespace GoogleBot;
 
 internal class Bot
 {
-    private DiscordSocketClient client;
-    private CommandHandler commandHandler;
+    private DiscordSocketClient client = null!;
+    private CommandHandler commandHandler = null!;
 
     public static Task Main(string[] args)
     {
@@ -112,7 +112,7 @@ internal class Bot
                 {
                     isNew = false;
                     // Console.WriteLine("comparing " + command + " vs " + existingCommand);
-                    if (!ApproximatelyEqual(command, existingCommand))
+                    if (!CommandsApproximatelyEqual(command, existingCommand))
                     {
                         // Console.WriteLine("CHANGED");
                         newOrChangedCommands.Add(command);
@@ -224,7 +224,7 @@ internal class Bot
                 {
                     isNew = false;
                     // Console.WriteLine("comparing " + command + " vs " + existingCommand);
-                    if (!ApproximatelyEqual(command, existingCommand))
+                    if (!CommandsApproximatelyEqual(command, existingCommand))
                     {
                         newOrChangedCommands.Add(command);
                         changed = true;
@@ -254,7 +254,7 @@ internal class Bot
         Console.WriteLine(string.Join("\n", newOrChangedCommands));
 
 
-        var guild = client.GetGuild(Secrets.DevGuildID);
+        var guild = client.GetGuild(Secrets.DevGuildId);
         if (guild == null)
         {
             Console.WriteLine("Invalid dev guild");
@@ -327,7 +327,7 @@ public class CommandHandler
 
     private Task HandleCommandAsync(SocketMessage messageParam)
     {
-        SocketUserMessage message = messageParam as SocketUserMessage;
+        SocketUserMessage? message = messageParam as SocketUserMessage;
         if (message == null) return Task.CompletedTask;
 
         int argPos = 0;

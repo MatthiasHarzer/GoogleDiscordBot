@@ -11,7 +11,7 @@ public class MajorityWatchModule : InteractionModuleBase
     public async Task MajorityVote(SocketMessageComponent component)
     {
         // Console.WriteLine("In MV  GC: " + Context.GuildConfig);
-        PreconditionWatcher watcher = Context.GuildConfig.GetWatcher(component.Data.CustomId);
+        PreconditionWatcher watcher = Context.GuildConfig.GetWatcher(component.Data.CustomId)!;
         await component.DeferAsync();
 
         // Console.WriteLine("In MV " + watcher);

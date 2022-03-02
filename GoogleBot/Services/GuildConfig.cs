@@ -9,34 +9,36 @@ namespace GoogleBot.Services;
 /// </summary>
 public class GuildConfig
 {
-    private static readonly List<GuildConfig> GuildMaster = new();
+    private static readonly List<GuildConfig> GuildMaster = new List<GuildConfig>();
     public AudioPlayer AudioPlayer { get; }
     public ulong Id { get; }
 
-    private readonly List<PreconditionWatcher> watchers = new();
+    public bool AutoPlay { get; set; } = true;
 
-    public bool BotConnectedToVC => BotsVoiceChannel != null;
+    private readonly List<PreconditionWatcher?> watchers = new List<PreconditionWatcher?>();
 
-    public IVoiceChannel BotsVoiceChannel => AudioPlayer.VoiceChannel;
+    public bool BotConnectedToVc => BotsVoiceChannel != null;
+
+    public IVoiceChannel? BotsVoiceChannel => AudioPlayer.VoiceChannel;
 
     public PreconditionWatcher GetWatcher(CommandInfo command)
     {
-        PreconditionWatcher w = watchers.Find(w => w.CommandInfo.Id == command.Id);
-        if (w != null) return w;
-        w = new PreconditionWatcher(command, this);
-        watchers.Add(w);
-        return w;
+        PreconditionWatcher? watcher = watchers.Find(w => w?.CommandInfo.Id == command.Id);
+        if (watcher != null) return watcher;
+        watcher = new PreconditionWatcher(command, this);
+        watchers.Add(watcher);
+        return watcher;
     }
 
-    public PreconditionWatcher GetWatcher(string id)
+    public PreconditionWatcher? GetWatcher(string id)
     {
-        return watchers.Find(w => w.Id == id);
+        return watchers.Find(w => w?.Id == id);
     }
 
 
     private GuildConfig(ulong id)
     {
-        AudioPlayer = new AudioPlayer();
+        AudioPlayer = new AudioPlayer(this);
         Id = id;
         GuildMaster.Add(this);
     }
@@ -49,14 +51,7 @@ public class GuildConfig
     /// <returns>New or existing guild object</returns>
     public static GuildConfig Get(ulong? guildId)
     {
-        if (guildId == null)
-            return null;
-        return GuildMaster.Find(guild => guild.Id.Equals(guildId)) ?? new GuildConfig((ulong)guildId);
+        return GuildMaster.Find(guild => guild.Id.Equals(guildId)) ?? new GuildConfig((ulong)guildId!);
     }
-
-    // public static GuildConfig Get(SocketGuild guild)
-    // {
-    //     
-    //     return GuildMaster.Find(g => g.Id.Equals(guild.Id)) ?? new GuildConfig((ulong)guildId);
-    // }
 }
+

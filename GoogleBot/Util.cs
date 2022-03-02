@@ -18,6 +18,7 @@ using ParameterInfo = GoogleBot.Interactions.Commands.ParameterInfo;
 
 namespace GoogleBot;
 
+// ReSharper disable once InconsistentNaming
 public class HSL
 {
     public double Hue { get; init; }
@@ -85,19 +86,19 @@ public class HSL
 /// </summary>
 public static class Util
 {
-    private static List<Color> colorPallat = null;
+    private static List<Color> colorPalette = new List<Color>();
     private static readonly Random Random = new Random();
 
     private static List<Color> ColorPallet
     {
         get
         {
-            if (colorPallat == null)
+            if (colorPalette.Count <= 0)
             {
-                colorPallat = GenerateColorPallet();
+                colorPalette = GenerateColorPallet();
             }
 
-            return colorPallat;
+            return colorPalette;
         }
     }
 
@@ -214,7 +215,7 @@ public static class Util
         });
 
         var listRequest = service.Cse.List();
-        listRequest.Cx = Secrets.SearchEngineID;
+        listRequest.Cx = Secrets.SearchEngineId;
         listRequest.Q = query;
 
         listRequest.Start = 10;
@@ -229,14 +230,14 @@ public static class Util
     /// <returns>Formatted video duration</returns>
     public static string FormattedVideoDuration(Video video)
     {
-        if (video.Duration.Value.Hours == 0)
+        if (video.Duration!.Value.Hours == 0)
         {
             return
                 $"{video.Duration.Value.Minutes.ToString().PadLeft(2, '0')}:{video.Duration.Value.Seconds.ToString().PadLeft(2, '0')}";
         }
         else
         {
-            return video.Duration.ToString();
+            return video.Duration.ToString()!;
         }
     }
 
@@ -271,11 +272,11 @@ public static class Util
         int argPos = 0;
         if (message.ToString().Length > 1 && message.HasCharPrefix('!', ref argPos))
         {
-            string raw_command = message.ToString().Split(" ")[0].Substring(argPos);
+            string rawCommand = message.ToString().Split(" ")[0].Substring(argPos);
 
             foreach (CommandInfo ctx in InteractionMaster.CommandList)
             {
-                if (ctx.Name.Equals(raw_command))
+                if (ctx.Name.Equals(rawCommand))
                 {
                     return ctx;
                 }
@@ -289,28 +290,28 @@ public static class Util
     {
         switch (origin)
         {
-            case Type _ when origin == typeof(string):
+            case not null when origin == typeof(string):
                 return ApplicationCommandOptionType.String;
-            case Type _ when origin == typeof(bool):
+            case not null when origin == typeof(bool):
                 return ApplicationCommandOptionType.Boolean;
-            case Type _ when origin == typeof(int):
+            case not null when origin == typeof(int):
                 return ApplicationCommandOptionType.Integer;
-            case Type _ when origin == typeof(float):
-            case Type _ when origin == typeof(double):
+            case not null when origin == typeof(float):
+            case not null when origin == typeof(double):
                 return ApplicationCommandOptionType.Number;
-            case Type _ when origin == typeof(SocketGuildUser):
-            case Type _ when origin == typeof(SocketUser):
+            case not null when origin == typeof(SocketGuildUser):
+            case not null when origin == typeof(SocketUser):
                 return ApplicationCommandOptionType.User;
-            case Type _ when origin == typeof(SocketRole):
+            case not null when origin == typeof(SocketRole):
                 return ApplicationCommandOptionType.Role;
-            case Type _ when origin == typeof(SocketChannel):
+            case not null when origin == typeof(SocketChannel):
                 return ApplicationCommandOptionType.Channel;
             default:
                 return ApplicationCommandOptionType.String;
         }
     }
 
-    public static ApplicationCommandOptionType ToOptionType(string type)
+    public static ApplicationCommandOptionType ToOptionType(string? type)
     {
         switch (type)
         {
@@ -358,15 +359,20 @@ public static class Util
         }
     }
 
-
-    public static bool ApproximatelyEqual(CommandInfo command1, CommandInfo command2)
+    /// <summary>
+    /// Compares two <see cref="CommandInfo"/>
+    /// </summary>
+    /// <param name="command1">Command A</param>
+    /// <param name="command2">Command B</param>
+    /// <returns>Whether the commands are approximately equal</returns>
+    public static bool CommandsApproximatelyEqual(CommandInfo command1, CommandInfo command2)
     {
         if (command1.Name != command2.Name || command1.Summary != command2.Summary ||
             command1.Parameters.Length != command2.Parameters.Length ||
             command1.IsDevOnly != command2.IsDevOnly ||
-            command1.IsOptionalEphemeral != command2?.IsOptionalEphemeral) return false;
+            command1.IsOptionalEphemeral != command2.IsOptionalEphemeral) return false;
 
-        int pos = 0;
+        int pos;
         for (pos = 0; pos < command1.Parameters.Length; pos++)
         {
             // Console.WriteLine(pos);
@@ -385,5 +391,18 @@ public static class Util
         if (command2.Parameters.Length > pos) return false;
 
         return true;
+    }
+
+    /// <summary>
+    /// Gets a random item from a list
+    /// </summary>
+    /// <param name="list">The list to get an item from</param>
+    /// <typeparam name="T">The lists/items type</typeparam>
+    /// <returns>A random item from the list</returns>
+    public static T GetRandom<T>(List<T> list)
+    {
+        Random r = new Random();
+        return list[r.Next(list.Count)];
+
     }
 }

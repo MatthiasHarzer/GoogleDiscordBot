@@ -23,17 +23,17 @@ public class PreconditionWatcher
 
     private bool running;
 
-    private int requiredVotes = 0;
+    private int requiredVotes;
 
-    private readonly List<ulong> votedUsers = new();
+    private readonly List<ulong> votedUsers = new List<ulong>();
 
     private readonly GuildConfig guildConfig;
 
     private object[] commandsArgs = Array.Empty<object>();
 
-    private ICommandContext Context { get; set; }
+    private ICommandContext? Context { get; set; }
 
-    private ModuleBase Module { get; set; }
+    private ModuleBase? Module { get; set; }
 
     public string Id { get; private set; } = string.Empty;
 
@@ -98,7 +98,7 @@ public class PreconditionWatcher
                 //     properties.Embed = new EmbedBuilder().AddField("Cancelled", "The vote was cancelled").Build();
                 //     properties.Components = Optional<MessageComponent>.Unspecified;
                 // });
-                await (await Context.Respondable.GetOriginalResponseAsync()).DeleteAsync();
+                await (await Context?.Respondable.GetOriginalResponseAsync()!).DeleteAsync();
             }
             catch (Exception e)
             {
@@ -137,9 +137,10 @@ public class PreconditionWatcher
             }
 
             //* Check if user is connected to the same VC as the bot
-            if (guildConfig.BotConnectedToVC && !context.VoiceChannel.Equals(guildConfig.BotsVoiceChannel))
+            if (guildConfig.BotConnectedToVc && !context.VoiceChannel.Equals(guildConfig.BotsVoiceChannel))
             {
-                await ReplyAsync(context, Responses.WrongVoiceChannel(guildConfig.BotsVoiceChannel.Mention));
+                if (guildConfig.BotsVoiceChannel != null)
+                    await ReplyAsync(context, Responses.WrongVoiceChannel(guildConfig.BotsVoiceChannel.Mention));
                 return false;
             }
         }
@@ -204,7 +205,7 @@ public class PreconditionWatcher
         // Console.WriteLine("TRYING TO VOTE");
 
 
-        IGuildUser user = component.User as IGuildUser;
+        IGuildUser? user = component.User as IGuildUser;
         IVoiceChannel vc = guildConfig.BotsVoiceChannel ?? user!.VoiceChannel;
 
         //* If the id doesnt match or the users isn't connected to the vc, ignore (return)
@@ -249,9 +250,10 @@ public class PreconditionWatcher
     /// </summary>
     private async Task Invoke()
     {
+        if (Context == null) return;
         try
         {
-            await ((Task)Context.CommandInfo?.Method?.Invoke(Module, commandsArgs ?? Array.Empty<object>())!)!;
+            await (Task)Context.CommandInfo.Method?.Invoke(Module, commandsArgs)!;
         }
         catch (Exception e)
         {

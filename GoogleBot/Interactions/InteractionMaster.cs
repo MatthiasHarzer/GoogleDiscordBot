@@ -47,7 +47,7 @@ public static class InteractionMaster
     /// </summary>
     /// <param name="commandName"></param>
     /// <returns>The command or null if not found</returns>
-    public static CommandInfo GetCommandFromName(string commandName)
+    public static CommandInfo? GetCommandFromName(string commandName)
     {
         var res = CommandList.FindAll(c => c.Name == commandName);
         if (res.Count > 0)
@@ -63,7 +63,7 @@ public static class InteractionMaster
     /// </summary>
     /// <param name="messageCommandName">The commands name</param>
     /// <returns>The message command info</returns>
-    public static CommandInfo GetMessageCommandFromName(string messageCommandName)
+    public static CommandInfo? GetMessageCommandFromName(string messageCommandName)
     {
         var res = MessageCommands.FindAll(c => c.Name == messageCommandName);
         if (res.Count > 0)
@@ -83,11 +83,11 @@ public static class InteractionMaster
     public static void MountModules()
     {
         //* Add regular commands
-        IEnumerable<SlashCommandModuleBase> slashCommandModules = typeof(SlashCommandModuleBase).Assembly.GetTypes()
+        IEnumerable<SlashCommandModuleBase?> slashCommandModules = typeof(SlashCommandModuleBase).Assembly.GetTypes()
             .Where(t => t.IsSubclassOf(typeof(SlashCommandModuleBase)) && !t.IsAbstract)
-            .Select(t => (SlashCommandModuleBase)Activator.CreateInstance(t));
+            .Select(t => (SlashCommandModuleBase)Activator.CreateInstance(t)!);
 
-        foreach (SlashCommandModuleBase module in slashCommandModules)
+        foreach (SlashCommandModuleBase? module in slashCommandModules)
         {
             // if (module != null) Helpers.Add(new ApplicationModuleHelper(module));
             if (module != null)
@@ -95,24 +95,24 @@ public static class InteractionMaster
         }
 
         //* Add message commands
-        IEnumerable<MessageCommandModuleBase> messageCommandModules = typeof(MessageCommandModuleBase).Assembly
+        IEnumerable<MessageCommandModuleBase?> messageCommandModules = typeof(MessageCommandModuleBase).Assembly
             .GetTypes()
             .Where(t => t.IsSubclassOf(typeof(MessageCommandModuleBase)) && !t.IsAbstract)
-            .Select(t => (MessageCommandModuleBase)Activator.CreateInstance(t));
+            .Select(t => (MessageCommandModuleBase)Activator.CreateInstance(t)!);
         
-        foreach (MessageCommandModuleBase module in messageCommandModules)
+        foreach (MessageCommandModuleBase? module in messageCommandModules)
         {
             // if (module != null) MessageCommandHelpers.Add(new ApplicationModuleHelper(module));
             if (module != null) AddMessageCommandModule(module);
         }
 
         //* Add Interaction Modules
-        IEnumerable<InteractionModuleBase> interactionModules = typeof(InteractionModuleBase).Assembly
+        IEnumerable<InteractionModuleBase?> interactionModules = typeof(InteractionModuleBase).Assembly
             .GetTypes()
             .Where(t => t.IsSubclassOf(typeof(InteractionModuleBase)) && !t.IsAbstract)
-            .Select(t => (InteractionModuleBase)Activator.CreateInstance(t));
+            .Select(t => (InteractionModuleBase)Activator.CreateInstance(t)!);
 
-        foreach (InteractionModuleBase module in interactionModules)
+        foreach (InteractionModuleBase? module in interactionModules)
         {
             // if (module != null) MessageCommandHelpers.Add(new ApplicationModuleHelper(module));
             if (module != null) AddInteractionModule(module);
@@ -134,13 +134,12 @@ public static class InteractionMaster
         //* Get all methods in the module
         foreach (MethodInfo method in moduleType.GetMethods())
         {
-            CommandAttribute commandAttribute = method.GetCustomAttribute<CommandAttribute>();
-            SummaryAttribute summaryAttribute = method.GetCustomAttribute<SummaryAttribute>();
+            CommandAttribute? commandAttribute = method.GetCustomAttribute<CommandAttribute>();
+            SummaryAttribute? summaryAttribute = method.GetCustomAttribute<SummaryAttribute>();
             // AliasAttribute aliasAttribute = method.GetCustomAttribute<AliasAttribute>();
-            PrivateAttribute privateAttribute = method.GetCustomAttribute<PrivateAttribute>();
-            LinkComponentInteractionAttribute linkComponentAttribute =
-                method.GetCustomAttribute<LinkComponentInteractionAttribute>();
-            PreconditionAttribute preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
+            PrivateAttribute? privateAttribute = method.GetCustomAttribute<PrivateAttribute>();
+
+            PreconditionAttribute? preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
             ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p => new ParameterInfo
             {
                 Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
@@ -209,10 +208,10 @@ public static class InteractionMaster
         //* Get all methods in the module
         foreach (MethodInfo method in moduleType.GetMethods())
         {
-            CommandAttribute commandAttribute = method.GetCustomAttribute<CommandAttribute>();
-            LinkComponentInteractionAttribute linkComponentAttribute =
-                method.GetCustomAttribute<LinkComponentInteractionAttribute>();
-            PreconditionAttribute preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
+            CommandAttribute? commandAttribute = method.GetCustomAttribute<CommandAttribute>();
+            // LinkComponentInteractionAttribute? linkComponentAttribute =
+            //     method.GetCustomAttribute<LinkComponentInteractionAttribute>();
+            PreconditionAttribute? preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
 
             bool devonly = isDevOnlyModule || (method.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false);
 
@@ -258,7 +257,7 @@ public static class InteractionMaster
         Type moduleType = module.GetType();
         foreach (MethodInfo method in moduleType.GetMethods())
         {
-            LinkComponentInteractionAttribute linkComponentAttribute =
+            LinkComponentInteractionAttribute? linkComponentAttribute =
                 method.GetCustomAttribute<LinkComponentInteractionAttribute>();
 
             //* Only add if the linkComponentAttribute is set
@@ -316,7 +315,7 @@ public static class InteractionMaster
         try
         {
             SlashCommandContext commandContext = new SlashCommandContext(command);
-            CommandInfo commandInfo = commandContext.CommandInfo!;
+            CommandInfo commandInfo = commandContext.CommandInfo;
 
             // if (commandContext.CommandInfo is not { OverrideDefer: true })
             // {
@@ -325,7 +324,7 @@ public static class InteractionMaster
 
             if (commandInfo is { Method: not null })
             {
-                SlashCommandModuleBase module = (SlashCommandModuleBase)commandInfo.GetNewModuleInstanceWith(commandContext);
+                SlashCommandModuleBase module = commandInfo.GetNewModuleInstanceWith(commandContext);
                 // module.Context = commandContext;
 
                 Console.WriteLine($"Found /{commandInfo.Name} in {module}");
@@ -334,7 +333,7 @@ public static class InteractionMaster
 
                 await command.DeferAsync(commandContext.IsEphemeral);
 
-                PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo!);
+                PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
                 bool preconditionsMet =
                     await watcher.CheckPreconditions(commandContext, module, args);
                 
@@ -342,14 +341,14 @@ public static class InteractionMaster
                     return;
 
 
-                // Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
+                Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
 
 
                 // helper.SetContext(commandContext);
                 try
                 {
                     // Console.WriteLine(args.Length);
-                    await ((Task)commandInfo.Method!.Invoke(module, args)!)!;
+                    await (Task)commandInfo.Method!.Invoke(module, args)!;
                 }
                 catch (Exception e)
                 {
@@ -359,7 +358,7 @@ public static class InteractionMaster
             }
             else
             {
-                commandContext.Command?.ModifyOriginalResponseAsync(properties =>
+                await commandContext.Command.ModifyOriginalResponseAsync(properties =>
                 {
                     properties.Content = "`Looks like that command doesn't exist. Sorry :/`";
                 });
@@ -379,7 +378,7 @@ public static class InteractionMaster
     public static async Task ExecuteMessageCommand(SocketMessageCommand command)
     {
         MessageCommandContext commandContext = new MessageCommandContext(command);
-        CommandInfo commandInfo = commandContext.CommandInfo!;
+        CommandInfo commandInfo = commandContext.CommandInfo;
 
         await command.DeferAsync();
 
@@ -388,14 +387,14 @@ public static class InteractionMaster
         {
             MessageCommandModuleBase module = commandInfo.GetNewModuleInstanceWith(commandContext);
             // module.Context = commandContext;
-            Console.WriteLine($"Found message command {commandInfo?.Name} in {module}");
+            Console.WriteLine($"Found message command {commandInfo.Name} in {module}");
             object[] args = { commandContext.Message };
 
             // Console.WriteLine(string.Join(", ", args));
             // Console.WriteLine(commandInfo);
 
 
-            PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo!);
+            PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
             bool preconditionsMet =
                 await watcher.CheckPreconditions(commandContext, module, args);
             // Console.WriteLine(preconditionsMet);
@@ -410,7 +409,7 @@ public static class InteractionMaster
                 // Console.WriteLine(module + " " + commandInfo.NewModule);
 
 
-                await (Task)commandInfo!.Method!.Invoke(module, args)!;
+                await (Task)commandInfo.Method!.Invoke(module, args)!;
             }
             catch (Exception e)
             {
@@ -420,7 +419,7 @@ public static class InteractionMaster
         }
         else
         {
-            command?.ModifyOriginalResponseAsync(properties =>
+            await command.ModifyOriginalResponseAsync(properties =>
             {
                 properties.Content = "`Looks like that command doesn't exist. Sorry :/`";
             });
@@ -461,7 +460,7 @@ public static class InteractionMaster
                 foreach (MethodInfo method in componentCallback.Value)
                 {
                     var module = (InteractionModuleBase)Activator.CreateInstance(method.DeclaringType!)!;
-                    module!.SetContext(new InteractionContext(component));
+                    module.SetContext(new InteractionContext(component));
                     await (Task)method.Invoke(module, new object[] { component })!;
                 }
             }
@@ -478,7 +477,7 @@ public static class InteractionMaster
 
         IDisposable? typing = null;
 
-        if (command.IsDevOnly && socketCommandContext.Guild.Id != Secrets.DevGuildID)
+        if (command.IsDevOnly && socketCommandContext.Guild.Id != Secrets.DevGuildId)
         {
             return;
         }
@@ -538,10 +537,10 @@ public static class InteractionMaster
         {
             string content = File.ReadAllText("./commands.json");
 
-            JsonObject json = JsonSerializer.Deserialize<JsonObject>(content);
+            JsonObject? json = JsonSerializer.Deserialize<JsonObject>(content);
 
 
-            JsonArray jsonCommands = null;
+            JsonArray? jsonCommands = null;
 
             if (json != null && json.TryGetPropertyValue("commands", out var jn))
             {
@@ -550,7 +549,7 @@ public static class InteractionMaster
 
             if (jsonCommands != null)
             {
-                foreach (JsonNode jsonCommand in jsonCommands)
+                foreach (JsonNode? jsonCommand in jsonCommands)
                 {
                     if (jsonCommand == null) continue;
                     try
@@ -583,15 +582,15 @@ public static class InteractionMaster
     /// <returns>The list of message commands in the safe-file</returns>
     public static List<CommandInfo> ImportMessageCommands()
     {
-        List<CommandInfo> messageCommands = new();
+        List<CommandInfo> messageCommands = new List<CommandInfo>();
 
         try
         {
             string content = File.ReadAllText("./commands.json");
 
-            JsonObject json = JsonSerializer.Deserialize<JsonObject>(content);
+            JsonObject? json = JsonSerializer.Deserialize<JsonObject>(content);
 
-            JsonArray jsonMessageCommands = null;
+            JsonArray? jsonMessageCommands = null;
             if (json != null && json.TryGetPropertyValue("messageCommands", out var jmcmd))
             {
                 jsonMessageCommands = jmcmd?.AsArray();
@@ -599,7 +598,7 @@ public static class InteractionMaster
 
             if (jsonMessageCommands != null)
             {
-                foreach (JsonNode jsonMsgCommand in jsonMessageCommands)
+                foreach (JsonNode? jsonMsgCommand in jsonMessageCommands)
                 {
                     if (jsonMsgCommand == null) continue;
                     try

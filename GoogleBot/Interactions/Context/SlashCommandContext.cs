@@ -43,7 +43,7 @@ public class SlashCommandContext : ICommandContext
 
         TextChannel = command.Channel;
 
-        CommandInfo = InteractionMaster.GetCommandFromName(command.CommandName);
+        CommandInfo = InteractionMaster.GetCommandFromName(command.CommandName)!;
         Command = command;
         Guild = (SocketGuild?)guildUser.Guild!;
         User = command.User;

@@ -29,7 +29,7 @@ public abstract class ModuleBase : IModuleBase
     /// <summary>
     /// The context for replying and sending messages internaly
     /// </summary>
-    private IContext InnerContext { get; set; }
+    private IContext InnerContext { get; set; } = null!;
 
     public async Task ReplyAsync(FormattedMessage message)
     {
@@ -67,7 +67,7 @@ public abstract class ModuleBase : IModuleBase
         }
     }
 
-    public async Task ReplyAsync(EmbedBuilder embed, ComponentBuilder components = null)
+    public async Task ReplyAsync(EmbedBuilder embed, ComponentBuilder? components = null)
     {
         await ReplyAsync(new FormattedMessage(embed).WithComponents(components!));
     }
@@ -131,7 +131,7 @@ public abstract class MessageCommandModuleBase : ModuleBase
     /// <summary>
     /// The context in which the command gets executed
     /// </summary>
-    protected MessageCommandContext Context { get; private set; }
+    protected MessageCommandContext Context { get; private set; } = null!;
 
     /// <summary>
     /// Set the context of the module
@@ -152,7 +152,7 @@ public abstract class SlashCommandModuleBase : ModuleBase
     /// <summary>
     /// The context in which the command gets executed
     /// </summary>
-    protected SlashCommandContext Context { get; private set; }
+    protected SlashCommandContext Context { get; private set; } = null!;
 
     /// <summary>
     /// Set the context of the module
@@ -174,7 +174,7 @@ public abstract class InteractionModuleBase : ModuleBase
     /// <summary>
     /// The context in which the interaction gets executed
     /// </summary>
-    protected InteractionContext Context { get; private set; }
+    protected InteractionContext Context { get; private set; } = null!;
 
     /// <summary>
     /// Set the context of the module
