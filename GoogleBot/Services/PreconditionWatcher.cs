@@ -35,6 +35,9 @@ public class PreconditionWatcher
 
     private ModuleBase? Module { get; set; }
 
+    /// <summary>
+    /// The precondition component id
+    /// </summary>
     public string Id { get; private set; } = string.Empty;
 
     /// <summary>
