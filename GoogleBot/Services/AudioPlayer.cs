@@ -44,7 +44,6 @@ public enum AudioPlayState
     CancelledEarly,
 }
 
-
 /// <summary>
 /// For communicating with the YouTube API v3
 /// </summary>
@@ -104,7 +103,7 @@ public class YouTubeApiClient
         searchListRequest.Type = "video";
         searchListRequest.MaxResults = 20;
         searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Relevance;
- 
+
         var response = (await searchListRequest.ExecuteAsync())?.Items ?? new List<SearchResult>();
 
         List<SearchResult> results = new List<SearchResult>();
@@ -115,7 +114,9 @@ public class YouTubeApiClient
                 if (searchResult.Snippet.LiveBroadcastContent == "none")
                 {
                     results.Add(searchResult);
-                };
+                }
+
+                ;
             }
             catch
             {
@@ -123,7 +124,6 @@ public class YouTubeApiClient
             }
             // if(results.Count >= 5) break;
         }
-
 
 
         return results.ConvertAll(input => input.Id.VideoId);
@@ -161,12 +161,11 @@ public class AudioPlayer
     /// </summary>
     private async Task SetTargetAutoplaySongAsync()
     {
-        if(CurrentSong == null) return;
+        if (CurrentSong == null) return;
         List<string> nextVideos = await YouTubeApiClient.FindRelatedVideos(CurrentSong.Id.Value);
         List<Video> videos = new List<Video>();
         foreach (string nextVideoId in nextVideos)
         {
-             
             try
             {
                 // Console.WriteLine("Trying to get video query");
@@ -177,8 +176,8 @@ public class AudioPlayer
             catch (ArgumentException)
             {
             }
-            if(videos.Count >= 5) break;
-            
+
+            if (videos.Count >= 5) break;
         }
 
         if (videos.Count > 0)
@@ -391,7 +390,7 @@ public class AudioPlayer
         CurrentSong = video;
 
         _ = SetTargetAutoplaySongAsync();
-        
+
 
         //* get stream from youtube
         var manifest = await youtubeExplodeClient.Videos.Streams.GetManifestAsync(video.Id);
@@ -483,13 +482,14 @@ public class AudioPlayer
             _ = Play(video.Id);
             return await youtubeExplodeClient.Videos.GetAsync(video.Id);
         }
+
         if (guildConfig.AutoPlay && NextTargetAutoPlaySong != null)
         {
-
             Video nextSong = NextTargetAutoPlaySong;
             _ = Play(NextTargetAutoPlaySong.Id.Value);
             return nextSong;
         }
+
         Stop();
         return null;
     }
