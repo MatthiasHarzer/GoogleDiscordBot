@@ -97,7 +97,7 @@ public class YouTubeApiClient
     /// </summary>
     /// <param name="videoId">The video to find related videos to</param>
     /// <returns>A video id</returns>
-    public async Task<string?> FindRelatedVideo(string videoId)
+    public async Task<List<string>> FindRelatedVideos(string videoId)
     {
         var searchListRequest = service.Search.List("snippet");
         searchListRequest.RelatedToVideoId = videoId;
@@ -124,9 +124,9 @@ public class YouTubeApiClient
             if(results.Count >= 5) break;
         }
 
-        
-        
-        return results.Count <= 0 ? null : Util.GetRandom(results).Id.VideoId;
+
+
+        return results.ConvertAll(input => input.Id.VideoId);
     }
 }
 
@@ -162,10 +162,23 @@ public class AudioPlayer
     private async Task SetTargetAutoplaySongAsync()
     {
         if(CurrentSong == null) return;
-        string? nextVideo = await YouTubeApiClient.FindRelatedVideo(CurrentSong.Id.Value);
-        if (nextVideo != null)
+        List<string> nextVideos = await YouTubeApiClient.FindRelatedVideos(CurrentSong.Id.Value);
+        foreach (string nextVideoId in nextVideos)
         {
-            NextTargetAutoPlaySong = await youtubeExplodeClient.Videos.GetAsync(nextVideo);
+             
+            try
+            {
+                // Console.WriteLine("Trying to get video query");
+                Video video = await youtubeExplodeClient.Videos.GetAsync(nextVideoId);
+                if (video.Duration is { TotalHours: < 1 })
+                {
+                    NextTargetAutoPlaySong = video;
+                    break;
+                }
+            }
+            catch (ArgumentException)
+            {
+            }
         }
     }
 
