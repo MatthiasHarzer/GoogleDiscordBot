@@ -121,7 +121,7 @@ public class YouTubeApiClient
             {
                 // ignored
             }
-            if(results.Count >= 5) break;
+            // if(results.Count >= 5) break;
         }
 
 
@@ -163,6 +163,7 @@ public class AudioPlayer
     {
         if(CurrentSong == null) return;
         List<string> nextVideos = await YouTubeApiClient.FindRelatedVideos(CurrentSong.Id.Value);
+        List<Video> videos = new List<Video>();
         foreach (string nextVideoId in nextVideos)
         {
              
@@ -170,15 +171,19 @@ public class AudioPlayer
             {
                 // Console.WriteLine("Trying to get video query");
                 Video video = await youtubeExplodeClient.Videos.GetAsync(nextVideoId);
-                if (video.Duration is { TotalHours: < 1 })
-                {
-                    NextTargetAutoPlaySong = video;
-                    break;
-                }
+                if (video.Duration is not { TotalHours: < 1 }) continue;
+                videos.Add(video);
             }
             catch (ArgumentException)
             {
             }
+            if(videos.Count >= 5) break;
+            
+        }
+
+        if (videos.Count > 0)
+        {
+            NextTargetAutoPlaySong = Util.GetRandom(videos);
         }
     }
 
