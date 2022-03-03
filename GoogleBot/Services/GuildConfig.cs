@@ -20,6 +20,7 @@ public class GuildConfig
     /// </summary>
     public AudioPlayer AudioPlayer { get; }
     
+    
     /// <summary>
     /// The guilds id
     /// </summary>
