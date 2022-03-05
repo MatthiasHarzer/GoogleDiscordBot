@@ -42,6 +42,7 @@ public enum AudioPlayState
     JoiningChannelFailed,
     DifferentVoiceChannels,
     CancelledEarly,
+    VoiceChannelEmpty
 }
 
 /// <summary>
@@ -265,14 +266,18 @@ public class AudioPlayer
 
         if (voiceChannel == null)
         {
+            
             return new PlayReturnValue
             {
                 AudioPlayState = AudioPlayState.NoVoiceChannel,
             };
         }
 
+        
+
         if (query.Length <= 0)
         {
+            
             return new PlayReturnValue
             {
                 AudioPlayState = AudioPlayState.InvalidQuery
@@ -388,6 +393,18 @@ public class AudioPlayer
 
         Playing = true;
         CurrentSong = video;
+        
+        var users = await voiceChannel.GetUsersAsync().ToListAsync().AsTask();
+        int userCount = users.First()?.ToList().FindAll(u => !u.IsBot).Count ?? 0;
+        if (userCount <= 0)
+        {
+            Console.WriteLine("VC Empty");
+            Stop();
+            return new PlayReturnValue
+            {
+                AudioPlayState = AudioPlayState.VoiceChannelEmpty
+            };
+        }
 
         _ = SetTargetAutoplaySongAsync();
 
@@ -401,11 +418,12 @@ public class AudioPlayer
         MemoryStream memoryStream = new MemoryStream();
 
         //* Start ffmpeg process to convert stream to memory stream
-        await Cli.Wrap("ffmpeg")
+       await Cli.Wrap("ffmpeg")
             .WithArguments("-hide_banner -loglevel panic -i pipe:0 -ac 2 -f s16le -ar 48000 pipe:1")
             .WithStandardInputPipe(PipeSource.FromStream(stream))
             .WithStandardOutputPipe(PipeTarget.ToStream(memoryStream))
             .ExecuteAsync();
+       
         // ffmpegProcess = CreateFfmpegProcess(streamInfo.Url);
 
         //* If bot isn't connected -> connect 

@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using System;
+using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions.Commands;
 using GoogleBot.Services;
@@ -70,6 +71,11 @@ public class Responses
             case AudioPlayState.CancelledEarly:
                 embed.AddField("Cancelled", "`Playing was stopped early.`");
                 break;
+            case AudioPlayState.VoiceChannelEmpty:
+                embed.AddField("Cancelled", "`Voice channel is empty.`");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
 
         return new FormattedMessage(embed);

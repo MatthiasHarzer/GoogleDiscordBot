@@ -20,13 +20,12 @@ public class GuildConfig
     /// </summary>
     public AudioPlayer AudioPlayer { get; }
     
-    
     /// <summary>
     /// The guilds id
     /// </summary>
     public ulong Id { get; }
 
-    private bool autoPlay;
+    private bool autoPlay = true;
 
     /// <summary>
     /// Whether autoplay is enabled
