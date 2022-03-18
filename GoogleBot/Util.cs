@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Discord;
@@ -404,5 +405,18 @@ public static class Util
         Random r = new Random();
         return list[r.Next(list.Count)];
 
+    }
+
+    public static IEnumerable<T?> GetModulesOfType<T>()
+    {
+        return typeof(T).Assembly.GetTypes()
+            .Where(t => t.IsSubclassOf(typeof(T)) && !t.IsAbstract && !t.IsNested)
+            .Select(t => (T)Activator.CreateInstance(t)!);
+    }
+    public static IEnumerable<T?> GetNestedModulesOfType<T>(T baseModule)
+    {
+        return baseModule!.GetType().GetNestedTypes()
+            .Where(t => t.IsSubclassOf(typeof(T)) && !t.IsAbstract )
+            .Select(t => (T)Activator.CreateInstance(t)!);
     }
 }

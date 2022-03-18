@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -83,23 +85,19 @@ public static class InteractionMaster
     public static void MountModules()
     {
         //* Add regular commands
-        IEnumerable<SlashCommandModuleBase?> slashCommandModules = typeof(SlashCommandModuleBase).Assembly.GetTypes()
-            .Where(t => t.IsSubclassOf(typeof(SlashCommandModuleBase)) && !t.IsAbstract)
-            .Select(t => (SlashCommandModuleBase)Activator.CreateInstance(t)!);
+        IEnumerable<SlashCommandModuleBase?> slashCommandModules = Util.GetModulesOfType<SlashCommandModuleBase>();
 
+        Console.WriteLine("Adding SlashCommand Modules:");
         foreach (SlashCommandModuleBase? module in slashCommandModules)
         {
             // if (module != null) Helpers.Add(new ApplicationModuleHelper(module));
-            if (module != null)
-                AddCommandModule(module);
+            if (module != null) AddCommandModule(module);
         }
 
         //* Add message commands
-        IEnumerable<MessageCommandModuleBase?> messageCommandModules = typeof(MessageCommandModuleBase).Assembly
-            .GetTypes()
-            .Where(t => t.IsSubclassOf(typeof(MessageCommandModuleBase)) && !t.IsAbstract)
-            .Select(t => (MessageCommandModuleBase)Activator.CreateInstance(t)!);
+        IEnumerable<MessageCommandModuleBase?> messageCommandModules = Util.GetModulesOfType<MessageCommandModuleBase>();
         
+        Console.WriteLine("----\nAdding MessageCommand Modules:");
         foreach (MessageCommandModuleBase? module in messageCommandModules)
         {
             // if (module != null) MessageCommandHelpers.Add(new ApplicationModuleHelper(module));
@@ -107,16 +105,15 @@ public static class InteractionMaster
         }
 
         //* Add Interaction Modules
-        IEnumerable<InteractionModuleBase?> interactionModules = typeof(InteractionModuleBase).Assembly
-            .GetTypes()
-            .Where(t => t.IsSubclassOf(typeof(InteractionModuleBase)) && !t.IsAbstract)
-            .Select(t => (InteractionModuleBase)Activator.CreateInstance(t)!);
+        IEnumerable<InteractionModuleBase?> interactionModules = Util.GetModulesOfType<InteractionModuleBase>();
 
+        Console.WriteLine("-----\nAdding Interaction Modules:");
         foreach (InteractionModuleBase? module in interactionModules)
         {
             // if (module != null) MessageCommandHelpers.Add(new ApplicationModuleHelper(module));
             if (module != null) AddInteractionModule(module);
         }
+        Console.WriteLine("-----");
     }
 
 
@@ -124,8 +121,11 @@ public static class InteractionMaster
     /// Add a <see cref="SlashCommandModuleBase"/> and its slash commands 
     /// </summary>
     /// <param name="module">The module to add</param>
-    private static void AddCommandModule(SlashCommandModuleBase module)
+    /// <param name="baseModule">The base class when module is nested</param>
+    /// <param name="nameAddOn"></param>
+    private static void AddCommandModule(SlashCommandModuleBase module, SlashCommandModuleBase? baseModule = null, string nameAddOn = "")
     {
+        // Console.WriteLine($"{(string.Join("",Enumerable.Repeat("  ", i)))}-{module.GetType().Name}");
         Type moduleType = module.GetType();
         // Console.WriteLine("app cmd  " + ModuleType.BaseType + " -> " + CommandModuleType);
         bool isDevOnlyModule = moduleType.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
@@ -154,43 +154,55 @@ public static class InteractionMaster
 
 
             //* All methods must be async tasks
-            if (method.ReturnType == typeof(Task))
-            {
-                if (commandAttribute != null)
+            if (method.ReturnType != typeof(Task)) continue;
+            if (commandAttribute == null) continue;
+            
+            //* -> is command 
+            bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
+            bool overrideDefer = method.GetCustomAttribute<OverrideDeferAttribute>()?.DeferOverride ?? false;
+            string name = $"{nameAddOn}{commandAttribute.Text}";
+
+
+            if (!AddCommand(new CommandInfo
                 {
-                    //* -> is command 
-                    bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
-                    bool overrideDefer = method.GetCustomAttribute<OverrideDeferAttribute>()?.DeferOverride ?? false;
-
-
-                    if (!AddCommand(new CommandInfo
-                        {
-                            Name = commandAttribute.Text,
-                            Summary = summaryAttribute?.Text ?? "No description available",
-                            Type = CommandType.SlashCommand,
-                            Parameters = parameterInfo,
-                            Method = method,
-                            IsPrivate = isEphemeral,
-                            IsDevOnly = devonly,
-                            OverrideDefer = overrideDefer,
-                            IsOptionalEphemeral =
-                                method.GetCustomAttribute<OptionalEphemeralAttribute>()?.IsOptionalEphemeral ?? false,
-                            Preconditions = new Preconditions
-                            {
-                                RequiresMajority = preconditionAttribute?.RequiresMajority ??
-                                                   new PreconditionAttribute().RequiresMajority,
-                                MajorityVoteButtonText = preconditionAttribute?.ButtonText ??
-                                                         new PreconditionAttribute().ButtonText,
-                                RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ??
-                                                       new PreconditionAttribute().RequiresBotConnected,
-                            }
-                        }))
+                    BaseModule = baseModule,
+                    Name = name,
+                    Summary = summaryAttribute?.Text ?? "No description available",
+                    Type = CommandType.SlashCommand,
+                    Parameters = parameterInfo,
+                    Method = method,
+                    IsPrivate = isEphemeral,
+                    IsDevOnly = devonly,
+                    OverrideDefer = overrideDefer,
+                    IsOptionalEphemeral =
+                        method.GetCustomAttribute<OptionalEphemeralAttribute>()?.IsOptionalEphemeral ?? false,
+                    Preconditions = new Preconditions
                     {
-                        Console.WriteLine(
-                            $"Slash Command {commandAttribute.Text} in {moduleType} already exists somewhere else! -> no new command was added");
+                        RequiresMajority = preconditionAttribute?.RequiresMajority ??
+                                           new PreconditionAttribute().RequiresMajority,
+                        MajorityVoteButtonText = preconditionAttribute?.ButtonText ??
+                                                 new PreconditionAttribute().ButtonText,
+                        RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ??
+                                               new PreconditionAttribute().RequiresBotConnected,
                     }
-                }
+                }))
+            {
+                Console.WriteLine(
+                    $"Slash Command {commandAttribute.Text} in {moduleType} already exists somewhere else! -> no new command was added");
             }
+            else
+            {
+                // Console.WriteLine($"{(string.Join("",Enumerable.Repeat("  ", i)))} -{nameAddOn}{commandAttribute.Text}");
+            }
+        }
+        
+        foreach (SlashCommandModuleBase? m in Util.GetNestedModulesOfType(module))
+        {
+            SubModuleAttribute? subModuleAttribute = m?.GetType().GetCustomAttribute<SubModuleAttribute>();
+            
+            if(subModuleAttribute == null) continue;
+            
+            AddCommandModule(m!, module,  $"{nameAddOn}{subModuleAttribute.Name}.");
         }
     }
 
@@ -201,6 +213,7 @@ public static class InteractionMaster
     /// <param name="module">The module to add</param>
     private static void AddMessageCommandModule(MessageCommandModuleBase module)
     {
+        Console.WriteLine($"-{module.GetType().Name}");
         Type moduleType = module.GetType();
         // Console.WriteLine("MCMD " + ModuleType.BaseType + " -> " + CommandModuleType);
         bool isDevOnlyModule = moduleType.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
@@ -253,7 +266,7 @@ public static class InteractionMaster
     /// <param name="module">The module to add</param>
     private static void AddInteractionModule(InteractionModuleBase module)
     {
-        Console.WriteLine("adding module " + module);
+        Console.WriteLine($"-{module.GetType().Name}");
         Type moduleType = module.GetType();
         foreach (MethodInfo method in moduleType.GetMethods())
         {
@@ -263,7 +276,7 @@ public static class InteractionMaster
             //* Only add if the linkComponentAttribute is set
             if (linkComponentAttribute != null)
             {
-                Console.WriteLine("  - " + method);
+                // Console.WriteLine("  - " + method);
                 //* -> Is component interaction callback
                 string customId = linkComponentAttribute.CustomId;
 
@@ -297,7 +310,26 @@ public static class InteractionMaster
             case CommandType.SlashCommand:
             case CommandType.UserCommand:
             default:
-                if (CommandList.FindAll(com => com.Name == commandInfo.Name).Count != 0) return false;
+                Console.WriteLine($"Adding {commandInfo.Name}");
+                if (CommandList.FindAll(com =>
+                    {
+                        if (!$"{com.Name}.".StartsWith($"{commandInfo.Name}") &&
+                            !$"{commandInfo.Name}.".StartsWith($"{com.Name}"))
+                            return false;
+                        
+                        string[] existing = com.Name.Split(".");
+                        string[] newCmd = commandInfo.Name.Split(".");
+                        bool valid = false;
+                        
+                        // [settings, all]
+                        // [settings, all, guilds]
+                        
+                        for (int i = 0; i < MathF.Min(existing.Length, newCmd.Length); i++)
+                        {
+                            valid |= existing[i] != newCmd[i];
+                        }
+                        return !valid;
+                    }).Count != 0) return false;
                 //* The command does not exist yet -> add
                 CommandList.Add(commandInfo);
                 break;

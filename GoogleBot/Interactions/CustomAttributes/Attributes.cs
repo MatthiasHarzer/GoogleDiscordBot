@@ -168,3 +168,14 @@ public class OptionalEphemeralAttribute : Attribute
 
     public static bool Default => new OptionalEphemeralAttribute().IsOptionalEphemeral;
 }
+
+[AttributeUsage(AttributeTargets.Class)]
+public class SubModuleAttribute : Attribute
+{
+    public string Name { get; }
+
+    public SubModuleAttribute(string name)
+    {
+        Name = name.ToLower();
+    }
+}

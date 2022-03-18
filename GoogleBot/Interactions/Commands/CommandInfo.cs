@@ -5,7 +5,7 @@ using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
 using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.Modules;
-using ModuleBase = Discord.Commands.ModuleBase;
+// using ModuleBase = Discord.Commands.ModuleBase;
 
 namespace GoogleBot.Interactions.Commands;
 
@@ -30,6 +30,8 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     public Preconditions Preconditions { get; init; } = new();
 
     public Type Module => Method?.DeclaringType!;
+
+    public ModuleBase? BaseModule { get; init; }
 
     public bool OverrideDefer { get; init; } = false;
 

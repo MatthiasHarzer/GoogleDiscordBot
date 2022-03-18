@@ -20,7 +20,8 @@ namespace GoogleBot.Services;
 
 public class PlayReturnValue
 {
-    public AudioPlayState AudioPlayState { get; init; }
+    public AudioPlayerProcessingState ProcessingState { get; init; } = AudioPlayerProcessingState.Finished;
+    public AudioPlayState AudioPlayState { get; init; } = AudioPlayState.Success;
     public Video? Video { get; init; }
     public PlaylistVideo[] Videos { get; init; } = Array.Empty<PlaylistVideo>();
 
@@ -43,6 +44,13 @@ public enum AudioPlayState
     DifferentVoiceChannels,
     CancelledEarly,
     VoiceChannelEmpty
+}
+
+public enum AudioPlayerProcessingState
+{
+    Searching,
+    Processing,
+    Finished,
 }
 
 /// <summary>
@@ -151,6 +159,8 @@ public class AudioPlayer
 
     private CancellationTokenSource audioCancellationToken = new CancellationTokenSource();
 
+    public PartialReturnValue<PlayReturnValue> WorkingSnapshot { get; private set; } = null!;
+
     public AudioPlayer(GuildConfig guildConfig)
     {
         this.guildConfig = guildConfig;
@@ -241,6 +251,13 @@ public class AudioPlayer
         }
     }
 
+    public PartialReturnValue<PlayReturnValue> NewPlay(string query, IVoiceChannel vc)
+    {
+        WorkingSnapshot = new PartialReturnValue<PlayReturnValue>();
+        _ = Play(query, vc);
+        return WorkingSnapshot;
+    }
+
     /// <summary>
     /// Tries to play some audio from youtube in a given voice channel
     /// </summary>
@@ -266,23 +283,33 @@ public class AudioPlayer
 
         if (voiceChannel == null)
         {
-            
+            WorkingSnapshot.Complete(new PlayReturnValue
+            {
+                AudioPlayState = AudioPlayState.NoVoiceChannel,
+            });
             return new PlayReturnValue
             {
                 AudioPlayState = AudioPlayState.NoVoiceChannel,
             };
         }
 
-        
 
         if (query.Length <= 0)
         {
-            
+            WorkingSnapshot.Complete(new PlayReturnValue
+            {
+                AudioPlayState = AudioPlayState.InvalidQuery
+            });
             return new PlayReturnValue
             {
                 AudioPlayState = AudioPlayState.InvalidQuery
             };
         }
+
+        WorkingSnapshot.Set(new PlayReturnValue
+        {
+            ProcessingState = AudioPlayerProcessingState.Searching
+        });
 
 
         //* Initialize youtube streaming client
@@ -290,12 +317,16 @@ public class AudioPlayer
         List<PlaylistVideo> playlistVideos = new();
         bool isNewPlaylist = false;
 
+        // Console.WriteLine("Searching for video");
+
+        // System.Diagnostics.Stopwatch timer = new();
         //* Check if video exists (only ids or urls)
         try
         {
             try
             {
                 // Console.WriteLine("Trying to get video query");
+
                 video = await youtubeExplodeClient.Videos.GetAsync(query);
             }
             catch (ArgumentException)
@@ -354,6 +385,10 @@ public class AudioPlayer
             }
             catch
             {
+                WorkingSnapshot.Complete(new PlayReturnValue
+                {
+                    AudioPlayState = AudioPlayState.InvalidQuery,
+                });
                 return new PlayReturnValue
                 {
                     AudioPlayState = AudioPlayState.InvalidQuery,
@@ -361,8 +396,15 @@ public class AudioPlayer
             }
         }
 
+
+        // Console.WriteLine($"Got video {video.Title} in {timer.Elapsed.Seconds}s");
+
         if (video.Duration is { TotalHours: > 1 })
         {
+            WorkingSnapshot.Complete(new PlayReturnValue
+            {
+                AudioPlayState = AudioPlayState.TooLong,
+            });
             return new PlayReturnValue
             {
                 AudioPlayState = AudioPlayState.TooLong,
@@ -375,6 +417,12 @@ public class AudioPlayer
             Queue.Add(video);
             if (isNewPlaylist)
             {
+                WorkingSnapshot.Complete(new PlayReturnValue
+                {
+                    AudioPlayState = AudioPlayState.QueuedAsPlaylist,
+                    Video = video,
+                    Videos = playlistVideos.ToArray()
+                });
                 return new PlayReturnValue
                 {
                     AudioPlayState = AudioPlayState.QueuedAsPlaylist,
@@ -383,6 +431,11 @@ public class AudioPlayer
                 };
             }
 
+            WorkingSnapshot.Complete(new PlayReturnValue
+            {
+                AudioPlayState = AudioPlayState.Queued,
+                Video = video,
+            });
             return new PlayReturnValue
             {
                 AudioPlayState = AudioPlayState.Queued,
@@ -393,13 +446,17 @@ public class AudioPlayer
 
         Playing = true;
         CurrentSong = video;
-        
+
         var users = await voiceChannel.GetUsersAsync().ToListAsync().AsTask();
         int userCount = users.First()?.ToList().FindAll(u => !u.IsBot).Count ?? 0;
         if (userCount <= 0)
         {
             Console.WriteLine("VC Empty");
             Stop();
+            WorkingSnapshot.Complete(new PlayReturnValue
+            {
+                AudioPlayState = AudioPlayState.VoiceChannelEmpty
+            });
             return new PlayReturnValue
             {
                 AudioPlayState = AudioPlayState.VoiceChannelEmpty
@@ -409,21 +466,28 @@ public class AudioPlayer
         _ = SetTargetAutoplaySongAsync();
 
 
+        // Console.WriteLine("Getting manifest");
         //* get stream from youtube
         var manifest = await youtubeExplodeClient.Videos.Streams.GetManifestAsync(video.Id);
         var streamInfo = manifest.GetMuxedStreams().GetWithHighestBitrate();
-        Stream stream = await youtubeExplodeClient.Videos.Streams.GetAsync(streamInfo);
-
+        // Stream stream = await youtubeExplodeClient.Videos.Streams.GetAsync(streamInfo);
+        // Console.WriteLine("Got stream and starting FFMPEG");
 
         MemoryStream memoryStream = new MemoryStream();
 
+        WorkingSnapshot.Set(new PlayReturnValue
+        {
+            ProcessingState = AudioPlayerProcessingState.Processing
+        });
+
         //* Start ffmpeg process to convert stream to memory stream
-       await Cli.Wrap("ffmpeg")
-            .WithArguments("-hide_banner -loglevel panic -i pipe:0 -ac 2 -f s16le -ar 48000 pipe:1")
-            .WithStandardInputPipe(PipeSource.FromStream(stream))
+        await Cli.Wrap("ffmpeg")
+            .WithArguments($"-hide_banner -loglevel panic -i {streamInfo.Url} -ac 2 -f s16le -ar 48000 pipe:1")
+            // .WithStandardInputPipe(PipeSource.FromStream(stream))
             .WithStandardOutputPipe(PipeTarget.ToStream(memoryStream))
             .ExecuteAsync();
-       
+
+        // Console.WriteLine("Checking client connection state");
         // ffmpegProcess = CreateFfmpegProcess(streamInfo.Url);
 
         //* If bot isn't connected -> connect 
@@ -444,6 +508,10 @@ public class AudioPlayer
                         AudioPlayState = AudioPlayState.CancelledEarly
                     };
                 voiceChannel = null;
+                WorkingSnapshot.Complete(new PlayReturnValue
+                {
+                    AudioPlayState = AudioPlayState.JoiningChannelFailed
+                });
                 return new PlayReturnValue
                 {
                     AudioPlayState = AudioPlayState.JoiningChannelFailed
@@ -451,13 +519,19 @@ public class AudioPlayer
             }
         }
 
-        Console.WriteLine("Starting audio stream");
+        // Console.WriteLine("Starting audio stream");
 
         //* Play sound async
         PlayAudioFromStream(AudioClient, memoryStream, NextSong);
 
         if (isNewPlaylist)
         {
+            WorkingSnapshot.Complete(new PlayReturnValue
+            {
+                AudioPlayState = AudioPlayState.PlayingAsPlaylist,
+                Video = video,
+                Videos = playlistVideos.ToArray()
+            });
             return new PlayReturnValue
             {
                 AudioPlayState = AudioPlayState.PlayingAsPlaylist,
@@ -466,7 +540,11 @@ public class AudioPlayer
             };
         }
 
-
+        WorkingSnapshot.Complete(new PlayReturnValue
+        {
+            AudioPlayState = AudioPlayState.Success,
+            Video = video,
+        });
         return new PlayReturnValue
         {
             AudioPlayState = AudioPlayState.Success,

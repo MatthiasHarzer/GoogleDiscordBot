@@ -65,8 +65,43 @@ public class TestModule : SlashCommandModuleBase
         am.SetContext(Context);
         await am.Play(query);
     }
-    
-    
+
+    [Command("test")]
+    [Summary("A test command")]
+    public async Task TestCommand()
+    {
+        Console.WriteLine("Invoking...");
+        await ReplyAsync("Worked (I guess)....");
+    }
+
+    [Command("settings")]
+    public async Task Settings()
+    {
+        
+    }
+
+    [SubModule("settings")]
+    public class SubCommand : SlashCommandModuleBase
+    {
+
+        [Command("all")]
+        public async Task All()
+        {
+
+            await ReplyAsync("all settings");
+        }
+        
+        [SubModule("guild")]
+        public class SubSubCommand : SlashCommandModuleBase
+        {
+            [Command("all")]
+            public async Task All()
+            {
+                await ReplyAsync("all guild settings");
+            }
+        }
+    }
+
 }
 
 /// <summary>
@@ -78,6 +113,7 @@ public class InfoModule : SlashCommandModuleBase
     [Summary("Shows a help dialog with all available commands")]
     public async Task Help()
     {
+        
         // List<CommandInfo> _commands = CommandHandler._coms.Commands.ToList();
         EmbedBuilder embedBuilder = new EmbedBuilder
         {
@@ -118,10 +154,28 @@ public class AudioModule : SlashCommandModuleBase
             await ReplyAsync(embed);
             return;
         }
-
+        
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
+        // Console.WriteLine("Invoking audioplayer");
+        // PartialReturnValue<PlayReturnValue> returnSnapshot = player.NewPlay(query, channel);
+        //
+        // returnSnapshot.OnChange(async value =>
+        // {
+        //     if (value == null) return;
+        //
+        //     await ReplyAsync(Responses.FromAudioPlayerProcessingState(value.ProcessingState));
+        // });
+        // returnSnapshot.OnTimeout(async () =>
+        // {
+        //     await ReplyAsync("`Failed to play song.`");
+        // });
+        // returnSnapshot.OnFinish(async value =>
+        // {
+        //     Console.WriteLine("Responding");
+        //     await ReplyAsync(Responses.FromPlayReturnValue(value!));
+        // });
+        
         PlayReturnValue returnValue = await player.Play(query, channel);
-
 
         //* User response
         await ReplyAsync(Responses.FromPlayReturnValue(returnValue));

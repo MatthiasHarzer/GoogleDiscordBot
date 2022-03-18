@@ -16,9 +16,6 @@ public class MajorityWatchModule : InteractionModuleBase
 
         // Console.WriteLine("In MV " + watcher);
 
-        if (watcher != null)
-        {
-            _ = watcher.TryVote(component);
-        }
+        _ = watcher.TryVote(component);
     }
 }

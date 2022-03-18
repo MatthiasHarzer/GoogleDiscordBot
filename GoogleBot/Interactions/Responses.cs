@@ -81,6 +81,17 @@ public class Responses
         return new FormattedMessage(embed);
     }
 
+    public static FormattedMessage FromAudioPlayerProcessingState(AudioPlayerProcessingState state)
+    {
+        return state switch
+        {
+            AudioPlayerProcessingState.Searching => new FormattedMessage("`Searching for that song...`"),
+            AudioPlayerProcessingState.Processing => new FormattedMessage("`Starting streaming process`"),
+            AudioPlayerProcessingState.Finished => new FormattedMessage("`Finished!`"),
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+        };
+    }
+    
     public static FormattedMessage NothingToSkip()
     {
         return new FormattedMessage(new EmbedBuilder().AddField("Nothing to skip", "The queue is empty."));

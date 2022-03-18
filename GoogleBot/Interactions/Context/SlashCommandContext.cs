@@ -30,6 +30,8 @@ public class SlashCommandContext : ICommandContext
     /// The original command 
     /// </summary>
     public SocketSlashCommand Command { get; }
+    
+    
 
 
     /// <summary>
