@@ -138,9 +138,44 @@ public class AudioPlayer
 {
     public bool Playing;
     public IAudioClient? AudioClient;
-    public readonly List<Video> Queue = new List<Video>();
-    public Video? CurrentSong;
-    public Video? NextTargetAutoPlaySong;
+    public List<Video> Queue = new List<Video>();
+    public bool QueueComplete { get; private set; }
+
+    public String QueueFormatted
+    {
+        get
+        {
+            int max_length = 1024; //Discord embedField limit
+            int counter = 0;
+
+            int more_hint_len = 50;
+
+            int approxLength = 0 + more_hint_len;
+
+            string queueFormatted = "";
+
+            foreach (var video in Queue)
+            {
+                string content = $"\n\n{Util.FormattedLinkedVideo(video)}";
+
+                if (content.Length + approxLength > max_length)
+                {
+                    queueFormatted += $"\n\n `And {Queue.Count - counter} more...`";
+                    break;
+                }
+
+                approxLength += content.Length;
+                queueFormatted += content;
+                counter++;
+            }
+
+            return queueFormatted;
+        }
+    }
+    public Video? CurrentSong { get; private set; }
+    public Video? NextTargetSong { get; private set; }
+    
+    
     private IVoiceChannel? voiceChannel;
     private readonly GuildConfig guildConfig;
     private YouTubeApiClient YouTubeApiClient => YouTubeApiClient.Get();
@@ -151,6 +186,8 @@ public class AudioPlayer
 
     private CancellationTokenSource audioCancellationToken = new CancellationTokenSource();
 
+    private Task? targetSongSetter;
+
     public AudioPlayer(GuildConfig guildConfig)
     {
         this.guildConfig = guildConfig;
@@ -158,32 +195,47 @@ public class AudioPlayer
     // private Process ffmpegProcess;
 
     /// <summary>
-    /// Sets the auto play song depending on the currently playing song
+    /// Sets the next song depending on queue or the currently playing song
     /// </summary>
-    private async Task SetTargetAutoplaySongAsync()
+    private void SetTargetSong()
     {
-        if (CurrentSong == null) return;
-        List<string> nextVideos = await YouTubeApiClient.FindRelatedVideos(CurrentSong.Id.Value);
-        List<Video> videos = new List<Video>();
-        foreach (string nextVideoId in nextVideos)
-        {
-            try
-            {
-                // Console.WriteLine("Trying to get video query");
-                Video video = await youtubeExplodeClient.Videos.GetAsync(nextVideoId);
-                if (video.Duration is not { TotalHours: < 1 }) continue;
-                videos.Add(video);
-            }
-            catch (ArgumentException)
-            {
-            }
+        targetSongSetter?.Dispose();
+        targetSongSetter = _SetTargetSongAsync();
+        
+    }
 
-            if (videos.Count >= 5) break;
+    private async Task _SetTargetSongAsync()
+    {
+        NextTargetSong = null;
+        if (Queue.Count > 0)
+        {
+            NextTargetSong = Queue.First();
         }
-
-        if (videos.Count > 0)
+        else if(CurrentSong != null)
         {
-            NextTargetAutoPlaySong = Util.GetRandom(videos);
+            // Find a recommended video
+            List<string> nextVideos = await YouTubeApiClient.FindRelatedVideos(CurrentSong.Id.Value);
+            List<Video> videos = new List<Video>();
+            foreach (string nextVideoId in nextVideos)
+            {
+                try
+                {
+                    // Console.WriteLine("Trying to get video query");
+                    Video video = await youtubeExplodeClient.Videos.GetAsync(nextVideoId);
+                    if (video.Duration is not { TotalHours: < 1 }) continue;
+                    videos.Add(video);
+                }
+                catch (ArgumentException)
+                {
+                }
+
+                if (videos.Count >= 5) break;
+            }
+
+            if (videos.Count > 0)
+            {
+                NextTargetSong = Util.GetRandom(videos);
+            }
         }
     }
 
@@ -194,6 +246,7 @@ public class AudioPlayer
     /// <param name="videoNotToAdd">The video to skip when occuring in playlist</param>
     private async Task AddToQueueExceptAsync(PlaylistVideo[] playlistVideos, Video? videoNotToAdd = null)
     {
+        QueueComplete = false;
         foreach (PlaylistVideo playlistVideo in playlistVideos)
         {
             if (videoNotToAdd != null && playlistVideo.Id != videoNotToAdd.Id &&
@@ -203,6 +256,8 @@ public class AudioPlayer
                 Queue.Add(video);
             }
         }
+
+        QueueComplete = true;
     }
 
     /// <summary>
@@ -373,6 +428,7 @@ public class AudioPlayer
         if (Playing)
         {
             Queue.Add(video);
+            SetTargetSong();
             if (isNewPlaylist)
             {
                 return new PlayReturnValue
@@ -406,23 +462,29 @@ public class AudioPlayer
             };
         }
 
-        _ = SetTargetAutoplaySongAsync();
-
-
-        //* get stream from youtube
-        var manifest = await youtubeExplodeClient.Videos.Streams.GetManifestAsync(video.Id);
-        var streamInfo = manifest.GetMuxedStreams().GetWithHighestBitrate();
-        Stream stream = await youtubeExplodeClient.Videos.Streams.GetAsync(streamInfo);
-
+        SetTargetSong();
 
         MemoryStream memoryStream = new MemoryStream();
+   
+        //* get stream from youtube
+        var manifest = await youtubeExplodeClient.Videos.Streams.GetManifestAsync(video.Id);
+        
+        // var streamInfo = manifest.GetMuxedStreams().GetWithHighestBitrate();
+        var s = manifest.GetAudioOnlyStreams().First();
+        Stream stream = await youtubeExplodeClient.Videos.Streams.GetAsync(s);
+        
+        // Console.WriteLine(stream.);
+        // url =
+        //     "https://rr4---sn-h0jelnes.googlevideo.com/videoplayback?expire=1647618142&ei=_lM0YtybI4bv7gOh8bSQBA&ip=2003%3Ad2%3Af703%3Af07%3Ad78%3A1c42%3A8e92%3Aa2ae&id=o-ANiYSRXUDxoj9aFqr-Oc5seDooeYLUl9RoWskadNoQQS&itag=251&source=youtube&requiressl=yes&mh=RH&mm=31%2C29&mn=sn-h0jelnes%2Csn-h0jeenl6&ms=au%2Crdu&mv=m&mvi=4&pl=36&ctier=A&pfa=5&initcwndbps=1313750&hightc=yes&vprv=1&mime=audio%2Fwebm&ns=PovBucmpJChzSnfye4EGT9IG&gir=yes&clen=10131779&dur=659.781&lmt=1638011164437871&mt=1647596213&fvip=4&keepalive=yes&fexp=24001373%2C24007246&c=WEB&txp=5431432&n=PVzQzDpDesw15g&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cctier%2Cpfa%2Chightc%2Cvprv%2Cmime%2Cns%2Cgir%2Cclen%2Cdur%2Clmt&sig=AOq0QJ8wRAIgH-jqQ2RJiQyYFiVqKe5Qw1HhA8GsHC1Jy_WFhK8Ja5MCICyPJLYPGVscCKaSkGa7w1UL7PI2h44l_c33CIPnyCi6&lsparams=mh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Cinitcwndbps&lsig=AG3C_xAwRQIhALfpQRmSZKHX6T4Q2hT2V1RRS9UWrKSBdQAk-0q6R1IFAiBEkG-IoeCi9S-hG08tHjQ1UgI5-Jm0hGaubQHNWfl2Dw%3D%3D&alr=yes&cpn=0edB5ygKSPnmH557&cver=2.20220317.00.00&rn=11&rbuf=2729";
 
         //* Start ffmpeg process to convert stream to memory stream
        await Cli.Wrap("ffmpeg")
-            .WithArguments("-hide_banner -loglevel panic -i pipe:0 -ac 2 -f s16le -ar 48000 pipe:1")
+            .WithArguments($"-hide_banner -loglevel panic -i pipe:0 -ac 2 -f s16le -ar 48000 pipe:1")
             .WithStandardInputPipe(PipeSource.FromStream(stream))
             .WithStandardOutputPipe(PipeTarget.ToStream(memoryStream))
             .ExecuteAsync();
+        
+        
        
         // ffmpegProcess = CreateFfmpegProcess(streamInfo.Url);
 
@@ -495,16 +557,25 @@ public class AudioPlayer
 
         if (Queue.Count > 0)
         {
-            Video video = Queue[0];
-            Queue.Remove(video);
-            _ = Play(video.Id);
-            return await youtubeExplodeClient.Videos.GetAsync(video.Id);
-        }
-
-        if (guildConfig.AutoPlay && NextTargetAutoPlaySong != null)
+            Video? video;
+            if (NextTargetSong == null && targetSongSetter != null)
+            {
+                await targetSongSetter;
+                video = NextTargetSong;
+            }
+            else
+            {
+                video = Queue[0];
+            }
+            Queue.Remove(video!);
+            _ = Play(video!.Id);
+            return video;
+        }else if (guildConfig.AutoPlay && targetSongSetter != null)
         {
-            Video nextSong = NextTargetAutoPlaySong;
-            _ = Play(NextTargetAutoPlaySong.Id.Value);
+            if (NextTargetSong == null) await targetSongSetter;
+            
+            Video nextSong = NextTargetSong!;
+            _ = Play(NextTargetSong!.Id.Value);
             return nextSong;
         }
 
@@ -523,7 +594,7 @@ public class AudioPlayer
 
         voiceChannel = null;
         CurrentSong = null;
-        NextTargetAutoPlaySong = null;
+        NextTargetSong = null;
 
         if (AudioClient != null)
             AudioClient.StopAsync();
@@ -544,5 +615,13 @@ public class AudioPlayer
     public void Clear()
     {
         Queue.Clear();
+        SetTargetSong();
+    }
+
+    public void ShuffleQueue()
+    {
+        Random rng = new Random();
+        Queue = Queue.OrderBy(q => rng.Next()).ToList();
+        SetTargetSong();
     }
 }

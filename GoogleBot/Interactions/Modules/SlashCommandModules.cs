@@ -207,41 +207,21 @@ public class AudioModule : SlashCommandModuleBase
 
         if (queue.Count > 0)
         {
-            int max_length = 1024; //Discord embedField limit
-            int counter = 0;
-
-            int more_hint_len = 50;
-
-            int approxLength = 0 + more_hint_len;
-
-            string queueFormatted = "";
-
-            foreach (var video in queue)
-            {
-                string content = $"\n\n{Util.FormattedLinkedVideo(video)}";
-
-                if (content.Length + approxLength > max_length)
-                {
-                    queueFormatted += $"\n\n `And {queue.Count - counter} more...`";
-                    break;
-                }
-
-                approxLength += content.Length;
-                queueFormatted += content;
-                counter++;
-            }
-
-            embed.AddField($"Queue ({queue.Count})", queueFormatted);
+            embed.AddField($"Queue ({queue.Count})", player.QueueFormatted);
         }
         else
         {
             embed.AddField("Queue is empty", "Nothing to show.");
-            if(player.NextTargetAutoPlaySong != null)
+            if(player.NextTargetSong != null)
             {
-                embed.AddField("Autoplay:", Util.FormattedLinkedVideo(player.NextTargetAutoPlaySong));
+                embed.AddField("Autoplay:", Util.FormattedLinkedVideo(player.NextTargetSong));
             }
         }
-       
+
+        if (!player.QueueComplete)
+        {
+            embed.WithFooter("List might be incomplete due to processing playlist songs");
+        }
 
 
         await ReplyAsync(embed);
@@ -261,6 +241,19 @@ public class AudioModule : SlashCommandModuleBase
             await ReplyAsync(Responses.AutoPlayStateChange(Context.GuildConfig.AutoPlay));
         }
         
+    }
+
+    [Command("shuffle")]
+    [Summary("Shuffles the currently queued songs")]
+    public async Task Shuffle()
+    {
+        Context.GuildConfig.AudioPlayer.ShuffleQueue();
+        
+        EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+        AudioPlayer player = Context.GuildConfig.AudioPlayer;
+        
+        embed.AddField($"Shuffled queue ({player.Queue.Count})", player.QueueFormatted);
+        await ReplyAsync(embed);
     }
 }
 
