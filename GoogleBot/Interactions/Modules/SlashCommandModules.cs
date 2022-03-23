@@ -207,12 +207,12 @@ public class AudioModule : SlashCommandModuleBase
 
         if (queue.Count > 0)
         {
-            embed.AddField($"Queue ({queue.Count})", player.QueueFormatted);
+            embed.AddField($"Queue ({queue.Count})", player.QueuePages.First());
         }
         else
         {
             embed.AddField("Queue is empty", "Nothing to show.");
-            if(player.NextTargetSong != null)
+            if(Context.GuildConfig.AutoPlay && player.NextTargetSong != null)
             {
                 embed.AddField("Autoplay:", Util.FormattedLinkedVideo(player.NextTargetSong));
             }
@@ -223,6 +223,9 @@ public class AudioModule : SlashCommandModuleBase
             embed.WithFooter("List might be incomplete due to processing playlist songs");
         }
 
+        var reply = new FormattedMessage(embed);
+        
+        // reply.WithComponents(new ComponentBuilder().WithButton(""))
 
         await ReplyAsync(embed);
     }
@@ -252,7 +255,7 @@ public class AudioModule : SlashCommandModuleBase
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
         
-        embed.AddField($"Shuffled queue ({player.Queue.Count})", player.QueueFormatted);
+        embed.AddField($"Shuffled queue ({player.Queue.Count})", player.QueuePages);
         await ReplyAsync(embed);
     }
 }

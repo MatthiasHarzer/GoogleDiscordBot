@@ -141,35 +141,49 @@ public class AudioPlayer
     public List<Video> Queue = new List<Video>();
     public bool QueueComplete { get; private set; }
 
-    public String QueueFormatted
+    public string[] QueuePages
     {
         get
         {
-            int max_length = 1024; //Discord embedField limit
-            int counter = 0;
+            List<string> pages = new List<string>();
+            int index = 0;
 
-            int more_hint_len = 50;
 
-            int approxLength = 0 + more_hint_len;
-
-            string queueFormatted = "";
-
-            foreach (var video in Queue)
+            while (true)
             {
-                string content = $"\n\n{Util.FormattedLinkedVideo(video)}";
+                int max_length = 1024; //Discord embedField limit
+                int counter = 0;
 
-                if (content.Length + approxLength > max_length)
+                int more_hint_len = 50;
+
+                int approxLength = 0 + more_hint_len;
+
+                string queueFormatted = "";
+
+                foreach (var video in Queue.GetRange(index, Queue.Count - index))
                 {
-                    queueFormatted += $"\n\n `And {Queue.Count - counter} more...`";
-                    break;
+                    string content = $"\n\n{Util.FormattedLinkedVideo(video)}";
+
+                    if (content.Length + approxLength > max_length)
+                    {
+                        // queueFormatted += $"\n\n `And {Queue.Count - counter} more...`";
+                        break;
+                    }
+
+                    approxLength += content.Length;
+                    queueFormatted += content;
+                    counter++;
                 }
 
-                approxLength += content.Length;
-                queueFormatted += content;
-                counter++;
+                index += counter;
+                pages.Add(queueFormatted);
+                if (index < Queue.Count) continue;
+                break;
             }
+            
 
-            return queueFormatted;
+
+            return pages.ToArray();
         }
     }
     public Video? CurrentSong { get; private set; }
@@ -249,12 +263,10 @@ public class AudioPlayer
         QueueComplete = false;
         foreach (PlaylistVideo playlistVideo in playlistVideos)
         {
-            if (videoNotToAdd != null && playlistVideo.Id != videoNotToAdd.Id &&
-                playlistVideo.Duration is { TotalHours: <= 1 })
-            {
-                Video video = await youtubeExplodeClient.Videos.GetAsync(playlistVideo.Id);
-                Queue.Add(video);
-            }
+            if (videoNotToAdd == null || playlistVideo.Id == videoNotToAdd.Id ||
+                playlistVideo.Duration is not { TotalHours: <= 1 }) continue;
+            Video video = await youtubeExplodeClient.Videos.GetAsync(playlistVideo.Id);
+            Queue.Add(video);
         }
 
         QueueComplete = true;
@@ -470,7 +482,7 @@ public class AudioPlayer
         var manifest = await youtubeExplodeClient.Videos.Streams.GetManifestAsync(video.Id);
         
         // var streamInfo = manifest.GetMuxedStreams().GetWithHighestBitrate();
-        var s = manifest.GetAudioOnlyStreams().First();
+        var s = manifest.GetAudioOnlyStreams().GetWithHighestBitrate();
         Stream stream = await youtubeExplodeClient.Videos.Streams.GetAsync(s);
         
         // Console.WriteLine(stream.);
