@@ -173,7 +173,7 @@ public class AudioPlayer
 
                 foreach (var video in Queue.GetRange(index, Queue.Count - index))
                 {
-                    string content = $"\n\n{Util.FormattedLinkedVideo(video)}";
+                    string content = $"\n\n{index + counter + 1}. {Util.FormattedLinkedVideo(video)}";
 
                     if (content.Length + approxLength > maxLength)
                     {
