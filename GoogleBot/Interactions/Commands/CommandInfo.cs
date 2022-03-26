@@ -27,6 +27,8 @@ public class CommandInfo : IJsonSerializable<CommandInfo>
     public bool IsDevOnly { get; init; } = false;
 
     public bool IsOptionalEphemeral { get; init; }
+    
+    public bool AutoDeleteOldComponents { get; init; }
     public Preconditions Preconditions { get; init; } = new();
 
     public Type Module => Method?.DeclaringType!;

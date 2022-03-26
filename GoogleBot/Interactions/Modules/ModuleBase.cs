@@ -62,7 +62,6 @@ public abstract class ModuleBase : IModuleBase
             });
             if (InnerContext.CommandInfo != null && msg != null)
             {
-                
                 InnerContext.GuildConfig.SetLastResponseOf(InnerContext.CommandInfo, msg);
             }
 

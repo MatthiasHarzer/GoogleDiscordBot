@@ -96,7 +96,7 @@ public class GuildConfig
     {
         return watchers.Find(w => w.Id == id);
     }
-    
+
     /// <summary>
     /// Sets a message as a last response of the a command, to use later
     /// </summary>
@@ -113,11 +113,18 @@ public class GuildConfig
     /// <param name="command">The command to delete the response of</param>
     public async Task DeleteLastInteractionOf(CommandInfo command)
     {
-        if(!lastResponses.ContainsKey(command.Id)) return;
-        await  lastResponses[command.Id].ModifyAsync(properties =>
+        if (!lastResponses.ContainsKey(command.Id)) return;
+        try
         {
-            properties.Components = new ComponentBuilder().Build();
-        });
+            await lastResponses[command.Id].ModifyAsync(properties =>
+            {
+                properties.Components = new ComponentBuilder().Build();
+            });
+        }
+        catch
+        {
+            //ignored
+        }
     }
 
 

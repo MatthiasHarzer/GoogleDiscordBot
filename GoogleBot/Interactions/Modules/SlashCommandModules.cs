@@ -195,15 +195,14 @@ public class AudioModule : SlashCommandModuleBase
 
     [Command("queue")]
     [Summary("Displays the current queue")]
+    [AutoDeleteOldComponents]
     public async Task Queue()
     {
-        EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
-    
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
         Context.DataStore.QueuePage = 0;
 
         
-        _ = Context.GuildConfig.DeleteLastInteractionOf(Context.CommandInfo);
+        // _ = Context.GuildConfig.DeleteLastInteractionOf(Context.CommandInfo);
         
         var reply = Responses.QueuePage(player, 0);
         if (player.QueuePages.Length > 1)

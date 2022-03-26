@@ -152,48 +152,49 @@ public static class InteractionMaster
                 IsMultiple = p.GetCustomAttribute<MultipleAttribute>()?.IsMultiple ?? false,
                 IsOptional = p.HasDefaultValue,
             }).ToArray();
+            
+            AutoDeleteOldComponentsAttribute? oldComponentsAttribute =
+                method.GetCustomAttribute<AutoDeleteOldComponentsAttribute>();
 
 
             bool devonly = isDevOnlyModule || (method.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false);
 
 
             //* All methods must be async tasks
-            if (method.ReturnType == typeof(Task))
-            {
-                if (commandAttribute != null)
+            if (method.ReturnType != typeof(Task)) continue;
+            if (commandAttribute == null) continue;
+            
+            //* -> is command 
+            bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
+            bool overrideDefer = method.GetCustomAttribute<OverrideDeferAttribute>()?.DeferOverride ?? false;
+
+
+            if (!AddCommand(new CommandInfo
                 {
-                    //* -> is command 
-                    bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
-                    bool overrideDefer = method.GetCustomAttribute<OverrideDeferAttribute>()?.DeferOverride ?? false;
-
-
-                    if (!AddCommand(new CommandInfo
-                        {
-                            Name = commandAttribute.Text,
-                            Summary = summaryAttribute?.Text ?? "No description available",
-                            Type = CommandType.SlashCommand,
-                            Parameters = parameterInfo,
-                            Method = method,
-                            IsPrivate = isEphemeral,
-                            IsDevOnly = devonly,
-                            OverrideDefer = overrideDefer,
-                            IsOptionalEphemeral =
-                                method.GetCustomAttribute<OptionalEphemeralAttribute>()?.IsOptionalEphemeral ?? false,
-                            Preconditions = new Preconditions
-                            {
-                                RequiresMajority = preconditionAttribute?.RequiresMajority ??
-                                                   new PreconditionAttribute().RequiresMajority,
-                                MajorityVoteButtonText = preconditionAttribute?.ButtonText ??
-                                                         new PreconditionAttribute().ButtonText,
-                                RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ??
-                                                       new PreconditionAttribute().RequiresBotConnected,
-                            }
-                        }))
+                    Name = commandAttribute.Text,
+                    Summary = summaryAttribute?.Text ?? "No description available",
+                    Type = CommandType.SlashCommand,
+                    Parameters = parameterInfo,
+                    Method = method,
+                    IsPrivate = isEphemeral,
+                    IsDevOnly = devonly,
+                    AutoDeleteOldComponents = oldComponentsAttribute?.AutoDelete ?? false,
+                    OverrideDefer = overrideDefer,
+                    IsOptionalEphemeral =
+                        method.GetCustomAttribute<OptionalEphemeralAttribute>()?.IsOptionalEphemeral ?? false,
+                    Preconditions = new Preconditions
                     {
-                        Console.WriteLine(
-                            $"Slash Command {commandAttribute.Text} in {moduleType} already exists somewhere else! -> no new command was added");
+                        RequiresMajority = preconditionAttribute?.RequiresMajority ??
+                                           new PreconditionAttribute().RequiresMajority,
+                        MajorityVoteButtonText = preconditionAttribute?.ButtonText ??
+                                                 new PreconditionAttribute().ButtonText,
+                        RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ??
+                                               new PreconditionAttribute().RequiresBotConnected,
                     }
-                }
+                }))
+            {
+                Console.WriteLine(
+                    $"Slash Command {commandAttribute.Text} in {moduleType} already exists somewhere else! -> no new command was added");
             }
         }
     }
@@ -216,36 +217,36 @@ public static class InteractionMaster
             // LinkComponentInteractionAttribute? linkComponentAttribute =
             //     method.GetCustomAttribute<LinkComponentInteractionAttribute>();
             PreconditionAttribute? preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
+            AutoDeleteOldComponentsAttribute? oldComponentsAttribute =
+                method.GetCustomAttribute<AutoDeleteOldComponentsAttribute>();
 
             bool devonly = isDevOnlyModule || (method.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false);
 
             //* All methods must be async tasks
-            if (method.ReturnType == typeof(Task))
-            {
-                if (commandAttribute != null)
+            if (method.ReturnType != typeof(Task)) continue;
+            if (commandAttribute == null) continue;
+            
+            //* -> is command 
+            if (!AddCommand(new CommandInfo
                 {
-                    //* -> is command 
-                    if (!AddCommand(new CommandInfo
-                        {
-                            Name = commandAttribute.Text,
-                            Type = CommandType.MessageCommand,
-                            Method = method,
-                            IsDevOnly = devonly,
-                            Preconditions = new Preconditions
-                            {
-                                RequiresMajority = preconditionAttribute?.RequiresMajority ??
-                                                   new PreconditionAttribute().RequiresMajority,
-                                MajorityVoteButtonText = preconditionAttribute?.ButtonText ??
-                                                         new PreconditionAttribute().ButtonText,
-                                RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ??
-                                                       new PreconditionAttribute().RequiresBotConnected,
-                            }
-                        }))
+                    Name = commandAttribute.Text,
+                    Type = CommandType.MessageCommand,
+                    Method = method,
+                    IsDevOnly = devonly,
+                    AutoDeleteOldComponents = oldComponentsAttribute?.AutoDelete ?? false,
+                    Preconditions = new Preconditions
                     {
-                        Console.WriteLine(
-                            $"Message Command {commandAttribute.Text} in {moduleType} already exists somewhere else! -> no new command was added");
+                        RequiresMajority = preconditionAttribute?.RequiresMajority ??
+                                           new PreconditionAttribute().RequiresMajority,
+                        MajorityVoteButtonText = preconditionAttribute?.ButtonText ??
+                                                 new PreconditionAttribute().ButtonText,
+                        RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ??
+                                               new PreconditionAttribute().RequiresBotConnected,
                     }
-                }
+                }))
+            {
+                Console.WriteLine(
+                    $"Message Command {commandAttribute.Text} in {moduleType} already exists somewhere else! -> no new command was added");
             }
         }
     }
@@ -373,7 +374,10 @@ public static class InteractionMaster
                 // helper.SetContext(commandContext);
                 try
                 {
-                    // Console.WriteLine(args.Length);
+                    //* Check if auto delete old components is enabled, and if so, delete
+                    if (commandInfo.AutoDeleteOldComponents)
+                        _ = commandContext.GuildConfig.DeleteLastInteractionOf(commandInfo); //* Must not be awaited
+                    
                     await (Task)commandInfo.Method!.Invoke(module, args)!;
                 }
                 catch (Exception e)

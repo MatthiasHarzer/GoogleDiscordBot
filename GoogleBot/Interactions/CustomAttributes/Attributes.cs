@@ -168,3 +168,14 @@ public class OptionalEphemeralAttribute : Attribute
 
     public static bool Default => new OptionalEphemeralAttribute().IsOptionalEphemeral;
 }
+
+[AttributeUsage(AttributeTargets.Method)]
+public class AutoDeleteOldComponentsAttribute : Attribute
+{
+    public bool AutoDelete { get; }
+
+    public AutoDeleteOldComponentsAttribute(bool autoDelete = true)
+    {
+        AutoDelete = autoDelete;
+    }
+}
