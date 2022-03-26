@@ -139,24 +139,34 @@ public class AudioPlayer
     public bool Playing;
     public IAudioClient? AudioClient;
     public List<Video> Queue = new List<Video>();
-    public bool QueueComplete { get; private set; }
+    public bool QueueComplete { get; private set; } = true;
+
+    public bool AutoPlayEnabled => guildConfig.AutoPlay;
 
     public string[] QueuePages
     {
         get
         {
+            
             List<string> pages = new List<string>();
+            // pages = new List<string>()
+            // {
+            //     "Page 1",
+            //     "page 2",
+            //     "Page 3"
+            // };
             int index = 0;
 
 
             while (true)
             {
-                int max_length = 1024; //Discord embedField limit
+                // break;
+                const int maxLength = 1024; //Discord embedField limit
                 int counter = 0;
 
-                int more_hint_len = 50;
+                const int moreHintLen = 50;
 
-                int approxLength = 0 + more_hint_len;
+                int approxLength = 0 + moreHintLen;
 
                 string queueFormatted = "";
 
@@ -164,7 +174,7 @@ public class AudioPlayer
                 {
                     string content = $"\n\n{Util.FormattedLinkedVideo(video)}";
 
-                    if (content.Length + approxLength > max_length)
+                    if (content.Length + approxLength > maxLength)
                     {
                         // queueFormatted += $"\n\n `And {Queue.Count - counter} more...`";
                         break;
@@ -176,13 +186,12 @@ public class AudioPlayer
                 }
 
                 index += counter;
+                
                 pages.Add(queueFormatted);
                 if (index < Queue.Count) continue;
                 break;
             }
             
-
-
             return pages.ToArray();
         }
     }

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Discord;
+using Discord.WebSocket;
 using GoogleBot.Interactions.Context;
 
 namespace GoogleBot.Interactions.Modules;
@@ -175,6 +177,8 @@ public abstract class InteractionModuleBase : ModuleBase
     /// The context in which the interaction gets executed
     /// </summary>
     protected InteractionContext Context { get; private set; } = null!;
+
+    protected SocketMessageComponent Component => Context.Component;
 
     /// <summary>
     /// Set the context of the module

@@ -29,6 +29,7 @@ public interface IContext
     /// The guild where the interaction takes place
     /// </summary>
     public SocketGuild Guild { get; }
+    
 
     /// <summary>
     /// The <see cref="Services.GuildConfig"/> of the <see cref="Guild"/>

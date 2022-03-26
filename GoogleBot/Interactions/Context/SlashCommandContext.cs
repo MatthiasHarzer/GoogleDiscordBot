@@ -18,6 +18,7 @@ public class SlashCommandContext : ICommandContext
     public GuildConfig GuildConfig { get; }
     public SocketGuild Guild { get; }
     public CommandInfo CommandInfo { get; }
+    public Store DataStore => GuildConfig.DataStore;
     public IDiscordInteraction Respondable => Command;
     public bool IsEphemeral { get; } = false;
 

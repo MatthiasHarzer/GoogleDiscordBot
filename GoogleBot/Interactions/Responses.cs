@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions.Commands;
@@ -137,5 +139,40 @@ public class Responses
             "Autoplay:",
             $"Autoplay is now `{(newAutoPlay ? "enabled" : "disabled")}`."
         ));
+    }
+
+    public static FormattedMessage QueuePage(AudioPlayer player, int page)
+    {
+        EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+        Video? currentSong = player.CurrentSong;
+
+        List<Video> queue = player.Queue;
+
+        if (player.Playing && currentSong != null)
+        {
+            embed.AddField("Currently playing", $"[`{Util.FormattedVideo(currentSong)}`]({currentSong.Url})");
+        }
+
+        if (queue.Count > 0)
+        {
+            embed.AddField($"Queue ({queue.Count})", player.QueuePages[page]);
+        }
+        else
+        {
+            embed.AddField("Queue is empty", "Nothing to show.");
+            if(player.AutoPlayEnabled && player.NextTargetSong != null)
+            {
+                embed.AddField("Autoplay:", Util.FormattedLinkedVideo(player.NextTargetSong));
+            }
+        }
+
+        string footer = $"{page+1}/{Math.Max(player.QueuePages.Length, 1)}";
+        if (!player.QueueComplete)
+        {
+            footer += " - List might be incomplete due to processing playlist songs";
+        }
+        embed.WithFooter(footer);
+
+        return new FormattedMessage(embed);
     }
 }

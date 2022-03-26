@@ -18,6 +18,7 @@ public class InteractionContext : IContext
     public SocketMessageComponent Component { get; }
 
     public IDiscordInteraction Respondable => Component;
+    public Store DataStore => GuildConfig.DataStore;
 
     public InteractionContext(SocketMessageComponent component)
     {

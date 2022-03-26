@@ -56,6 +56,11 @@ public class GuildConfig
     private readonly List<PreconditionWatcher> watchers = new List<PreconditionWatcher>();
 
     /// <summary>
+    /// A data store for saving cross command data 
+    /// </summary>
+    public readonly Store DataStore = new Store();
+
+    /// <summary>
     /// Save guild config as file to preserve command states between restarts
     /// </summary>
     private void Export()

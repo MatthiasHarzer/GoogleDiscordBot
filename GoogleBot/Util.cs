@@ -8,6 +8,7 @@ using Google.Apis.CustomSearchAPI.v1;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using Google.Apis.Services;
 using GoogleBot.Interactions;
+using GoogleBot.Services;
 using YoutubeExplode.Videos;
 using Color = System.Drawing.Color;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
@@ -198,6 +199,11 @@ public static class Util
     public static int RandomNumber(int max = 100)
     {
         return Random.Next(max);
+    }
+
+    public static string RandomComponentId(GuildConfig guild, string prefix = "comp")
+    {
+        return $"{prefix}{(prefix.Length > 0 && prefix.Last() == '-' ? "" : "-")}{guild.Id}-{RandomString(40)}-{DateTime.Now.TimeOfDay.TotalMilliseconds}";
     }
 
 

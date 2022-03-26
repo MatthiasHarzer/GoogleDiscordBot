@@ -8,6 +8,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1.Data;
+using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Services;
 using YoutubeExplode.Videos;
@@ -100,6 +101,8 @@ public class InfoModule : SlashCommandModuleBase
 /// </summary>
 public class AudioModule : SlashCommandModuleBase
 {
+
+ 
     [Command("play")]
     [Summary("Plays music in the current voice channel from an YT-link or query")]
     [Precondition(requiresBotConnected: true)]
@@ -189,45 +192,30 @@ public class AudioModule : SlashCommandModuleBase
         await ReplyAsync(embed);
     }
 
+
     [Command("queue")]
     [Summary("Displays the current queue")]
     public async Task Queue()
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+    
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
-
-        Video? currentSong = player.CurrentSong;
-
-        List<Video> queue = player.Queue;
-
-        if (player.Playing && currentSong != null)
-        {
-            embed.AddField("Currently playing", $"[`{Util.FormattedVideo(currentSong)}`]({currentSong.Url})");
-        }
-
-        if (queue.Count > 0)
-        {
-            embed.AddField($"Queue ({queue.Count})", player.QueuePages.First());
-        }
-        else
-        {
-            embed.AddField("Queue is empty", "Nothing to show.");
-            if(Context.GuildConfig.AutoPlay && player.NextTargetSong != null)
-            {
-                embed.AddField("Autoplay:", Util.FormattedLinkedVideo(player.NextTargetSong));
-            }
-        }
-
-        if (!player.QueueComplete)
-        {
-            embed.WithFooter("List might be incomplete due to processing playlist songs");
-        }
-
-        var reply = new FormattedMessage(embed);
+        Context.DataStore.QueuePage = 0;
         
+        
+        var reply = Responses.QueuePage(player, 0);
+        if (player.QueuePages.Length > 1)
+        {
+            reply.WithComponents(
+                new ComponentBuilder()
+                    .WithButton("Prev. Page", Util.RandomComponentId(Context.GuildConfig, "prev-q-page"))
+                    .WithButton("Next Page", Util.RandomComponentId(Context.GuildConfig, "next-q-page"))
+            );
+        }
+
         // reply.WithComponents(new ComponentBuilder().WithButton(""))
 
-        await ReplyAsync(embed);
+        await ReplyAsync(reply);
     }
 
     [Command("autoplay")]

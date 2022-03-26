@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -30,6 +31,9 @@ public static class InteractionMaster
     public static readonly List<CommandInfo> MessageCommands = new();
 
     private static Dictionary<string, List<MethodInfo>> ComponentCallbacks { get; } = new();
+
+    // private static Dictionary<string, ButtonOnClickCallback> AdditionalComponentCallbacks { get; } =
+    //     new Dictionary<string, ButtonOnClickCallback>();
 
 
     public static List<CommandInfo> AllCommands
@@ -246,6 +250,25 @@ public static class InteractionMaster
         }
     }
 
+    // /// <summary>
+    // /// Registers the callback to the custom id to be called whe the id appears (component interaction)
+    // /// </summary>
+    // /// <param name="customId">The components custom id</param>
+    // /// <param name="callback">The method to call when an interaction with the custom id happens</param>
+    // public static void RegisterAdditionalComponentCallback(string customId, ButtonOnClickCallback callback)
+    // {
+    //     AdditionalComponentCallbacks[customId] = callback;
+    // }
+    //
+    // /// <summary>
+    // /// Removes any callback associated with the custom id
+    // /// </summary>
+    // /// <param name="customId">The custom id whichs callback is to remove</param>
+    // public static void ClearAdditionComponentCallback(string customId)
+    // {
+    //     AdditionalComponentCallbacks.Remove(customId);
+    // }
+    
 
     /// <summary>
     /// Add a <see cref="InteractionModuleBase"/> and its callback methods
@@ -261,23 +284,26 @@ public static class InteractionMaster
                 method.GetCustomAttribute<LinkComponentInteractionAttribute>();
 
             //* Only add if the linkComponentAttribute is set
-            if (linkComponentAttribute != null)
+            if (linkComponentAttribute == null) continue;
+        
+            //* -> Is component interaction callback
+            Console.WriteLine("  - " + method);
+            
+            string customId = linkComponentAttribute.CustomId;
+            
+            if (ComponentCallbacks.ContainsKey(customId))
             {
-                Console.WriteLine("  - " + method);
-                //* -> Is component interaction callback
-                string customId = linkComponentAttribute.CustomId;
-
-                if (ComponentCallbacks.ContainsKey(customId))
-                {
-                    ComponentCallbacks[customId].Add(method);
-                }
-                else
-                {
-                    ComponentCallbacks.Add(customId, new List<MethodInfo> { method });
-                }
+                ComponentCallbacks[customId].Add(method);
             }
+            else
+            {
+                ComponentCallbacks.Add(customId, new List<MethodInfo> { method });
+            }
+    
         }
     }
+
+
 
     /// <summary>
     /// Add a command to the commands list if it does not exist yet 
@@ -432,19 +458,21 @@ public static class InteractionMaster
     /// <param name="component">The interaction component</param>
     public static async Task HandleInteraction(SocketMessageComponent component)
     {
+        InteractionContext context = new InteractionContext(component);
         foreach (KeyValuePair<string, List<MethodInfo>> componentCallback in ComponentCallbacks)
         {
             //* Key = the components custom id or * for any id
             //* Value = List of methods to call when the custom id appears
 
-            bool startsWith =
-                componentCallback.Key.Length > 1 &&
-                componentCallback.Key.Last() == '*'; //* Match bla-id-* to bla-id-123
-            bool endsWith =
-                componentCallback.Key.Length > 1 &&
-                componentCallback.Key.First() == '*'; // Match *-bla-id to 123-bla-id
-
             string key = componentCallback.Key;
+            
+            bool startsWith =
+                key.Length > 1 &&
+                key.Last() == '*'; //* Match bla-id-* to bla-id-123
+            bool endsWith =
+                key.Length > 1 &&
+                key.First() == '*'; // Match *-bla-id to 123-bla-id
+
 
             if (startsWith || endsWith)
             {
@@ -460,11 +488,17 @@ public static class InteractionMaster
                 foreach (MethodInfo method in componentCallback.Value)
                 {
                     var module = (InteractionModuleBase)Activator.CreateInstance(method.DeclaringType!)!;
-                    module.SetContext(new InteractionContext(component));
-                    await (Task)method.Invoke(module, new object[] { component })!;
+                    module.SetContext(context);
+                    await (Task)method.Invoke(module, Array.Empty<object>())!;
                 }
             }
         }
+        // Console.WriteLine(context.DataStore.QueuePage);
+        //* Invoke addition component callbacs
+        // foreach (var keyValuePair in AdditionalComponentCallbacks.Where(c=>c.Key==component.Data.CustomId))
+        // {
+        //     keyValuePair.Value.Invoke(context);
+        // }
     }
 
     /// <summary>

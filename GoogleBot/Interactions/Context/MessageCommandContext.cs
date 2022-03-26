@@ -15,6 +15,7 @@ public class MessageCommandContext : ICommandContext
     public IVoiceChannel? VoiceChannel { get; }
     public SocketGuild Guild { get; }
     public GuildConfig GuildConfig { get; }
+    public Store DataStore => GuildConfig.DataStore;
     public CommandInfo CommandInfo { get; }
     public IDiscordInteraction Respondable => Command;
 
