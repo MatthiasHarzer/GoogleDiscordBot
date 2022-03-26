@@ -33,11 +33,11 @@ public class MajorityWatchModule : InteractionModuleBase
         {
             Context.DataStore.QueuePage++;
             
-            await Component.Message.ModifyAsync(properties =>
-            {
-                properties.Embed = Responses.QueuePage(Context.GuildConfig.AudioPlayer, Context.DataStore.QueuePage).BuiltEmbed;
-            } );
         }
+        await Component.Message.ModifyAsync(properties =>
+        {
+            properties.Embed = Responses.QueuePage(Context.GuildConfig.AudioPlayer, Context.DataStore.QueuePage).BuiltEmbed;
+        } );
         
         await Component.DeferAsync();
     }
@@ -50,11 +50,12 @@ public class MajorityWatchModule : InteractionModuleBase
             Context.DataStore.QueuePage--;
             if (Context.DataStore.QueuePage >= Context.GuildConfig.AudioPlayer.QueuePages.Length - 1)
                 Context.DataStore.QueuePage = 0;
-            await Component.Message.ModifyAsync(properties =>
-            {
-                properties.Embed = Responses.QueuePage(Context.GuildConfig.AudioPlayer, Context.DataStore.QueuePage).BuiltEmbed;
-            } );
         }
+        
+        await Component.Message.ModifyAsync(properties =>
+        {
+            properties.Embed = Responses.QueuePage(Context.GuildConfig.AudioPlayer, Context.DataStore.QueuePage).BuiltEmbed;
+        } );
         
         await Component.DeferAsync();
     }
