@@ -1,10 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 using Discord;
+using Discord.Rest;
+using Discord.WebSocket;
 using GoogleBot.Interactions.Commands;
+using GoogleBot.Interactions.Modules;
 
 namespace GoogleBot.Services;
 
@@ -14,28 +19,36 @@ namespace GoogleBot.Services;
 public class GuildConfig
 {
     private static readonly List<GuildConfig> GuildMaster = new List<GuildConfig>();
-    
+
     /// <summary>
     /// The <see cref="GoogleBot.Services.AudioPlayer"/> instance of this guild
     /// </summary>
     public AudioPlayer AudioPlayer { get; }
-    
+
     /// <summary>
     /// The guilds id
     /// </summary>
     public ulong Id { get; }
 
-    private bool autoPlay = true;
+    /// <summary>
+    /// The last response of a command
+    /// </summary>
+    private Dictionary<string, RestInteractionMessage> lastResponses = new Dictionary<string, RestInteractionMessage>();
+
+    /// <summary>
+    /// If set to true, recommended songs will auto play when the queue is over
+    /// </summary>
+    private bool autoPlayEnabled = true;
 
     /// <summary>
     /// Whether autoplay is enabled
     /// </summary>
     public bool AutoPlay
     {
-        get => autoPlay;
+        get => autoPlayEnabled;
         set
         {
-            autoPlay = value;
+            autoPlayEnabled = value;
             Export();
         }
     }
@@ -49,7 +62,7 @@ public class GuildConfig
     /// The current bots VC, if connected
     /// </summary>
     public IVoiceChannel? BotsVoiceChannel => AudioPlayer.VoiceChannel;
-    
+
     /// <summary>
     /// This guild precondition watchers
     /// </summary>
@@ -60,52 +73,6 @@ public class GuildConfig
     /// </summary>
     public readonly Store DataStore = new Store();
 
-    /// <summary>
-    /// Save guild config as file to preserve command states between restarts
-    /// </summary>
-    private void Export()
-    {
-        JsonObject jsonObject = new JsonObject
-        {
-            { "guildId", Id },
-            {"autoPlay", AutoPlay}
-        };
-        if (!Directory.Exists("./guild.configs"))
-        {
-            Directory.CreateDirectory("./guild.configs");
-        }
-        File.WriteAllText($"./guild.configs/guild-{Id}.json", JsonSerializer.Serialize(jsonObject));
-    }
-
-    /// <summary>
-    /// Imports guildconfig from a json file
-    /// </summary>
-    private void Import()
-    {
-        try
-        {
-            string content = File.ReadAllText($"./guild.configs/guild-{Id}.json");
-
-            JsonObject? json = JsonSerializer.Deserialize<JsonObject>(content);
-
-            if (json == null || !json.TryGetPropertyValue("id", out JsonNode? id)) return;
-            if (id == null || (ulong)id != Id) return;
-            
-            if (json.TryGetPropertyValue("autoPlay", out JsonNode? ap))
-            {
-                if (ap != null) autoPlay = (bool)ap;
-            }
-
-        }
-
-        catch (Exception e)
-        {
-            Console.WriteLine(e.Message);
-            Console.WriteLine(e.StackTrace);
-            // -> something's fishy with the file or json
-        }
-    }
-    
     /// <summary>
     /// Gets the <see cref="PreconditionWatcher"/> for a given command of this guild
     /// </summary>
@@ -129,6 +96,29 @@ public class GuildConfig
     {
         return watchers.Find(w => w.Id == id);
     }
+    
+    /// <summary>
+    /// Sets a message as a last response of the a command, to use later
+    /// </summary>
+    /// <param name="commandInfo">The command to set the last response of</param>
+    /// <param name="message">The response</param>
+    public void SetLastResponseOf(CommandInfo commandInfo, RestInteractionMessage message)
+    {
+        lastResponses[commandInfo.Id] = message;
+    }
+
+    /// <summary>
+    /// Deletes the interactions of a previous response to a command
+    /// </summary>
+    /// <param name="command">The command to delete the response of</param>
+    public async Task DeleteLastInteractionOf(CommandInfo command)
+    {
+        if(!lastResponses.ContainsKey(command.Id)) return;
+        await  lastResponses[command.Id].ModifyAsync(properties =>
+        {
+            properties.Components = new ComponentBuilder().Build();
+        });
+    }
 
 
     private GuildConfig(ulong id)
@@ -149,5 +139,50 @@ public class GuildConfig
     {
         return GuildMaster.Find(guild => guild.Id.Equals(guildId)) ?? new GuildConfig((ulong)guildId!);
     }
-}
 
+    /// <summary>
+    /// Save guild config as file to preserve command states between restarts
+    /// </summary>
+    private void Export()
+    {
+        JsonObject jsonObject = new JsonObject
+        {
+            { "guildId", Id },
+            { "autoPlay", AutoPlay }
+        };
+        if (!Directory.Exists("./guild.configs"))
+        {
+            Directory.CreateDirectory("./guild.configs");
+        }
+
+        File.WriteAllText($"./guild.configs/guild-{Id}.json", JsonSerializer.Serialize(jsonObject));
+    }
+
+    /// <summary>
+    /// Imports guildconfig from a json file
+    /// </summary>
+    private void Import()
+    {
+        try
+        {
+            string content = File.ReadAllText($"./guild.configs/guild-{Id}.json");
+
+            JsonObject? json = JsonSerializer.Deserialize<JsonObject>(content);
+
+            if (json == null || !json.TryGetPropertyValue("id", out JsonNode? id)) return;
+            if (id == null || (ulong)id != Id) return;
+
+            if (json.TryGetPropertyValue("autoPlay", out JsonNode? ap))
+            {
+                if (ap != null) autoPlayEnabled = (bool)ap;
+            }
+        }
+
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            Console.WriteLine(e.StackTrace);
+            // -> something's fishy with the file or json
+        }
+    }
+}

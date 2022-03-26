@@ -26,6 +26,11 @@ public interface IContext
     public IVoiceChannel? VoiceChannel { get; }
 
     /// <summary>
+    /// The command info, if available
+    /// </summary>
+    public CommandInfo? CommandInfo { get; }
+
+    /// <summary>
     /// The guild where the interaction takes place
     /// </summary>
     public SocketGuild Guild { get; }
@@ -36,7 +41,7 @@ public interface IContext
     /// </summary>
     public GuildConfig GuildConfig { get; }
 
-    public IDiscordInteraction Respondable { get; }
+    public SocketInteraction Respondable { get; }
 }
 
 /// <summary>
@@ -46,10 +51,10 @@ public interface IContext
 /// </summary>
 public interface ICommandContext : IContext
 {
-    /// <summary>
-    /// The <see cref="Commands.CommandInfo"/> of interaction
-    /// </summary>
-    public CommandInfo CommandInfo { get; }
+    // /// <summary>
+    // /// The <see cref="Commands.CommandInfo"/> of interaction
+    // /// </summary>
+    // public CommandInfo CommandInfo { get; }
 
     /// <summary>
     /// Whether the command should be ephemeral or not

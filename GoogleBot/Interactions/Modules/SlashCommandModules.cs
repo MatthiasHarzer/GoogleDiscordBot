@@ -201,7 +201,9 @@ public class AudioModule : SlashCommandModuleBase
     
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
         Context.DataStore.QueuePage = 0;
+
         
+        _ = Context.GuildConfig.DeleteLastInteractionOf(Context.CommandInfo);
         
         var reply = Responses.QueuePage(player, 0);
         if (player.QueuePages.Length > 1)

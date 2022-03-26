@@ -256,7 +256,7 @@ public class PreconditionWatcher
         if (Context == null) return;
         try
         {
-            await (Task)Context.CommandInfo.Method?.Invoke(Module, commandsArgs)!;
+            await (Task)Context.CommandInfo?.Method?.Invoke(Module, commandsArgs)!;
         }
         catch (Exception e)
         {

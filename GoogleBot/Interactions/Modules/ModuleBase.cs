@@ -35,6 +35,8 @@ public abstract class ModuleBase : IModuleBase
 
     public async Task ReplyAsync(FormattedMessage message)
     {
+        
+        // InnerContext.CommandInfo
         //* If (for some reason) a response hasn't started, do so
         try
         {
@@ -45,11 +47,11 @@ public abstract class ModuleBase : IModuleBase
             //Ignored}
         }
 
-
+        
         try
         {
             // Console.WriteLine(message.Message+ " " +message.Embed +" " +!string.IsNullOrEmpty(message.Message) + " " + !string.IsNullOrWhiteSpace(message.Message));
-            await InnerContext.Respondable.ModifyOriginalResponseAsync(properties =>
+            var msg = await InnerContext.Respondable.ModifyOriginalResponseAsync(properties =>
             {
                 properties.Embed = message.Embed?.Build();
                 properties.Components = message.Components?.Build();
@@ -58,6 +60,12 @@ public abstract class ModuleBase : IModuleBase
                     properties.Content = message.Message;
                 }
             });
+            if (InnerContext.CommandInfo != null && msg != null)
+            {
+                
+                InnerContext.GuildConfig.SetLastResponseOf(InnerContext.CommandInfo, msg);
+            }
+
         }
         catch (Exception)
         {
@@ -164,6 +172,7 @@ public abstract class SlashCommandModuleBase : ModuleBase
     {
         SetInnerContext(context);
         Context = context;
+        
     }
 }
 

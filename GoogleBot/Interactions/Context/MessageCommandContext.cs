@@ -17,7 +17,7 @@ public class MessageCommandContext : ICommandContext
     public GuildConfig GuildConfig { get; }
     public Store DataStore => GuildConfig.DataStore;
     public CommandInfo CommandInfo { get; }
-    public IDiscordInteraction Respondable => Command;
+    public SocketInteraction Respondable => Command;
 
     /// <summary>
     /// The raw <see cref="SocketMessageCommand"/> from discord

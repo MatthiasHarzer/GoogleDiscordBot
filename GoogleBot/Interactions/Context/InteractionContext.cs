@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using GoogleBot.Interactions.Commands;
 using GoogleBot.Services;
 
 namespace GoogleBot.Interactions.Context;
@@ -12,12 +13,13 @@ public class InteractionContext : IContext
     public SocketUser User { get; }
     public ISocketMessageChannel TextChannel { get; }
     public IVoiceChannel? VoiceChannel { get; }
+    public CommandInfo? CommandInfo => null;
     public SocketGuild Guild { get; }
     public GuildConfig GuildConfig { get; }
 
     public SocketMessageComponent Component { get; }
 
-    public IDiscordInteraction Respondable => Component;
+    public SocketInteraction Respondable => Component;
     public Store DataStore => GuildConfig.DataStore;
 
     public InteractionContext(SocketMessageComponent component)
