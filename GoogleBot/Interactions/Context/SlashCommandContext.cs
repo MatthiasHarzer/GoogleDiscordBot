@@ -20,12 +20,12 @@ public class SlashCommandContext : ICommandContext
     public CommandInfo CommandInfo { get; }
     public Store DataStore => GuildConfig.DataStore;
     public SocketInteraction Respondable => Command;
-    public bool IsEphemeral { get; } = false;
+    public bool IsEphemeral { get; }
 
     /// <summary>
     /// The arguments for the executed command (including default values for optional args)
     /// </summary>
-    public object[] Arguments { get; }
+    public object?[] Arguments { get; }
 
     /// <summary>
     /// The original command 
@@ -51,7 +51,7 @@ public class SlashCommandContext : ICommandContext
         GuildConfig = GuildConfig.Get(guildUser.GuildId);
         VoiceChannel = guildUser.VoiceChannel;
 
-        object[] args = new object[CommandInfo.Method!.GetParameters().Length];
+        object?[] args = new object[CommandInfo.Method!.GetParameters().Length];
 
         object[] options = command.Data.Options.ToList().ConvertAll(option => option.Value).ToArray();
 
@@ -66,12 +66,12 @@ public class SlashCommandContext : ICommandContext
         //* Fill remaining args with their default values
         for (; i < args.Length; i++)
         {
-            if (!CommandInfo.Method.GetParameters()[i].HasDefaultValue)
+            if (!CommandInfo.Parameters[i].IsOptional && CommandInfo.Parameters[i].DefaultValue == null)
             {
                 throw new ArgumentException("Missing options.");
             }
 
-            args[i] = CommandInfo.Method!.GetParameters()[i].DefaultValue!;
+            args[i] = CommandInfo.Parameters[i].DefaultValue;
         }
 
         Arguments = args;

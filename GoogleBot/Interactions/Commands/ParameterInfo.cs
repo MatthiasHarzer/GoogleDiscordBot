@@ -15,6 +15,8 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
     public ApplicationCommandOptionType Type { get; init; }
     public bool IsMultiple { get; init; }
     public bool IsOptional { get; init; }
+    
+    public object? DefaultValue { get; init; }
 
 
     public override string ToString()

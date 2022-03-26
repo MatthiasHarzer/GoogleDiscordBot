@@ -29,7 +29,7 @@ public class PreconditionWatcher
 
     private readonly GuildConfig guildConfig;
 
-    private object[] commandsArgs = Array.Empty<object>();
+    private object?[] commandsArgs = Array.Empty<object?>();
 
     private ICommandContext? Context { get; set; }
 
@@ -45,27 +45,17 @@ public class PreconditionWatcher
     /// </summary>
     public int RemainingVotes => requiredVotes - votedUsers.Count;
 
-    private object[] UsedArgs
+    /// <summary>
+    /// Used for displaying only the arguments the user used when executing the command
+    /// </summary>
+    private object?[] UsedArgs
     {
         get
         {
             try
             {
                 //* Get the used args (remove default values)
-                List<object> usedArgs = new();
-                // int i = 0;
-                for (int i = 0; i < commandsArgs.Length; i++)
-                {
-                    // Console.WriteLine(args[i] + " != " + CommandInfo.Method!.GetParameters()[i].DefaultValue + " : " +
-                    //                   (args[i] != CommandInfo.Method!.GetParameters()[i].DefaultValue));
-                    if (!CommandInfo.Method!.GetParameters()[i].HasDefaultValue || commandsArgs[i].ToString() !=
-                        CommandInfo.Method!.GetParameters()[i].DefaultValue!.ToString())
-                    {
-                        usedArgs.Add(commandsArgs[i]);
-                    }
-                }
-
-                return usedArgs.ToArray();
+                return commandsArgs.Where((t, i) => !CommandInfo.Parameters[i].IsOptional || t?.ToString() != CommandInfo.Parameters[i].DefaultValue?.ToString()).ToArray();
             }
             catch (Exception e)
             {
@@ -116,7 +106,7 @@ public class PreconditionWatcher
         Id = string.Empty;
         Context = null;
         Module = null;
-        commandsArgs = Array.Empty<object>();
+        commandsArgs = Array.Empty<object?>();
     }
 
     /// <summary>
@@ -126,7 +116,7 @@ public class PreconditionWatcher
     /// <param name="module">The commands module</param>
     /// <param name="args">The commands args</param>
     /// <returns>True if all conditions have been met</returns>
-    public async Task<bool> CheckPreconditions(ICommandContext context, ModuleBase module, object[] args)
+    public async Task<bool> CheckPreconditions(ICommandContext context, ModuleBase module, object?[] args)
     {
         // Console.WriteLine(requiresVc + " " + requiresMajority);
 
@@ -213,12 +203,15 @@ public class PreconditionWatcher
 
         //* If the id doesnt match or the users isn't connected to the vc, ignore (return)
         var usersInVc = (await vc.GetUsersAsync().ToListAsync().AsTask()).First();
-
-        // Console.WriteLine(component.Data.CustomId + " " + Id);
-        // Console.WriteLine(string.Join(", ", usersInVc.ToList().ConvertAll(u=>u.Id)) + " \n me: " + component.User.Id);
-
-        if (component.Data.CustomId != Id || !usersInVc.ToList().ConvertAll(u => u.Id).Contains(component.User.Id))
+        
+        if (component.Data.CustomId != Id)
             return;
+       
+        if (!usersInVc.ToList().ConvertAll(u => u.Id).Contains(user!.Id))
+        {
+            await component.FollowupAsync($"`You have to be connected to` {vc.Mention} `to vote!`", ephemeral: true);
+            return;
+        }
         // Console.WriteLine("VOTING");
         if (!votedUsers.Contains(component.User.Id))
             votedUsers.Add(component.User.Id);

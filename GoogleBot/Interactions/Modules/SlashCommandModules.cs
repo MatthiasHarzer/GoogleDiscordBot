@@ -221,7 +221,7 @@ public class AudioModule : SlashCommandModuleBase
 
     [Command("autoplay")]
     [Summary("Gets and/or sets autoplay. When enabled related songs will play after queue end.")]
-    public async Task ToggleAutoplay([Summary("The new autoplay value")] [Name("set")][OptionType(ApplicationCommandOptionType.Boolean)] bool? autoplay = null)
+    public async Task ToggleAutoplay([Summary("The new autoplay value")] [Name("set")] bool? autoplay)
     {
         if (autoplay == null)
         {

@@ -138,20 +138,40 @@ public static class InteractionMaster
         //* Get all methods in the module
         foreach (MethodInfo method in moduleType.GetMethods())
         {
+            //* All methods must be async tasks
             CommandAttribute? commandAttribute = method.GetCustomAttribute<CommandAttribute>();
+            
+            if (method.ReturnType != typeof(Task)) continue;
+            if (commandAttribute == null) continue;
+            
+            
+            
             SummaryAttribute? summaryAttribute = method.GetCustomAttribute<SummaryAttribute>();
             // AliasAttribute aliasAttribute = method.GetCustomAttribute<AliasAttribute>();
             PrivateAttribute? privateAttribute = method.GetCustomAttribute<PrivateAttribute>();
 
+            
             PreconditionAttribute? preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
-            ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p => new ParameterInfo
+            ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p =>
             {
-                Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
-                Type = p.GetCustomAttribute<OptionTypeAttribute>()?.Type ?? Util.ToOptionType(p.ParameterType),
-                Name = p.GetCustomAttribute<NameAttribute>()?.Text ?? p.Name ?? string.Empty,
-                IsMultiple = p.GetCustomAttribute<MultipleAttribute>()?.IsMultiple ?? false,
-                IsOptional = p.HasDefaultValue,
+                Type? underlying = Nullable.GetUnderlyingType(p.ParameterType);
+                bool nullable = underlying != null;
+                ApplicationCommandOptionType pType = p.GetCustomAttribute<OptionTypeAttribute>()?.Type 
+                                                     ?? Util.ToOptionType(nullable ? underlying! : p.ParameterType);
+                
+                 Console.WriteLine($"{p.GetCustomAttribute<NameAttribute>()?.Text ?? p.Name ?? string.Empty} "+
+                                   $"{p.ParameterType} {Nullable.GetUnderlyingType(p.ParameterType)} {nullable || p.HasDefaultValue}");
+                return new ParameterInfo
+                {
+                    Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
+                    Type = pType,
+                    Name = p.GetCustomAttribute<NameAttribute>()?.Text ?? p.Name ?? string.Empty,
+                    IsMultiple = p.GetCustomAttribute<MultipleAttribute>()?.IsMultiple ?? false,
+                    IsOptional = nullable || p.HasDefaultValue,
+                    DefaultValue = nullable ? null : p.DefaultValue
+                };
             }).ToArray();
+            
             
             AutoDeleteOldComponentsAttribute? oldComponentsAttribute =
                 method.GetCustomAttribute<AutoDeleteOldComponentsAttribute>();
@@ -160,15 +180,24 @@ public static class InteractionMaster
             bool devonly = isDevOnlyModule || (method.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false);
 
 
-            //* All methods must be async tasks
-            if (method.ReturnType != typeof(Task)) continue;
-            if (commandAttribute == null) continue;
+            
+            
             
             //* -> is command 
             bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
             bool overrideDefer = method.GetCustomAttribute<OverrideDeferAttribute>()?.DeferOverride ?? false;
 
 
+            // if (parameterInfo.Length > 0)
+            // {
+            //     Console.WriteLine("---");
+            //     Console.WriteLine($"{commandAttribute?.Text}");
+            //     foreach (ParameterInfo info in parameterInfo)
+            //     {
+            //         Console.WriteLine($"{info.Name} {info.Type}");
+            //     }
+            // }
+            
             if (!AddCommand(new CommandInfo
                 {
                     Name = commandAttribute.Text,
@@ -356,7 +385,7 @@ public static class InteractionMaster
 
                 Console.WriteLine($"Found /{commandInfo.Name} in {module}");
 
-                object[] args = commandContext.Arguments;
+                object?[] args = commandContext.Arguments;
 
                 await command.DeferAsync(commandContext.IsEphemeral);
 
