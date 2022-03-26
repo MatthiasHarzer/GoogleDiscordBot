@@ -255,7 +255,7 @@ public class AudioModule : SlashCommandModuleBase
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
         
-        embed.AddField($"Shuffled queue ({player.Queue.Count})", player.QueuePages);
+        embed.AddField($"Shuffled queue ({player.Queue.Count})", player.QueuePages.First());
         await ReplyAsync(embed);
     }
 }
