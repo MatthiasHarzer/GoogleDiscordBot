@@ -61,7 +61,7 @@ public class LinkComponentInteractionAttribute : Attribute
 [AttributeUsage(AttributeTargets.Parameter)]
 public class MultipleAttribute : Attribute
 {
-    public bool IsMultiple { get; } = false;
+    public bool IsMultiple { get; }
 
     public MultipleAttribute()
     {
@@ -113,7 +113,7 @@ public class OverrideDeferAttribute : Attribute
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
 public class DevOnlyAttribute : Attribute
 {
-    public bool IsDevOnly { get; } = false;
+    public bool IsDevOnly { get; }
 
     public DevOnlyAttribute()
     {
@@ -126,33 +126,7 @@ public class DevOnlyAttribute : Attribute
     }
 }
 
-/// <summary>
-/// When applied, commands need the majority of a VC to execute it
-/// </summary>
-[AttributeUsage(AttributeTargets.Method)]
-public class PreconditionAttribute : Attribute
-{
-    public bool RequiresMajority { get; }
 
-    public string ButtonText { get; }
-
-    public bool RequiresBotConnected { get; }
-
-
-    /// <summary>
-    /// Initializes the precondition attribute
-    /// </summary>
-    /// <param name="requiresMajority">Whether the majority of a VC is required to execute the command</param>
-    /// <param name="majorityVoteButtonText">The text to put on the vote button</param>
-    /// <param name="requiresBotConnected">Whether the bot must be in the a and the same VC as the player who executed the command</param>
-    public PreconditionAttribute(bool requiresMajority = false, string majorityVoteButtonText = "Yes",
-        bool requiresBotConnected = false)
-    {
-        RequiresMajority = requiresMajority;
-        ButtonText = majorityVoteButtonText;
-        RequiresBotConnected = requiresBotConnected;
-    }
-}
 
 /// <summary>
 /// When applied, the command will get an optional ephemeral param, making the message ephemeral
@@ -177,5 +151,19 @@ public class AutoDeleteOldComponentsAttribute : Attribute
     public AutoDeleteOldComponentsAttribute(bool autoDelete = true)
     {
         AutoDelete = autoDelete;
+    }
+}
+
+
+[AttributeUsage(AttributeTargets.Method)]
+public class VoteConfigAttribute : Attribute
+{
+    public bool Enabled { get; }
+    public string ButtonText { get; }
+
+    public VoteConfigAttribute(bool enabled = true, string buttonText = "Vote")
+    {
+        Enabled = enabled;
+        ButtonText = buttonText;
     }
 }

@@ -4,8 +4,10 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
 using GoogleBot.Interactions.Context;
+using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Modules;
-using ModuleBase = Discord.Commands.ModuleBase;
+using GoogleBot.Interactions.Preconditions;
+
 
 namespace GoogleBot.Interactions.Commands;
 
@@ -21,19 +23,22 @@ public enum CommandType
 /// </summary>
 public class CommandInfo : IJsonSerializable<CommandInfo> 
 {
-    public bool IsPrivate { get; init; } = false;
+    public bool IsPrivate { get; init; }
     public string Name { get; init; } = string.Empty;
     public string Summary { get; init; } = "No description available";
-    public bool IsDevOnly { get; init; } = false;
+    public bool IsDevOnly { get; init; }
 
     public bool IsOptionalEphemeral { get; init; }
     
     public bool AutoDeleteOldComponents { get; init; }
-    public Preconditions Preconditions { get; init; } = new();
+
+    public PreconditionAttribute[] Preconditions { get; init; } = Array.Empty<PreconditionAttribute>();
+
+    public VoteConfigAttribute VoteConfig { get; init; } = new VoteConfigAttribute();
 
     public Type Module => Method?.DeclaringType!;
 
-    public bool OverrideDefer { get; init; } = false;
+    public bool OverrideDefer { get; init; }
 
     public CommandType Type;
 

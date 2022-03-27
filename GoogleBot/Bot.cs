@@ -346,7 +346,7 @@ public class CommandHandler
     {
         try
         {
-            _ = InteractionMaster.Execute(command);
+            _ = InteractionMaster.ExecuteSlashCommand(command);
         }
         catch (Exception e)
         {
@@ -368,6 +368,7 @@ public class CommandHandler
 
     private Task HandleMessageCommandAsync(SocketMessageCommand command)
     {
+        
         try
         {
             _ = InteractionMaster.ExecuteMessageCommand(command);

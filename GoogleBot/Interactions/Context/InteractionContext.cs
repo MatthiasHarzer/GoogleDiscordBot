@@ -10,7 +10,7 @@ namespace GoogleBot.Interactions.Context;
 /// </summary>
 public class InteractionContext : IContext
 {
-    public SocketUser User { get; }
+    public IGuildUser User { get; }
     public ISocketMessageChannel TextChannel { get; }
     public IVoiceChannel? VoiceChannel { get; }
     public CommandInfo? CommandInfo => null;
@@ -26,7 +26,7 @@ public class InteractionContext : IContext
     {
         IGuildUser guildUser = (component.User as IGuildUser)!;
         GuildConfig = GuildConfig.Get(guildUser.GuildId);
-        User = component.User;
+        User = guildUser;
         TextChannel = component.Channel;
         VoiceChannel = guildUser.VoiceChannel;
         Guild = (SocketGuild)guildUser.Guild;

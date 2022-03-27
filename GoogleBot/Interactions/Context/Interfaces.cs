@@ -13,7 +13,7 @@ public interface IContext
     /// <summary>
     /// The user who triggered the interaction
     /// </summary>
-    public SocketUser User { get; }
+    public IGuildUser User { get; }
 
     /// <summary>
     /// The Text Channel where the interaction was triggerd
@@ -54,10 +54,26 @@ public interface ICommandContext : IContext
     // /// <summary>
     // /// The <see cref="Commands.CommandInfo"/> of interaction
     // /// </summary>
-    // public CommandInfo CommandInfo { get; }
+    public new CommandInfo CommandInfo { get; }
 
     /// <summary>
     /// Whether the command should be ephemeral or not
     /// </summary>
     public bool IsEphemeral => false;
+
+    /// <summary>
+    /// The arguments for the executed command (including default values for optional args)
+    /// </summary>
+    public object?[] Arguments { get; }
+
+    /// <summary>
+    /// Includes only the arguments the user used (no defaults)
+    /// </summary>
+    public object?[] UsedArguments { get; }
+
+    /// <summary>
+    /// The command with the used arguments as string
+    /// </summary>
+    public string FormattedRepresentation =>
+        $"/{CommandInfo.Name}{(UsedArguments.Length <= 0 ? "" : $" {string.Join(" ", UsedArguments)}")}";
 }

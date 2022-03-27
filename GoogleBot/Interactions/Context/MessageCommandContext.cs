@@ -10,7 +10,7 @@ namespace GoogleBot.Interactions.Context;
 /// </summary>
 public class MessageCommandContext : ICommandContext
 {
-    public SocketUser User { get; }
+    public IGuildUser User { get; }
     public ISocketMessageChannel TextChannel { get; }
     public IVoiceChannel? VoiceChannel { get; }
     public SocketGuild Guild { get; }
@@ -18,6 +18,10 @@ public class MessageCommandContext : ICommandContext
     public Store DataStore => GuildConfig.DataStore;
     public CommandInfo CommandInfo { get; }
     public SocketInteraction Respondable => Command;
+
+    public object?[] Arguments { get; }
+
+    public object?[] UsedArguments => Arguments; //* There are no optional arguments on message commands
 
     /// <summary>
     /// The raw <see cref="SocketMessageCommand"/> from discord
@@ -32,12 +36,20 @@ public class MessageCommandContext : ICommandContext
     public MessageCommandContext(SocketMessageCommand command)
     {
         IGuildUser guildUser = (command.User as IGuildUser)!;
+
         TextChannel = command.Channel;
+
         Command = command;
+
         CommandInfo = InteractionMaster.GetMessageCommandFromName(command.CommandName)!;
+
         Guild = (SocketGuild?)guildUser.Guild!;
-        User = command.User;
+
+        User = guildUser;
+
         GuildConfig = GuildConfig.Get(guildUser.GuildId);
+
         VoiceChannel = guildUser.VoiceChannel;
+        Arguments = new object?[] { command.Data.Message }; //Message commands have only one argument (the msg)
     }
 }

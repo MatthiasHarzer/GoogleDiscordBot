@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -14,10 +13,10 @@ using GoogleBot.Interactions.Commands;
 using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Modules;
-using GoogleBot.Services;
+using GoogleBot.Interactions.Preconditions.Exceptions;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 using ParameterInfo = GoogleBot.Interactions.Commands.ParameterInfo;
-using PreconditionAttribute = GoogleBot.Interactions.CustomAttributes.PreconditionAttribute;
+using PreconditionAttribute = GoogleBot.Interactions.Preconditions.PreconditionAttribute;
 
 namespace GoogleBot.Interactions;
 
@@ -103,7 +102,7 @@ public static class InteractionMaster
             .GetTypes()
             .Where(t => t.IsSubclassOf(typeof(MessageCommandModuleBase)) && !t.IsAbstract)
             .Select(t => (MessageCommandModuleBase)Activator.CreateInstance(t)!);
-        
+
         foreach (MessageCommandModuleBase? module in messageCommandModules)
         {
             // if (module != null) MessageCommandHelpers.Add(new ApplicationModuleHelper(module));
@@ -140,23 +139,21 @@ public static class InteractionMaster
         {
             //* All methods must be async tasks
             CommandAttribute? commandAttribute = method.GetCustomAttribute<CommandAttribute>();
-            
+
             if (method.ReturnType != typeof(Task)) continue;
             if (commandAttribute == null) continue;
-            
-            
-            
+
+
             SummaryAttribute? summaryAttribute = method.GetCustomAttribute<SummaryAttribute>();
             // AliasAttribute aliasAttribute = method.GetCustomAttribute<AliasAttribute>();
             PrivateAttribute? privateAttribute = method.GetCustomAttribute<PrivateAttribute>();
 
-            
-            PreconditionAttribute? preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
+
             ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p =>
             {
                 Type? underlying = Nullable.GetUnderlyingType(p.ParameterType);
                 bool nullable = underlying != null;
-                ApplicationCommandOptionType pType = p.GetCustomAttribute<OptionTypeAttribute>()?.Type 
+                ApplicationCommandOptionType pType = p.GetCustomAttribute<OptionTypeAttribute>()?.Type
                                                      ?? Util.ToOptionType(nullable ? underlying! : p.ParameterType);
                 return new ParameterInfo
                 {
@@ -168,23 +165,35 @@ public static class InteractionMaster
                     DefaultValue = nullable ? null : p.DefaultValue
                 };
             }).ToArray();
-            
-            
+
             AutoDeleteOldComponentsAttribute? oldComponentsAttribute =
                 method.GetCustomAttribute<AutoDeleteOldComponentsAttribute>();
+            VoteConfigAttribute voteConfig =
+                method.GetCustomAttribute<VoteConfigAttribute>() ?? new VoteConfigAttribute();
+            // PreconditionAttribute? preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
 
 
             bool devonly = isDevOnlyModule || (method.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false);
 
 
-            
-            
-            
             //* -> is command 
             bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
             bool overrideDefer = method.GetCustomAttribute<OverrideDeferAttribute>()?.DeferOverride ?? false;
-            
-            
+
+            // Precondition[] preconditions = (preconditionAttribute != null
+            //     ? preconditionAttribute.PreconditionModules
+            //         .ToList().ConvertAll(p => (Precondition)Activator.CreateInstance(p)!).ToArray()
+            //     : Array.Empty<Precondition>())!;
+            IEnumerable<PreconditionAttribute> preconditions = method.GetCustomAttributes().Select(a => a.GetType())
+                .Where(t =>
+                    t.IsSubclassOf(typeof(PreconditionAttribute)) && !t.IsAbstract)
+                .Select(t => (PreconditionAttribute)Activator.CreateInstance(t)!);
+
+
+            // IEnumerable<PreconditionAttribute> preconditions = typeof(PreconditionAttribute).Assembly.GetTypes()
+            //     .Where(t => t.IsSubclassOf(typeof(PreconditionAttribute)) && !t.IsAbstract )
+            //     .Select(t => (PreconditionAttribute)Activator.CreateInstance(t)!);
+
             if (!AddCommand(new CommandInfo
                 {
                     Name = commandAttribute.Text,
@@ -198,15 +207,8 @@ public static class InteractionMaster
                     OverrideDefer = overrideDefer,
                     IsOptionalEphemeral =
                         method.GetCustomAttribute<OptionalEphemeralAttribute>()?.IsOptionalEphemeral ?? false,
-                    Preconditions = new Preconditions
-                    {
-                        RequiresMajority = preconditionAttribute?.RequiresMajority ??
-                                           new PreconditionAttribute().RequiresMajority,
-                        MajorityVoteButtonText = preconditionAttribute?.ButtonText ??
-                                                 new PreconditionAttribute().ButtonText,
-                        RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ??
-                                               new PreconditionAttribute().RequiresBotConnected,
-                    }
+                    Preconditions = preconditions.ToArray(),
+                    VoteConfig = voteConfig,
                 }))
             {
                 Console.WriteLine(
@@ -223,7 +225,6 @@ public static class InteractionMaster
     private static void AddMessageCommandModule(MessageCommandModuleBase module)
     {
         Type moduleType = module.GetType();
-        // Console.WriteLine("MCMD " + ModuleType.BaseType + " -> " + CommandModuleType);
         bool isDevOnlyModule = moduleType.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false;
 
         //* Get all methods in the module
@@ -232,16 +233,25 @@ public static class InteractionMaster
             CommandAttribute? commandAttribute = method.GetCustomAttribute<CommandAttribute>();
             // LinkComponentInteractionAttribute? linkComponentAttribute =
             //     method.GetCustomAttribute<LinkComponentInteractionAttribute>();
-            PreconditionAttribute? preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
             AutoDeleteOldComponentsAttribute? oldComponentsAttribute =
                 method.GetCustomAttribute<AutoDeleteOldComponentsAttribute>();
-
             bool devonly = isDevOnlyModule || (method.GetCustomAttribute<DevOnlyAttribute>()?.IsDevOnly ?? false);
 
             //* All methods must be async tasks
             if (method.ReturnType != typeof(Task)) continue;
             if (commandAttribute == null) continue;
-            
+
+            // Precondition[] preconditions = (preconditionAttribute != null
+            //     ? preconditionAttribute.PreconditionModules
+            //         .ToList().ConvertAll(p => (Precondition)Activator.CreateInstance(p)!).ToArray()
+            //     : Array.Empty<Precondition>())!;
+
+            IEnumerable<PreconditionAttribute> preconditions = method.GetCustomAttributes().Select(a => a.GetType())
+                .Where(t =>
+                    t.IsSubclassOf(typeof(PreconditionAttribute)) && !t.IsAbstract)
+                .Select(t => (PreconditionAttribute)Activator.CreateInstance(t)!);
+            VoteConfigAttribute voteConfig =
+                method.GetCustomAttribute<VoteConfigAttribute>() ?? new VoteConfigAttribute();
             //* -> is command 
             if (!AddCommand(new CommandInfo
                 {
@@ -250,15 +260,8 @@ public static class InteractionMaster
                     Method = method,
                     IsDevOnly = devonly,
                     AutoDeleteOldComponents = oldComponentsAttribute?.AutoDelete ?? false,
-                    Preconditions = new Preconditions
-                    {
-                        RequiresMajority = preconditionAttribute?.RequiresMajority ??
-                                           new PreconditionAttribute().RequiresMajority,
-                        MajorityVoteButtonText = preconditionAttribute?.ButtonText ??
-                                                 new PreconditionAttribute().ButtonText,
-                        RequiresBotConnected = preconditionAttribute?.RequiresBotConnected ??
-                                               new PreconditionAttribute().RequiresBotConnected,
-                    }
+                    Preconditions = preconditions.ToArray(),
+                    VoteConfig = voteConfig,
                 }))
             {
                 Console.WriteLine(
@@ -267,25 +270,6 @@ public static class InteractionMaster
         }
     }
 
-    // /// <summary>
-    // /// Registers the callback to the custom id to be called whe the id appears (component interaction)
-    // /// </summary>
-    // /// <param name="customId">The components custom id</param>
-    // /// <param name="callback">The method to call when an interaction with the custom id happens</param>
-    // public static void RegisterAdditionalComponentCallback(string customId, ButtonOnClickCallback callback)
-    // {
-    //     AdditionalComponentCallbacks[customId] = callback;
-    // }
-    //
-    // /// <summary>
-    // /// Removes any callback associated with the custom id
-    // /// </summary>
-    // /// <param name="customId">The custom id whichs callback is to remove</param>
-    // public static void ClearAdditionComponentCallback(string customId)
-    // {
-    //     AdditionalComponentCallbacks.Remove(customId);
-    // }
-    
 
     /// <summary>
     /// Add a <see cref="InteractionModuleBase"/> and its callback methods
@@ -302,12 +286,12 @@ public static class InteractionMaster
 
             //* Only add if the linkComponentAttribute is set
             if (linkComponentAttribute == null) continue;
-        
+
             //* -> Is component interaction callback
             Console.WriteLine("  - " + method);
-            
+
             string customId = linkComponentAttribute.CustomId;
-            
+
             if (ComponentCallbacks.ContainsKey(customId))
             {
                 ComponentCallbacks[customId].Add(method);
@@ -316,10 +300,8 @@ public static class InteractionMaster
             {
                 ComponentCallbacks.Add(customId, new List<MethodInfo> { method });
             }
-    
         }
     }
-
 
 
     /// <summary>
@@ -349,11 +331,12 @@ public static class InteractionMaster
         return true;
     }
 
+
     /// <summary>
     /// Execute a given slash command
     /// </summary>
     /// <param name="command">The command</param>
-    public static async Task Execute(SocketSlashCommand command)
+    public static async Task ExecuteSlashCommand(SocketSlashCommand command)
     {
         try
         {
@@ -376,12 +359,30 @@ public static class InteractionMaster
 
                 await command.DeferAsync(commandContext.IsEphemeral);
 
-                PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
-                bool preconditionsMet =
-                    await watcher.CheckPreconditions(commandContext, module, args);
-                
-                if (!preconditionsMet)
-                    return;
+
+                foreach (PreconditionAttribute precondition in commandInfo.Preconditions)
+                {
+                    Console.WriteLine("Checking precondition " + precondition);
+                    try
+                    {
+                        await precondition.WithContext(commandContext).Satisfy();
+                    }
+                    catch (PreconditionNotSatisfiedException e)
+                    {
+                        await module.ReplyAsync(e.FormattedMessage);
+                        return;
+                    }
+                    catch (PreconditionFailedException _)
+                    {
+                        return;
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        await command.DeleteOriginalResponseAsync();
+                        return;
+                    }
+                }
 
 
                 Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
@@ -393,7 +394,7 @@ public static class InteractionMaster
                     //* Check if auto delete old components is enabled, and if so, delete
                     if (commandInfo.AutoDeleteOldComponents)
                         _ = commandContext.GuildConfig.DeleteLastInteractionOf(commandInfo); //* Must not be awaited
-                    
+
                     await (Task)commandInfo.Method!.Invoke(module, args)!;
                 }
                 catch (Exception e)
@@ -424,8 +425,9 @@ public static class InteractionMaster
     public static async Task ExecuteMessageCommand(SocketMessageCommand command)
     {
         MessageCommandContext commandContext = new MessageCommandContext(command);
+        Console.WriteLine("Context");
         CommandInfo commandInfo = commandContext.CommandInfo;
-
+        Console.WriteLine("Asd");
         await command.DeferAsync();
 
 
@@ -436,19 +438,30 @@ public static class InteractionMaster
             Console.WriteLine($"Found message command {commandInfo.Name} in {module}");
             object[] args = { commandContext.Message };
 
-            // Console.WriteLine(string.Join(", ", args));
-            // Console.WriteLine(commandInfo);
+            foreach (PreconditionAttribute precondition in commandInfo.Preconditions)
+            {
+                Console.WriteLine("Checking precondition " + precondition);
+                try
+                {
+                    await precondition.WithContext(commandContext).Satisfy();
+                }
+                catch (PreconditionNotSatisfiedException e)
+                {
+                    await module.ReplyAsync(e.FormattedMessage);
+                    return;
+                }
+                catch (PreconditionFailedException e)
+                {
+                    return;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    await command.DeleteOriginalResponseAsync();
+                    return;
+                }
+            }
 
-
-            PreconditionWatcher watcher = commandContext.GuildConfig.GetWatcher(commandInfo);
-            bool preconditionsMet =
-                await watcher.CheckPreconditions(commandContext, module, args);
-            // Console.WriteLine(preconditionsMet);
-            if (!preconditionsMet)
-                return;
-
-            // Console.WriteLine(string.Join(", ", args));
-            // Console.WriteLine(commandInfo);
             try
             {
                 // var module = (ModuleBase) Activator.CreateInstance(commandInfo.Method.Module.GetType());
@@ -485,7 +498,7 @@ public static class InteractionMaster
             //* Value = List of methods to call when the custom id appears
 
             string key = componentCallback.Key;
-            
+
             bool startsWith =
                 key.Length > 1 &&
                 key.Last() == '*'; //* Match bla-id-* to bla-id-123

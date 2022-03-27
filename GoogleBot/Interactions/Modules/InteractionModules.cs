@@ -1,25 +1,19 @@
 ﻿using System.Threading.Tasks;
-using Discord.WebSocket;
 using GoogleBot.Interactions.CustomAttributes;
-using GoogleBot.Services;
 
 namespace GoogleBot.Interactions.Modules;
 
 public class MajorityWatchModule : InteractionModuleBase
 {
-    [LinkComponentInteraction("majority-vote-*")]
+    [LinkComponentInteraction("vote-*")]
     public async Task MajorityVote()
     {
+        
         // Console.WriteLine("In MV  GC: " + Context.GuildConfig);
-        PreconditionWatcher watcher = Context.GuildConfig.GetWatcher(Component.Data.CustomId)!;
+        // PreconditionWatcher watcher = Context.GuildConfig.GetWatcher(Component.Data.CustomId)!;
+        await Context.GuildConfig.VoteService.TryVote(Component);
         await Component.DeferAsync();
 
-        // Console.WriteLine("In MV " + watcher);
-
-        if (watcher != null)
-        {
-            _ = watcher.TryVote(Component);
-        }
     }
     
     [LinkComponentInteraction("next-q-page-*")]

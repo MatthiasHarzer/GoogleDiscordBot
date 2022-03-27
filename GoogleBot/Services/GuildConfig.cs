@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Rest;
-using Discord.WebSocket;
 using GoogleBot.Interactions.Commands;
-using GoogleBot.Interactions.Modules;
 
 namespace GoogleBot.Services;
 
@@ -24,6 +21,8 @@ public class GuildConfig
     /// The <see cref="GoogleBot.Services.AudioPlayer"/> instance of this guild
     /// </summary>
     public AudioPlayer AudioPlayer { get; }
+    
+    public VoteService VoteService { get; }
 
     /// <summary>
     /// The guilds id
@@ -62,40 +61,12 @@ public class GuildConfig
     /// The current bots VC, if connected
     /// </summary>
     public IVoiceChannel? BotsVoiceChannel => AudioPlayer.VoiceChannel;
-
-    /// <summary>
-    /// This guild precondition watchers
-    /// </summary>
-    private readonly List<PreconditionWatcher> watchers = new List<PreconditionWatcher>();
-
+    
     /// <summary>
     /// A data store for saving cross command data 
     /// </summary>
     public readonly Store DataStore = new Store();
-
-    /// <summary>
-    /// Gets the <see cref="PreconditionWatcher"/> for a given command of this guild
-    /// </summary>
-    /// <param name="command">The command to get the PreconditionWatcher of</param>
-    /// <returns>The PreconditoinWatcher</returns>
-    public PreconditionWatcher GetWatcher(CommandInfo command)
-    {
-        PreconditionWatcher? watcher = watchers.Find(w => w.CommandInfo.Id == command.Id);
-        if (watcher != null) return watcher;
-        watcher = new PreconditionWatcher(command, this);
-        watchers.Add(watcher);
-        return watcher;
-    }
-
-    /// <summary>
-    /// Gets the <see cref="PreconditionWatcher"/> from a given component id
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
-    public PreconditionWatcher? GetWatcher(string id)
-    {
-        return watchers.Find(w => w.Id == id);
-    }
+    
 
     /// <summary>
     /// Sets a message as a last response of the a command, to use later
@@ -131,6 +102,7 @@ public class GuildConfig
     private GuildConfig(ulong id)
     {
         AudioPlayer = new AudioPlayer(this);
+        VoteService = new VoteService(this);
         Id = id;
         GuildMaster.Add(this);
         Import();

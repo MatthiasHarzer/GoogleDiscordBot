@@ -12,7 +12,7 @@ namespace GoogleBot.Interactions.Context;
 /// </summary>
 public class SlashCommandContext : ICommandContext
 {
-    public SocketUser User { get; }
+    public IGuildUser User { get; }
     public ISocketMessageChannel TextChannel { get; }
     public IVoiceChannel? VoiceChannel { get; }
     public GuildConfig GuildConfig { get; }
@@ -21,11 +21,10 @@ public class SlashCommandContext : ICommandContext
     public Store DataStore => GuildConfig.DataStore;
     public SocketInteraction Respondable => Command;
     public bool IsEphemeral { get; }
-
-    /// <summary>
-    /// The arguments for the executed command (including default values for optional args)
-    /// </summary>
+    
     public object?[] Arguments { get; }
+    
+    public object?[] UsedArguments { get; }
 
     /// <summary>
     /// The original command 
@@ -47,7 +46,7 @@ public class SlashCommandContext : ICommandContext
         CommandInfo = InteractionMaster.GetCommandFromName(command.CommandName)!;
         Command = command;
         Guild = (SocketGuild?)guildUser.Guild!;
-        User = command.User;
+        User = guildUser;
         GuildConfig = GuildConfig.Get(guildUser.GuildId);
         VoiceChannel = guildUser.VoiceChannel;
 
@@ -62,6 +61,10 @@ public class SlashCommandContext : ICommandContext
         {
             args[i] = options[i];
         }
+
+        UsedArguments = new object?[args.Length];
+        Array.Copy(args, 0, UsedArguments, 0, args.Length);
+
 
         //* Fill remaining args with their default values
         for (; i < args.Length; i++)

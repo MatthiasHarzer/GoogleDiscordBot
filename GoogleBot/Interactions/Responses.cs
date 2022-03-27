@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Discord;
-using Discord.WebSocket;
 using GoogleBot.Interactions.Commands;
+using GoogleBot.Interactions.Context;
 using GoogleBot.Services;
 using YoutubeExplode.Videos;
 
 namespace GoogleBot.Interactions;
 
-public class Responses
+public static class Responses
 {
     /// <summary>
     /// For a skip that needs the majority of users in the VC to agree 
@@ -44,14 +43,14 @@ public class Responses
                 embed.AddField("Now playing", Util.FormattedLinkedVideo(playReturnValue.Video!));
                 break;
             case AudioPlayState.PlayingAsPlaylist:
-                embed.WithTitle($"Added {playReturnValue.Videos?.Length} songs to queue");
+                embed.WithTitle($"Added {playReturnValue.Videos.Length} songs to queue");
                 embed.AddField("Now playing", Util.FormattedLinkedVideo(playReturnValue.Video!));
                 break;
             case AudioPlayState.Queued:
                 embed.AddField("Song added to queue", Util.FormattedLinkedVideo(playReturnValue.Video!));
                 break;
             case AudioPlayState.QueuedAsPlaylist:
-                embed.WithTitle($"Added {playReturnValue.Videos?.Length} songs to queue");
+                embed.WithTitle($"Added {playReturnValue.Videos.Length} songs to queue");
                 break;
             case AudioPlayState.InvalidQuery:
                 embed.AddField("Query invalid", "`Couldn't find any results`");
@@ -88,12 +87,7 @@ public class Responses
         return new FormattedMessage(new EmbedBuilder().AddField("Nothing to skip", "The queue is empty."));
     }
 
-    public static FormattedMessage VoteRequired(SocketUser author, string command, int numberOfVotesRequired)
-    {
-        return new FormattedMessage(new EmbedBuilder().AddField(
-            $"`{numberOfVotesRequired}` more {(numberOfVotesRequired == 1 ? "vote" : "votes")} required",
-            $"<@{author.Id}> wants to execute `{command}`"));
-    }
+    
 
     /// <summary>
     /// A hint when using text-based commands, to use application command instead
@@ -113,10 +107,10 @@ public class Responses
             "`Please connect to a voice channel first!`"));
     }
 
-    public static FormattedMessage WrongVoiceChannel(string targetVc)
+    public static FormattedMessage WrongVoiceChannel(IVoiceChannel targetVc)
     {
         return new FormattedMessage(new EmbedBuilder().AddField("Invalid voice channel",
-            $"You have to be connect to the same voice channel {targetVc} as the bot."));
+            $"You have to be connect to {targetVc.Mention} to perform this action."));
     }
 
     public static FormattedMessage CommandRequiresMajorityEphemeralHint(CommandInfo commandInfo)
@@ -174,5 +168,38 @@ public class Responses
         embed.WithFooter(footer);
 
         return new FormattedMessage(embed);
+    }
+
+    
+    public static FormattedMessage VoteRequired(IGuildUser author, string command, int numberOfVotesRequired, int timeout)
+    {
+        double rounded = Math.Round(timeout * 100f / 60) / 100;
+        string end = timeout >= 60 ? $"{rounded} minute{(timeout == 60 ? "" : "s")}" : $"{timeout} seconds";
+        
+        return new FormattedMessage(new EmbedBuilder().AddField(
+            $"`{numberOfVotesRequired}` more {(numberOfVotesRequired == 1 ? "vote" : "votes")} required",
+            $"<@{author.Id}> wants to execute `{command}`").WithFooter($"Vote ends in {end}"));
+    }
+    
+    public static FormattedMessage VoteDisabled(ICommandContext context)
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField(
+                $"`/{context.CommandInfo.Name}` requires the majority of the voice channel!",
+                $"But voting is disabled for this command!"
+        ));
+    }
+
+    public static FormattedMessage VoteTimedOut(ICommandContext context)
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField(
+            $"Vote failed. Timed out!",
+            $"{context.User.Mention} wanted to execute `{context.FormattedRepresentation}`"));
+    }
+
+    public static FormattedMessage AlreadyVoted()
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField(
+            "`You already voted!`",
+            "You can only vote once."));
     }
 }

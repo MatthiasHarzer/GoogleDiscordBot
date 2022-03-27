@@ -1,6 +1,5 @@
 ﻿#nullable enable
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
@@ -8,13 +7,10 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1.Data;
-using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.CustomAttributes;
+using GoogleBot.Interactions.Preconditions;
 using GoogleBot.Services;
-using YoutubeExplode.Videos;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
-using ICommandContext = GoogleBot.Interactions.Context.ICommandContext;
-using Precondition = GoogleBot.Interactions.CustomAttributes.PreconditionAttribute;
 
 namespace GoogleBot.Interactions.Modules;
 
@@ -59,7 +55,10 @@ public class TestModule : SlashCommandModuleBase
     [Command("play-test")]
     [Summary("Play command as guild command (Dev only) ")]
     [OptionalEphemeral]
-    [Precondition(requiresMajority: true, majorityVoteButtonText: "Skip", requiresBotConnected: true)]
+    [VoteConfig(buttonText:"Skip")]
+    [RequiresSameVoiceChannel]
+    [RequiresConnectedToVoiceChannel]
+    [RequiresMajority]
     public async Task PlayTest([Multiple] [Summary("A search term or YT-link +")] [Name("query")] string query, [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")] bool shuffle = false)
     {
         var am = new AudioModule();
@@ -105,7 +104,9 @@ public class AudioModule : SlashCommandModuleBase
  
     [Command("play")]
     [Summary("Plays music in the current voice channel from an YT-link or query")]
-    [Precondition(requiresBotConnected: true)]
+    // [OldPrecondition(requiresBotConnected: true)]
+    [RequiresSameVoiceChannel]
+    [RequiresConnectedToVoiceChannel]
     [OptionalEphemeral]
     public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query,
                             [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")] bool shuffle = false)
@@ -134,7 +135,8 @@ public class AudioModule : SlashCommandModuleBase
 
     [Command("skip")]
     [Summary("Skips the current song")]
-    [Precondition(requiresMajority: true, majorityVoteButtonText: "Skip", requiresBotConnected: true)]
+    [VoteConfig(buttonText:"Skip")]
+    [RequiresMajority]
     public async Task Skip()
     {
         FormattedMessage message;
@@ -157,7 +159,8 @@ public class AudioModule : SlashCommandModuleBase
 
     [Command("stop")]
     [Summary("Disconnects the bot from the current voice channel")]
-    [Precondition(requiresMajority: true, majorityVoteButtonText: "Stop")]
+    [VoteConfig(buttonText:"Stop")]
+    [RequiresMajority]
     public async Task Stop()
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
@@ -205,7 +208,7 @@ public class AudioModule : SlashCommandModuleBase
         
         // _ = Context.GuildConfig.DeleteLastInteractionOf(Context.CommandInfo);
         
-        var reply = Responses.QueuePage(player, 0);
+        FormattedMessage reply = Responses.QueuePage(player, 0);
         if (player.QueuePages.Length > 1)
         {
             reply.WithComponents(

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using GoogleBot.Interactions.Preconditions;
 using GoogleBot.Services;
 
 namespace GoogleBot.Interactions.Modules;
@@ -41,20 +42,11 @@ public class MessageCommands : MessageCommandModuleBase
     }
 
     [Command("play")]
+    [RequiresMajority]
     public async Task Play(SocketMessage message)
     {
         string query = message.Content;
         IVoiceChannel channel = Context.VoiceChannel!;
-        EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
-
-
-        if (channel == null)
-        {
-            embed.AddField("No voice channel", "`Please connect to voice channel first!`");
-
-            await ReplyAsync(embed);
-            return;
-        }
 
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
         PlayReturnValue returnValue = await player.Play(query, channel);
