@@ -60,7 +60,7 @@ public class TestModule : SlashCommandModuleBase
     [Summary("Play command as guild command (Dev only) ")]
     [OptionalEphemeral]
     [Precondition(requiresMajority: true, majorityVoteButtonText: "Skip", requiresBotConnected: true)]
-    public async Task PlayTest([Multiple] [Summary("A search term or YT-link +")] [Name("query")] string query)
+    public async Task PlayTest([Multiple] [Summary("A search term or YT-link +")] [Name("query")] string query, [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")] bool shuffle = false)
     {
         var am = new AudioModule();
         am.SetContext(Context);
@@ -107,7 +107,8 @@ public class AudioModule : SlashCommandModuleBase
     [Summary("Plays music in the current voice channel from an YT-link or query")]
     [Precondition(requiresBotConnected: true)]
     [OptionalEphemeral]
-    public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query)
+    public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query,
+                            [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")] bool shuffle = false)
     {
         // Console.WriteLine("executed PLAY");
         IVoiceChannel? channel = Context.VoiceChannel;
@@ -123,7 +124,7 @@ public class AudioModule : SlashCommandModuleBase
         }
 
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
-        PlayReturnValue returnValue = await player.Play(query, channel);
+        PlayReturnValue returnValue = await player.Play(query, channel, shuffle);
 
 
         //* User response

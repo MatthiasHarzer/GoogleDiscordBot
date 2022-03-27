@@ -268,7 +268,8 @@ public class AudioPlayer
     /// </summary>
     /// <param name="playlistVideos">The playlistVideos to add</param>
     /// <param name="videoNotToAdd">The video to skip when occuring in playlist</param>
-    private async Task AddToQueueExceptAsync(PlaylistVideo[] playlistVideos, Video? videoNotToAdd = null)
+    /// <param name="shuffle">If true, the queue gets shuffled after processing</param>
+    private async Task AddToQueueExceptAsync(PlaylistVideo[] playlistVideos, Video? videoNotToAdd = null, bool shuffle = false)
     {
         QueueComplete = false;
         foreach (PlaylistVideo playlistVideo in playlistVideos)
@@ -278,6 +279,8 @@ public class AudioPlayer
             Video video = await youtubeExplodeClient.Videos.GetAsync(playlistVideo.Id);
             Queue.Add(video);
         }
+        if(shuffle)
+            ShuffleQueue();
 
         QueueComplete = true;
     }
@@ -323,8 +326,9 @@ public class AudioPlayer
     /// </summary>
     /// <param name="query">A Youtube link or id or some search terms </param>
     /// <param name="vc">The voice channel of the user</param>
+    /// <param name="shuffle">If <see cref="query"/> is a playlist link, shuffle it before first time play</param>
     /// <returns>An PlayReturnValue containing a State</returns>
-    public async Task<PlayReturnValue> Play(string query, IVoiceChannel? vc = null)
+    public async Task<PlayReturnValue> Play(string query, IVoiceChannel? vc = null, bool shuffle = false)
     {
         if (vc != null)
         {
@@ -382,7 +386,7 @@ public class AudioPlayer
 
                 if (playlistVideos.Count > 0)
                 {
-                    video = await youtubeExplodeClient.Videos.GetAsync(playlistVideos[0].Id);
+                    video = await youtubeExplodeClient.Videos.GetAsync(shuffle ? Util.GetRandom(playlistVideos).Id : playlistVideos.First().Id);
                     isNewPlaylist = true;
 
                     _ = AddToQueueExceptAsync(playlistVideos.ToArray(), video);
@@ -643,7 +647,7 @@ public class AudioPlayer
     public void ShuffleQueue()
     {
         Random rng = new Random();
-        Queue = Queue.OrderBy(q => rng.Next()).ToList();
+        Queue = Queue.OrderBy(_ => rng.Next()).ToList();
         SetTargetSong();
     }
 }

@@ -166,7 +166,7 @@ public class Responses
             }
         }
 
-        string footer = $"{page+1}/{Math.Max(player.QueuePages.Length, 1)}";
+        string footer = $"Page {page+1}/{Math.Max(player.QueuePages.Length, 1)}";
         if (!player.QueueComplete)
         {
             footer += " - List might be incomplete due to processing playlist songs";
