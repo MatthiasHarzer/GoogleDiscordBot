@@ -158,9 +158,6 @@ public static class InteractionMaster
                 bool nullable = underlying != null;
                 ApplicationCommandOptionType pType = p.GetCustomAttribute<OptionTypeAttribute>()?.Type 
                                                      ?? Util.ToOptionType(nullable ? underlying! : p.ParameterType);
-                
-                 Console.WriteLine($"{p.GetCustomAttribute<NameAttribute>()?.Text ?? p.Name ?? string.Empty} "+
-                                   $"{p.ParameterType} {Nullable.GetUnderlyingType(p.ParameterType)} {nullable || p.HasDefaultValue}");
                 return new ParameterInfo
                 {
                     Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
@@ -186,17 +183,7 @@ public static class InteractionMaster
             //* -> is command 
             bool isEphemeral = privateAttribute?.IsPrivate != null && privateAttribute.IsPrivate;
             bool overrideDefer = method.GetCustomAttribute<OverrideDeferAttribute>()?.DeferOverride ?? false;
-
-
-            // if (parameterInfo.Length > 0)
-            // {
-            //     Console.WriteLine("---");
-            //     Console.WriteLine($"{commandAttribute?.Text}");
-            //     foreach (ParameterInfo info in parameterInfo)
-            //     {
-            //         Console.WriteLine($"{info.Name} {info.Type}");
-            //     }
-            // }
+            
             
             if (!AddCommand(new CommandInfo
                 {

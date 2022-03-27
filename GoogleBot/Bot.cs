@@ -64,11 +64,11 @@ internal class Bot
         try
         {
             Console.WriteLine("---------");
-            // await RegisterGlobalCommandsAsync();
+            await RegisterGlobalCommandsAsync();
             Console.WriteLine("---------");
-            // await RegisterDevOnlyCommandsAsync();
+            await RegisterDevOnlyCommandsAsync();
             Console.WriteLine("---------");
-            // InteractionMaster.ExportCommands();
+            InteractionMaster.ExportCommands();
         }
         catch (Exception e)
         {

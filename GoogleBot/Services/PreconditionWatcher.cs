@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Timers;
 using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions;
@@ -32,6 +33,10 @@ public class PreconditionWatcher
     private object?[] commandsArgs = Array.Empty<object?>();
 
     private ICommandContext? Context { get; set; }
+
+    private Timer? timer;
+
+    private int timeout = 60; //Seconds
 
     private ModuleBase? Module { get; set; }
 
@@ -107,6 +112,7 @@ public class PreconditionWatcher
         Context = null;
         Module = null;
         commandsArgs = Array.Empty<object?>();
+        timer?.Stop();
     }
 
     /// <summary>
@@ -154,7 +160,7 @@ public class PreconditionWatcher
 
 
         requiredVotes = (int)MathF.Ceiling((float)userCount / 2);
-        // requiredVotes = 2;
+        requiredVotes = 2;
         if (requiredVotes <= 1)
         {
             return true;
@@ -177,15 +183,22 @@ public class PreconditionWatcher
 
         await Context.Respondable.ModifyOriginalResponseAsync(properties =>
         {
-            properties.Embed = Responses.VoteRequired(Context.User,
-                    $"/{CommandInfo.Name}{(UsedArgs.Length <= 0 ? "" : $" {string.Join(" ", UsedArgs)}")}",
-                    RemainingVotes)
-                .BuiltEmbed;
+            
+            properties.Embed = EmbedVotesRequired().WithFooter("Vote ends in 1 minute").Build();
             properties.Components = new ComponentBuilder()
                 .WithButton(CommandInfo.Preconditions.MajorityVoteButtonText, Id, ButtonStyle.Success).Build();
         })!;
+        StopVoteIn(timeout * 1000);
         // Console.WriteLine("Vote created");
         return false;
+    }
+
+    private EmbedBuilder EmbedVotesRequired()
+    {
+        return Responses.VoteRequired(Context!.User,
+                $"/{CommandInfo.Name}{(UsedArgs.Length <= 0 ? "" : $" {string.Join(" ", UsedArgs)}")}",
+                RemainingVotes)
+            .Embed!;
     }
 
 
@@ -196,7 +209,7 @@ public class PreconditionWatcher
     public async Task TryVote(SocketMessageComponent component)
     {
         // Console.WriteLine("TRYING TO VOTE");
-
+        if(!running) return;
 
         IGuildUser? user = component.User as IGuildUser;
         IVoiceChannel vc = guildConfig.BotsVoiceChannel ?? user!.VoiceChannel;
@@ -220,9 +233,7 @@ public class PreconditionWatcher
 
         await component.Message.ModifyAsync(properties =>
         {
-            properties.Embed = Responses.VoteRequired(component.User,
-                $"/{CommandInfo.Name}{(UsedArgs.Length <= 0 ? "" : $" {string.Join(" ", UsedArgs)}")}",
-                RemainingVotes).BuiltEmbed;
+            properties.Embed = EmbedVotesRequired().WithFooter("Vote ends in 1 minute").Build();
         });
 
         if (RemainingVotes <= 0)
@@ -232,8 +243,8 @@ public class PreconditionWatcher
             //* Remove the button
             await component.Message.ModifyAsync(properties =>
             {
-                properties.Components = null;
-                properties.Content = "`Executing...`";
+                properties.Components = new ComponentBuilder().Build();;
+                // properties.Content = "`Executing...`";
             });
 
             await Invoke(); //* Execute the command
@@ -257,6 +268,53 @@ public class PreconditionWatcher
             Console.WriteLine(e.Message);
             Console.WriteLine(e.StackTrace);
         }
+    }
+
+    /// <summary>
+    /// Sets a timer to stop the vote after a given amount of time
+    /// </summary>
+    /// <param name="milliseconds">The time to wait until stopping the vote</param>
+    private void StopVoteIn(long milliseconds)
+    {
+        timer?.Stop();
+        timer = new Timer(milliseconds);
+        timer.Enabled = true;
+        timer.AutoReset = false;
+        timer.Elapsed += (sender, args) =>
+        {
+            
+            try
+            {
+                _ = CancelVote();
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+                //ignored
+            }
+        };
+    }
+
+    /// <summary>
+    /// Cancels the currently running vote and returns a failed message
+    /// </summary>
+    private async Task CancelVote()
+    {
+        if(Context == null) return;
+        running = false;
+        await (await Context.Respondable.GetOriginalResponseAsync()).ModifyAsync(properties =>
+        {
+            EmbedBuilder embed = EmbedVotesRequired();
+            EmbedFieldBuilder embedField = embed.Fields.First();
+            embedField.WithName("Vote failed. Timed out!");
+            embed.Fields = new[] { embedField }.ToList();
+            
+            properties.Components = new ComponentBuilder().Build();
+            properties.Embed = embed.Build();
+        });
+        await Reset();
+
     }
 
     /// <summary>
