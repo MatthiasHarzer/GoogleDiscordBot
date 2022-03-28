@@ -364,7 +364,7 @@ public static class InteractionMaster
                 }
                 return false;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // Console.WriteLine(e);
                 await module.DeleteOriginalResponse();
@@ -587,7 +587,7 @@ public static class InteractionMaster
         savable.Add("messageCommands", messageCommands);
         // Console.WriteLine(JsonSerializer.Serialize(savable));
 
-        File.WriteAllText("./commands.json", JsonSerializer.Serialize(savable));
+        File.WriteAllText($"{Util.RuntimeDir}/commands.json", JsonSerializer.Serialize(savable));
     }
 
 
@@ -595,13 +595,13 @@ public static class InteractionMaster
     /// Read local file and try converting the json to valid command infos
     /// </summary>
     /// <returns>The list of commands in the safe-file</returns>
-    public static List<CommandInfo> ImportCommands()
+    public static List<CommandInfo> ImportSlashCommands()
     {
+        // Console.WriteLine($"Commands: {Util.RuntimeDir}/commands.json");
         List<CommandInfo> commandInfos = new();
-
         try
         {
-            string content = File.ReadAllText("./commands.json");
+            string content = File.ReadAllText($"{Util.RuntimeDir}/commands.json");
 
             JsonObject? json = JsonSerializer.Deserialize<JsonObject>(content);
 
@@ -652,7 +652,7 @@ public static class InteractionMaster
 
         try
         {
-            string content = File.ReadAllText("./commands.json");
+            string content = File.ReadAllText($"{Util.RuntimeDir}/commands.json");
 
             JsonObject? json = JsonSerializer.Deserialize<JsonObject>(content);
 
@@ -696,7 +696,7 @@ public static class InteractionMaster
     /// <returns>The list of commands</returns>
     public static List<CommandInfo> ImportAllCommands()
     {
-        List<CommandInfo> cmds = ImportCommands();
+        List<CommandInfo> cmds = ImportSlashCommands();
         cmds.AddRange(ImportMessageCommands());
         return cmds;
     }

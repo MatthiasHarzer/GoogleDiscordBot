@@ -131,12 +131,12 @@ public class GuildConfig
             { "guildId", Id },
             { "autoPlay", AutoPlay }
         };
-        if (!Directory.Exists("./guild.configs"))
+        if (!Directory.Exists($"{Util.RuntimeDir}/guild.configs"))
         {
-            Directory.CreateDirectory("./guild.configs");
+            Directory.CreateDirectory($"{Util.RuntimeDir}/guild.configs");
         }
 
-        File.WriteAllText($"./guild.configs/guild-{Id}.json", JsonSerializer.Serialize(jsonObject));
+        File.WriteAllText($"{Util.RuntimeDir}/guild.configs/guild-{Id}.json", JsonSerializer.Serialize(jsonObject));
     }
 
     /// <summary>
@@ -146,7 +146,7 @@ public class GuildConfig
     {
         try
         {
-            string content = File.ReadAllText($"./guild.configs/guild-{Id}.json");
+            string content = File.ReadAllText($"{Util.RuntimeDir}/guild.configs/guild-{Id}.json");
 
             JsonObject? json = JsonSerializer.Deserialize<JsonObject>(content);
 
@@ -159,10 +159,10 @@ public class GuildConfig
             }
         }
 
-        catch (Exception e)
+        catch (Exception)
         {
-            Console.WriteLine(e.Message);
-            Console.WriteLine(e.StackTrace);
+            // Console.WriteLine(e.Message);
+            // Console.WriteLine(e.StackTrace);
             // -> something's fishy with the file or json
         }
     }

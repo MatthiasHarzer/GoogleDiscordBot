@@ -143,8 +143,7 @@ internal class Bot
         Console.WriteLine("New or changed global commands found:");
         Console.WriteLine(string.Join("\n", newOrChangedCommands));
 
-
-        // return;
+        
         // var guild = client.GetGuild(guildId);
 
         List<ApplicationCommandProperties> applicationCommandProperties = new();
@@ -210,7 +209,7 @@ internal class Bot
         bool changed = false;
 
         List<CommandInfo> newOrChangedCommands = new();
-        List<CommandInfo> existingCommands = InteractionMaster.ImportCommands().FindAll(c => c.IsDevOnly);
+        List<CommandInfo> existingCommands = InteractionMaster.ImportSlashCommands().FindAll(c => c.IsDevOnly);
         List<CommandInfo> availableCommands = InteractionMaster.CommandList.FindAll(c => c.IsDevOnly);
 
         // Console.WriteLine(existingCommands.Count + " " + availableCommands.Count);
@@ -252,8 +251,7 @@ internal class Bot
 
         Console.WriteLine("New or changed dev-only commands:");
         Console.WriteLine(string.Join("\n", newOrChangedCommands));
-
-
+        
         var guild = client.GetGuild(Secrets.DevGuildId);
         if (guild == null)
         {
