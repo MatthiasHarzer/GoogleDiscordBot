@@ -221,7 +221,7 @@ public class AudioPlayer
     /// <summary>
     /// Sets the next song depending on queue or the currently playing song
     /// </summary>
-    private void SetTargetSong()
+    public void SetTargetSong()
     {
         targetSongSetter?.Dispose();
         targetSongSetter = _SetTargetSongAsync();

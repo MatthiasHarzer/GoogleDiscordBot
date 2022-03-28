@@ -48,6 +48,8 @@ public class GuildConfig
         set
         {
             autoPlayEnabled = value;
+            if(autoPlayEnabled)
+                AudioPlayer.SetTargetSong();
             Export();
         }
     }

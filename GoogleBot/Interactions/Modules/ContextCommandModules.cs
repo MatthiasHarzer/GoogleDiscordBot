@@ -42,7 +42,8 @@ public class MessageCommands : MessageCommandModuleBase
     }
 
     [Command("play")]
-    [RequiresMajority]
+    [RequiresSameVoiceChannel]
+    [RequiresConnectedToVoiceChannel]
     public async Task Play(SocketMessage message)
     {
         string query = message.Content;

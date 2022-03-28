@@ -15,6 +15,9 @@ using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Modules;
 using GoogleBot.Interactions.Preconditions.Exceptions;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
+using ICommandContext = GoogleBot.Interactions.Context.ICommandContext;
+using IModuleBase = GoogleBot.Interactions.Modules.IModuleBase;
+using ModuleBase = GoogleBot.Interactions.Modules.ModuleBase;
 using ParameterInfo = GoogleBot.Interactions.Commands.ParameterInfo;
 using PreconditionAttribute = GoogleBot.Interactions.Preconditions.PreconditionAttribute;
 
@@ -277,7 +280,7 @@ public static class InteractionMaster
     /// <param name="module">The module to add</param>
     private static void AddInteractionModule(InteractionModuleBase module)
     {
-        Console.WriteLine("adding module " + module);
+        // Console.WriteLine("adding module " + module);
         Type moduleType = module.GetType();
         foreach (MethodInfo method in moduleType.GetMethods())
         {
@@ -288,7 +291,7 @@ public static class InteractionMaster
             if (linkComponentAttribute == null) continue;
 
             //* -> Is component interaction callback
-            Console.WriteLine("  - " + method);
+            // Console.WriteLine("  - " + method);
 
             string customId = linkComponentAttribute.CustomId;
 
@@ -331,6 +334,47 @@ public static class InteractionMaster
         return true;
     }
 
+    /// <summary>
+    /// Checks if all preconditions of a command are met. Handles unmet responses
+    /// </summary>
+    /// <param name="commandContext">The command context to check the precondition on</param>
+    /// <param name="module">The command contexts module</param>
+    /// <returns>True is all preconditions are met, else false</returns>
+    private static async Task<bool> CheckPreconditions(ICommandContext commandContext, IModuleBase module)
+    {
+        CommandInfo commandInfo = commandContext.CommandInfo;
+        
+        foreach (PreconditionAttribute precondition in commandInfo.Preconditions)
+        {
+            // Console.WriteLine("Checking precondition " + precondition);
+            try
+            {
+                await precondition.WithContext(commandContext).Satisfy();
+            }
+            catch (PreconditionNotSatisfiedException e)
+            {
+                await module.ReplyAsync(e.FormattedMessage);
+                return false;
+            }
+            catch (PreconditionFailedException e)
+            {
+                if (!e.Responded)
+                {
+                    // TODO
+                }
+                return false;
+            }
+            catch (Exception e)
+            {
+                // Console.WriteLine(e);
+                await module.DeleteOriginalResponse();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
     /// <summary>
     /// Execute a given slash command
@@ -359,32 +403,9 @@ public static class InteractionMaster
 
                 await command.DeferAsync(commandContext.IsEphemeral);
 
-
-                foreach (PreconditionAttribute precondition in commandInfo.Preconditions)
-                {
-                    Console.WriteLine("Checking precondition " + precondition);
-                    try
-                    {
-                        await precondition.WithContext(commandContext).Satisfy();
-                    }
-                    catch (PreconditionNotSatisfiedException e)
-                    {
-                        await module.ReplyAsync(e.FormattedMessage);
-                        return;
-                    }
-                    catch (PreconditionFailedException _)
-                    {
-                        return;
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e);
-                        await command.DeleteOriginalResponseAsync();
-                        return;
-                    }
-                }
-
-
+                bool preconditionsMet = await CheckPreconditions(commandContext, module);
+                if(!preconditionsMet) return;
+                
                 Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
 
 
@@ -425,9 +446,7 @@ public static class InteractionMaster
     public static async Task ExecuteMessageCommand(SocketMessageCommand command)
     {
         MessageCommandContext commandContext = new MessageCommandContext(command);
-        Console.WriteLine("Context");
         CommandInfo commandInfo = commandContext.CommandInfo;
-        Console.WriteLine("Asd");
         await command.DeferAsync();
 
 
@@ -438,30 +457,10 @@ public static class InteractionMaster
             Console.WriteLine($"Found message command {commandInfo.Name} in {module}");
             object[] args = { commandContext.Message };
 
-            foreach (PreconditionAttribute precondition in commandInfo.Preconditions)
-            {
-                Console.WriteLine("Checking precondition " + precondition);
-                try
-                {
-                    await precondition.WithContext(commandContext).Satisfy();
-                }
-                catch (PreconditionNotSatisfiedException e)
-                {
-                    await module.ReplyAsync(e.FormattedMessage);
-                    return;
-                }
-                catch (PreconditionFailedException e)
-                {
-                    return;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                    await command.DeleteOriginalResponseAsync();
-                    return;
-                }
-            }
-
+            bool preconditionsMet = await CheckPreconditions(commandContext, module);
+            
+            if(!preconditionsMet) return;
+            
             try
             {
                 // var module = (ModuleBase) Activator.CreateInstance(commandInfo.Method.Module.GetType());

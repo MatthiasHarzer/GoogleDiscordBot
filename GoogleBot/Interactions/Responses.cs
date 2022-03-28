@@ -193,7 +193,7 @@ public static class Responses
     {
         return new FormattedMessage(new EmbedBuilder().AddField(
             $"Vote failed. Timed out!",
-            $"{context.User.Mention} wanted to execute `{context.FormattedRepresentation}`"));
+            $"{context.User.Mention} wanted to execute `{Util.FormattedUsedCommand(context)}`"));
     }
 
     public static FormattedMessage AlreadyVoted()

@@ -241,6 +241,7 @@ public class AudioModule : SlashCommandModuleBase
 
     [Command("shuffle")]
     [Summary("Shuffles the currently queued songs")]
+    [RequiresSameVoiceChannel]
     public async Task Shuffle()
     {
         Context.GuildConfig.AudioPlayer.ShuffleQueue();
@@ -248,7 +249,7 @@ public class AudioModule : SlashCommandModuleBase
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
         
-        embed.AddField($"Shuffled queue ({player.Queue.Count})", player.QueuePages.First());
+        embed.AddField($"Shuffled queue.", $"{player.Queue.Count} songs shuffled!");
         await ReplyAsync(embed);
     }
 }

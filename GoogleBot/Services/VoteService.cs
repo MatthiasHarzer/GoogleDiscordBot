@@ -139,7 +139,7 @@ public class VoteService
             await context.Respondable.ModifyOriginalResponseAsync(properties =>
             {
                 properties.Embed = Responses.VoteRequired(Context!.User,
-                    Context.FormattedRepresentation,
+                    Util.FormattedUsedCommand(Context),
                     RemainingVotes, timeout).BuiltEmbed;
                 properties.Components = new ComponentBuilder()
                     .WithButton(CommandInfo.VoteConfig.ButtonText, Id, ButtonStyle.Success).Build();
@@ -256,7 +256,7 @@ public class VoteService
             await component.Message.ModifyAsync(properties =>
             {
                 properties.Embed = Responses.VoteRequired(Context!.User,
-                    Context.FormattedRepresentation,
+                    Util.FormattedUsedCommand(Context),
                     RemainingVotes, timeout).BuiltEmbed;
             });
 
@@ -283,7 +283,6 @@ public class VoteService
     /// <returns>Whether the vote passed or failed.</returns>
     public async Task<bool> AwaitMajorityCommandVote(ICommandContext context, int timeout = 60)
     {
-        
         var users = await context.VoiceChannel!.GetUsersAsync().ToListAsync().AsTask();
         int userCount = users.First()?.ToList().FindAll(u => !u.IsBot).Count ?? 0;
         

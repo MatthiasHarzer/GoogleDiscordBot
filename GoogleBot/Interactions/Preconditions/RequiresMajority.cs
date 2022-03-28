@@ -14,7 +14,7 @@ public class RequiresMajority : PreconditionAttribute
         // Console.WriteLine("Vote result: " + voteResult);
         if (!voteResult)
         {
-            throw new PreconditionFailedException("Majority vote failed");
+            throw new PreconditionFailedException("Majority vote failed", true);
         }
    
     }

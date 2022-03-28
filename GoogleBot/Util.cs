@@ -13,6 +13,7 @@ using YoutubeExplode.Videos;
 using Color = System.Drawing.Color;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 using DiscordColor = Discord.Color;
+using ICommandContext = GoogleBot.Interactions.Context.ICommandContext;
 using ParameterInfo = GoogleBot.Interactions.Commands.ParameterInfo;
 
 // using CommandInfo = Discord.Commands.CommandInfo;
@@ -270,7 +271,12 @@ public static class Util
     public static string FormattedCommand(CommandInfo command)
     {
         return
-            $"/{command.Name}{(command.Parameters.Length > 0 ? " " : "")}{String.Join(" ", command.Parameters.AsParallel().ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}{(command.IsOptionalEphemeral ? " [<hidden>]" : "")}";
+            $"/{command.Name}{(command.Parameters.Length > 0 ? " " : "")}{string.Join(" ", command.Parameters.AsParallel().ToList().ConvertAll(p => p.IsOptional ? $"[<{p.Name}>]" : $"<{p.Name}>"))}{(command.IsOptionalEphemeral ? " [<hidden>]" : "")}";
+    }
+
+    public static string FormattedUsedCommand(ICommandContext command)
+    {
+        return $"/{command.CommandInfo.Name}{(command.UsedArguments.Length <= 0 ? "" : $" {string.Join(" ", command.UsedArguments)}")}";
     }
 
     public static CommandInfo GetTextCommandFromMessage(SocketUserMessage message)

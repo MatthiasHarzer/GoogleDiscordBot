@@ -70,10 +70,4 @@ public interface ICommandContext : IContext
     /// Includes only the arguments the user used (no defaults)
     /// </summary>
     public object?[] UsedArguments { get; }
-
-    /// <summary>
-    /// The command with the used arguments as string
-    /// </summary>
-    public string FormattedRepresentation =>
-        $"/{CommandInfo.Name}{(UsedArguments.Length <= 0 ? "" : $" {string.Join(" ", UsedArguments)}")}";
 }

@@ -20,6 +20,12 @@ public interface IModuleBase
     /// <param name="message">The message to send</param>
     /// <returns></returns>
     public Task SendMessage(FormattedMessage message);
+
+    /// <summary>
+    /// Deletes the original message
+    /// </summary>
+    /// <returns></returns>
+    public Task DeleteOriginalResponse();
 }
 
 /// <summary>
@@ -128,6 +134,11 @@ public abstract class ModuleBase : IModuleBase
     protected void SetInnerContext(IContext context)
     {
         InnerContext = context;
+    }
+
+    public async Task DeleteOriginalResponse()
+    {
+        await (await InnerContext.Respondable.GetOriginalResponseAsync()).DeleteAsync();
     }
 }
 
