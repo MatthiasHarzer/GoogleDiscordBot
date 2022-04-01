@@ -6,6 +6,7 @@ using Discord;
 using Discord.Commands;
 using Discord.Net;
 using Discord.WebSocket;
+using GoogleBot.Exceptions;
 using GoogleBot.Interactions;
 using Newtonsoft.Json;
 using static GoogleBot.Util;
@@ -270,8 +271,25 @@ internal class Bot
 
             foreach (ParameterInfo parameter in command.Parameters)
             {
-                builder.AddOption(parameter.Name, parameter.Type,
-                    parameter.Summary ?? parameter.Name, isRequired: !parameter.IsOptional);
+                var option = new SlashCommandOptionBuilder()
+                    .WithName(parameter.Name)
+                    .WithType(parameter.Type)
+                    .WithDescription(parameter.Summary)
+                    .WithRequired(!parameter.IsOptional);
+                if (parameter.Choices.Length > 0)
+                {
+                    if (parameter.Type != ApplicationCommandOptionType.Integer)
+                    {
+                        throw new CommandParameterException(parameter, "Choice parameter must be type int!");
+                    }
+                    foreach ((string? name, int value) in parameter.Choices)
+                    {
+                        option.AddChoice(name, value);
+                    }
+                }
+
+
+                builder.AddOption(option);
             }
 
             if (command.IsOptionalEphemeral)
@@ -279,6 +297,7 @@ internal class Bot
                 builder.AddOption("hidden", ApplicationCommandOptionType.Boolean,
                     "Whether the responds should be private", false);
             }
+            
 
             applicationCommandProperties.Add(builder.Build());
         }

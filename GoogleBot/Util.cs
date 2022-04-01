@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -371,6 +372,17 @@ public static class Util
                 return "string";
         }
     }
+    
+    public static bool ArrayEquals<T>(T[] a, T[] b)
+    {
+        if (a.Length != b.Length)
+        {
+            return false;
+        }
+
+        return !a.Where((t, i) => !t!.Equals(b[i])).Any();
+    }
+
 
     /// <summary>
     /// Compares two <see cref="CommandInfo"/>
@@ -396,9 +408,11 @@ public static class Util
 
             ParameterInfo p1 = command1.Parameters[pos];
             ParameterInfo p2 = command2.Parameters[pos];
-
+            
+            
+            
             if (p1.Name != p2.Name || p1.Summary != p2.Summary || p1.Type != p2.Type ||
-                p1.IsOptional != p2.IsOptional) return false;
+                p1.IsOptional != p2.IsOptional || !ArrayEquals(p1.Choices, p2.Choices)) return false;
         }
 
         if (command2.Parameters.Length > pos) return false;
@@ -417,5 +431,31 @@ public static class Util
         Random r = new Random();
         return list[r.Next(list.Count)];
 
+    }
+
+    public static JsonArray SerializeChoices((string, int)[] choices)
+    {
+        JsonArray array = new JsonArray();
+        foreach ((string, int) valueTuple in choices)
+        {
+            array.Add(new JsonObject
+            {
+                {valueTuple.Item1, valueTuple.Item2}
+            });
+        }
+
+        return array;
+    }
+
+    public static (string, int)[] DeserializeChoices(JsonArray array)
+    {
+        List<(string, int)> choices = new List<(string, int)>();
+        foreach (JsonNode? jsonNode in array)
+        {
+            if(jsonNode == null || jsonNode.AsObject().Count < 1) continue;
+            (string? key, JsonNode? value) = jsonNode.AsObject().First();
+            choices.Add((key, value!.GetValue<int>()));
+        }
+        return choices.ToArray();
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GoogleBot.Interactions.Preconditions.Exceptions;
+namespace GoogleBot.Exceptions;
 
 public class PreconditionNotSatisfiedException : Exception
 {

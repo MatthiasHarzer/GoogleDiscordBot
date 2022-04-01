@@ -1,5 +1,7 @@
 ﻿#nullable enable
 using System;
+using System.Linq;
+using System.Net;
 using Discord;
 
 namespace GoogleBot.Interactions.CustomAttributes;
@@ -58,21 +60,21 @@ public class LinkComponentInteractionAttribute : Attribute
 /// <summary>
 /// Defines if the parameter can have multiple words (with whitespaces)
 /// </summary>
-[AttributeUsage(AttributeTargets.Parameter)]
-public class MultipleAttribute : Attribute
-{
-    public bool IsMultiple { get; }
-
-    public MultipleAttribute()
-    {
-        IsMultiple = true;
-    }
-
-    public MultipleAttribute(bool isMultiple)
-    {
-        IsMultiple = isMultiple;
-    }
-}
+// [AttributeUsage(AttributeTargets.Parameter)]
+// public class MultipleAttribute : Attribute
+// {
+//     public bool IsMultiple { get; }
+//
+//     public MultipleAttribute()
+//     {
+//         IsMultiple = true;
+//     }
+//
+//     public MultipleAttribute(bool isMultiple)
+//     {
+//         IsMultiple = isMultiple;
+//     }
+// }
 
 /// <summary>
 /// Sets the applicationOptionType of a parameter 
@@ -165,5 +167,33 @@ public class VoteConfigAttribute : Attribute
     {
         Enabled = enabled;
         ButtonText = buttonText;
+    }
+}
+
+
+/// <summary>
+/// Gives the parameter a limited selections to choose from
+/// </summary>
+[AttributeUsage(AttributeTargets.Parameter)]
+public class ChoicesAttribute : Attribute
+{
+    public (string, int)[] Choices { get; }
+    public ChoicesAttribute(params string[] choices)
+    {
+        Choices = choices.ToList().Select((c, i) => (c, i)).ToArray();  // Add the index to each element
+    }
+
+    public ChoicesAttribute(params (string, int)[] choices)
+    {
+        Choices = choices;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="choiceId">The choice with const val from <see cref="GoogleBot.Interactions.Commands.Choices"/></param>
+    public ChoicesAttribute(int choiceId)
+    {
+        Choices = Commands.Choices.Get(choiceId);
     }
 }

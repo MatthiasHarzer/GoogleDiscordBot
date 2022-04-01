@@ -13,7 +13,9 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
     public string Name { get; init; } = null!;
     public string Summary { get; init; } = null!;
     public ApplicationCommandOptionType Type { get; init; }
-    public bool IsMultiple { get; init; }
+
+    public (string, int)[] Choices = Array.Empty<(string,int)>();
+
     public bool IsOptional { get; init; }
     
     public object? DefaultValue { get; init; }
@@ -21,7 +23,7 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
 
     public override string ToString()
     {
-        return $"{Name} - {Summary}\n Multiple: {IsMultiple}, Optional: {IsOptional}, Type: {Type}";
+        return $"{Name}: {Type}";
     }
 
     public JsonObject ToJson()
@@ -30,7 +32,7 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
         {
             { "name", Name },
             { "summery", Summary },
-            { "multiple", IsMultiple },
+            {"choices", Util.SerializeChoices(Choices)},
             { "optional", IsOptional },
             { "type", Util.OptionTypeToString(Type) }
         };
@@ -41,6 +43,7 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
         string name = null!, summery = null!;
         bool isMultiple = false, isOptional = false;
         ApplicationCommandOptionType type = (ApplicationCommandOptionType)0;
+        (string, int)[] choices = Array.Empty<(string, int)>();
 
         if (jsonObject.TryGetPropertyValue("name", out var n))
         {
@@ -52,9 +55,12 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
             summery = s?.ToString() ?? "";
         }
 
-        if (jsonObject.TryGetPropertyValue("multiple", out var m))
+        if (jsonObject.TryGetPropertyValue("choices", out var ca))
         {
-            isMultiple = m?.GetValue<bool>() ?? false;
+            if (ca != null)
+            {
+                choices = Util.DeserializeChoices(ca.AsArray());
+            } 
         }
 
         if (jsonObject.TryGetPropertyValue("optional", out var o))
@@ -76,9 +82,9 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
         {
             Name = name,
             Summary = summery,
-            IsMultiple = isMultiple,
             IsOptional = isOptional,
             Type = type,
+            Choices = choices
         };
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Discord;
-using GoogleBot.Interactions.Preconditions.Exceptions;
+using GoogleBot.Exceptions;
 
 namespace GoogleBot.Interactions.Preconditions;
 

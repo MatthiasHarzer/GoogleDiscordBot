@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
@@ -7,6 +8,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1.Data;
+using GoogleBot.Interactions.Commands;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Preconditions;
 using GoogleBot.Services;
@@ -14,12 +16,16 @@ using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 
 namespace GoogleBot.Interactions.Modules;
 
+
+
 [DevOnly]
 public class TestModule : SlashCommandModuleBase
 {
+    
+    
     [Command("component-test")]
     [Summary("Used for testing with buttons and drop-downs")]
-    public async Task ComponentTest([Multiple] [Summary("The buttons name")] [Name("name")] string query = "Button")
+    public async Task ComponentTest([Summary("The buttons name")] [Name("name")] string query = "Button")
     {
         ComponentBuilder builder = new ComponentBuilder().WithButton(query, "button");
 
@@ -59,13 +65,28 @@ public class TestModule : SlashCommandModuleBase
     [RequiresSameVoiceChannel]
     [RequiresConnectedToVoiceChannel]
     [RequiresMajority]
-    public async Task PlayTest([Multiple] [Summary("A search term or YT-link +")] [Name("query")] string query, [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")] bool shuffle = false)
+    public async Task PlayTest([Summary("A search term or YT-link +")] [Name("query")] string query, [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")] bool shuffle = false)
     {
         var am = new AudioModule();
         am.SetContext(Context);
         await am.Play(query);
     }
     
+
+
+    [Command("choice-test")]
+    public async Task ChoicesTest([Choices(Choices.choicesTest)] int choice)
+    {
+        var available = Choices.GetChoices(Choices.choicesTest);
+        await ReplyAsync("Your choose option " + available[choice]);
+    }
+    
+    [Command("choice-test-2")]
+    public async Task ChoicesTest2([Choices(Choices.choicesTest2)] int choice)
+    {
+        var c = Choices.GetChoices(Choices.choicesTest2);
+        await ReplyAsync("Your choose option " + c[choice]);
+    }
     
 }
 
@@ -108,7 +129,7 @@ public class AudioModule : SlashCommandModuleBase
     [RequiresSameVoiceChannel]
     [RequiresConnectedToVoiceChannel]
     [OptionalEphemeral]
-    public async Task Play([Multiple] [Summary("A search term or YT-link")] [Name("query")] string query,
+    public async Task Play([Summary("A search term or YT-link")] [Name("query")] string query,
                             [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")] bool shuffle = false)
     {
         // Console.WriteLine("executed PLAY");
@@ -261,7 +282,7 @@ public class GoogleModule : SlashCommandModuleBase
 {
     [Command("google")]
     [Summary("Google something")]
-    public async Task Google([Multiple] [Summary("A search term")] [Name("query")] string query)
+    public async Task Google([Summary("A search term")] [Name("query")] string query)
     {
         if (query.Length <= 0)
         {

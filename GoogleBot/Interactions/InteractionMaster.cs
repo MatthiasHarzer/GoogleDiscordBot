@@ -9,11 +9,12 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using GoogleBot.Exceptions;
 using GoogleBot.Interactions.Commands;
 using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Modules;
-using GoogleBot.Interactions.Preconditions.Exceptions;
+using GoogleBot.Exceptions;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 using ICommandContext = GoogleBot.Interactions.Context.ICommandContext;
 using IModuleBase = GoogleBot.Interactions.Modules.IModuleBase;
@@ -97,7 +98,7 @@ public static class InteractionMaster
         {
             // if (module != null) Helpers.Add(new ApplicationModuleHelper(module));
             if (module != null)
-                AddCommandModule(module);
+                AddSlashCommandModule(module);
         }
 
         //* Add message commands
@@ -130,7 +131,7 @@ public static class InteractionMaster
     /// Add a <see cref="SlashCommandModuleBase"/> and its slash commands 
     /// </summary>
     /// <param name="module">The module to add</param>
-    private static void AddCommandModule(SlashCommandModuleBase module)
+    private static void AddSlashCommandModule(SlashCommandModuleBase module)
     {
         Type moduleType = module.GetType();
         // Console.WriteLine("app cmd  " + ModuleType.BaseType + " -> " + CommandModuleType);
@@ -158,14 +159,15 @@ public static class InteractionMaster
                 bool nullable = underlying != null;
                 ApplicationCommandOptionType pType = p.GetCustomAttribute<OptionTypeAttribute>()?.Type
                                                      ?? Util.ToOptionType(nullable ? underlying! : p.ParameterType);
+                ChoicesAttribute? choices = p.GetCustomAttribute<ChoicesAttribute>();
                 return new ParameterInfo
                 {
                     Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
                     Type = pType,
                     Name = p.GetCustomAttribute<NameAttribute>()?.Text ?? p.Name ?? string.Empty,
-                    IsMultiple = p.GetCustomAttribute<MultipleAttribute>()?.IsMultiple ?? false,
                     IsOptional = nullable || p.HasDefaultValue,
-                    DefaultValue = nullable ? null : p.DefaultValue
+                    DefaultValue = nullable ? null : p.DefaultValue,
+                    Choices = choices?.Choices ?? Array.Empty<(string, int)>(),
                 };
             }).ToArray();
 
@@ -173,6 +175,7 @@ public static class InteractionMaster
                 method.GetCustomAttribute<AutoDeleteOldComponentsAttribute>();
             VoteConfigAttribute voteConfig =
                 method.GetCustomAttribute<VoteConfigAttribute>() ?? new VoteConfigAttribute();
+            
             // PreconditionAttribute? preconditionAttribute = method.GetCustomAttribute<PreconditionAttribute>();
 
 
@@ -646,7 +649,7 @@ public static class InteractionMaster
     /// Read local file and try converting the json to valid message command infos
     /// </summary>
     /// <returns>The list of message commands in the safe-file</returns>
-    public static List<CommandInfo> ImportMessageCommands()
+    public static IEnumerable<CommandInfo> ImportMessageCommands()
     {
         List<CommandInfo> messageCommands = new List<CommandInfo>();
 
