@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
@@ -72,20 +73,20 @@ public class TestModule : SlashCommandModuleBase
         await am.Play(query);
     }
     
-
-
-    [Command("choice-test")]
-    public async Task ChoicesTest([Choices(Choices.choicesTest)] int choice)
+    public enum cChoices
     {
-        var available = Choices.GetChoices(Choices.choicesTest);
-        await ReplyAsync("Your choose option " + available[choice]);
+        [Description("The 1st optoin")]
+        Option1,
+        [Description("The 2nd option")]
+        Option2,
+        [Description("The 3rd option")]
+        Option3,
     }
-    
-    [Command("choice-test-2")]
-    public async Task ChoicesTest2([Choices(Choices.choicesTest2)] int choice)
+
+    [Command("choice-test-3")]
+    public async Task ChoicesTest3(cChoices choice2)
     {
-        var c = Choices.GetChoices(Choices.choicesTest2);
-        await ReplyAsync("Your choose option " + c[choice]);
+        await ReplyAsync($"Your choose `{choice2.GetDescription()}`");
     }
     
 }

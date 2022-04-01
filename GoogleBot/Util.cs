@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json.Nodes;
 using Discord;
 using Discord.Commands;
@@ -302,6 +304,7 @@ public static class Util
 
     public static ApplicationCommandOptionType ToOptionType(Type origin)
     {
+        if (origin.IsEnum) return ApplicationCommandOptionType.Integer; // choices have type integer
         switch (origin)
         {
             case not null when origin == typeof(string):
@@ -433,29 +436,30 @@ public static class Util
 
     }
 
-    public static JsonArray SerializeChoices((string, int)[] choices)
+    public static JsonArray SerializeChoices((int, string)[] choices)
     {
         JsonArray array = new JsonArray();
-        foreach ((string, int) valueTuple in choices)
+        foreach ((int, string) valueTuple in choices)
         {
             array.Add(new JsonObject
             {
-                {valueTuple.Item1, valueTuple.Item2}
+                {valueTuple.Item1.ToString(), valueTuple.Item2}
             });
         }
 
         return array;
     }
 
-    public static (string, int)[] DeserializeChoices(JsonArray array)
+    public static (int, string)[] DeserializeChoices(JsonArray array)
     {
-        List<(string, int)> choices = new List<(string, int)>();
+        List<(int, string)> choices = new List<(int, string)>();
         foreach (JsonNode? jsonNode in array)
         {
             if(jsonNode == null || jsonNode.AsObject().Count < 1) continue;
             (string? key, JsonNode? value) = jsonNode.AsObject().First();
-            choices.Add((key, value!.GetValue<int>()));
+            choices.Add((int.Parse(key), value!.GetValue<string>()));
         }
         return choices.ToArray();
     }
+    
 }

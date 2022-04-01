@@ -3,6 +3,7 @@ using System;
 using System.Linq;
 using System.Net;
 using Discord;
+using GoogleBot.Interactions.Commands;
 
 namespace GoogleBot.Interactions.CustomAttributes;
 
@@ -170,30 +171,3 @@ public class VoteConfigAttribute : Attribute
     }
 }
 
-
-/// <summary>
-/// Gives the parameter a limited selections to choose from
-/// </summary>
-[AttributeUsage(AttributeTargets.Parameter)]
-public class ChoicesAttribute : Attribute
-{
-    public (string, int)[] Choices { get; }
-    public ChoicesAttribute(params string[] choices)
-    {
-        Choices = choices.ToList().Select((c, i) => (c, i)).ToArray();  // Add the index to each element
-    }
-
-    public ChoicesAttribute(params (string, int)[] choices)
-    {
-        Choices = choices;
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="choiceId">The choice with const val from <see cref="GoogleBot.Interactions.Commands.Choices"/></param>
-    public ChoicesAttribute(int choiceId)
-    {
-        Choices = Commands.Choices.Get(choiceId);
-    }
-}

@@ -282,7 +282,7 @@ internal class Bot
                     {
                         throw new CommandParameterException(parameter, "Choice parameter must be type int!");
                     }
-                    foreach ((string? name, int value) in parameter.Choices)
+                    foreach ((int value, string name) in parameter.Choices)
                     {
                         option.AddChoice(name, value);
                     }

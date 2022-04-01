@@ -14,7 +14,7 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
     public string Summary { get; init; } = null!;
     public ApplicationCommandOptionType Type { get; init; }
 
-    public (string, int)[] Choices = Array.Empty<(string,int)>();
+    public (int, string)[] Choices = Array.Empty<(int, string)>();
 
     public bool IsOptional { get; init; }
     
@@ -32,7 +32,7 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
         {
             { "name", Name },
             { "summery", Summary },
-            {"choices", Util.SerializeChoices(Choices)},
+            { "choices", Util.SerializeChoices(Choices)},
             { "optional", IsOptional },
             { "type", Util.OptionTypeToString(Type) }
         };
@@ -41,9 +41,9 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
     public ParameterInfo FromJson(JsonObject jsonObject)
     {
         string name = null!, summery = null!;
-        bool isMultiple = false, isOptional = false;
+        bool isOptional = false;
         ApplicationCommandOptionType type = (ApplicationCommandOptionType)0;
-        (string, int)[] choices = Array.Empty<(string, int)>();
+        (int, string)[] choices = Array.Empty<(int, string)>();
 
         if (jsonObject.TryGetPropertyValue("name", out var n))
         {

@@ -14,7 +14,6 @@ using GoogleBot.Interactions.Commands;
 using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Modules;
-using GoogleBot.Exceptions;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 using ICommandContext = GoogleBot.Interactions.Context.ICommandContext;
 using IModuleBase = GoogleBot.Interactions.Modules.IModuleBase;
@@ -155,11 +154,26 @@ public static class InteractionMaster
 
             ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p =>
             {
-                Type? underlying = Nullable.GetUnderlyingType(p.ParameterType);
+                Type type = p.ParameterType;
+                Type? underlying = Nullable.GetUnderlyingType(type);
+                
                 bool nullable = underlying != null;
-                ApplicationCommandOptionType pType = p.GetCustomAttribute<OptionTypeAttribute>()?.Type
-                                                     ?? Util.ToOptionType(nullable ? underlying! : p.ParameterType);
-                ChoicesAttribute? choices = p.GetCustomAttribute<ChoicesAttribute>();
+                bool isEnum = type.IsEnum;
+                ApplicationCommandOptionType pType;
+                
+                List<(int, string)> choices = new List<(int, string)>();
+                
+                if (isEnum)
+                {
+                    pType = ApplicationCommandOptionType.Integer; // Choice is like integer (id)
+                    choices.AddRange(from Enum entry in Enum.GetValues(type) select (entry.ToInt(), entry.GetDescription()));
+                }
+                else
+                {
+                    pType = p.GetCustomAttribute<OptionTypeAttribute>()?.Type
+                            ?? Util.ToOptionType(nullable ? underlying! : type);
+                }
+
                 return new ParameterInfo
                 {
                     Summary = (p.GetCustomAttribute<SummaryAttribute>()?.Text ?? p.Name) ?? string.Empty,
@@ -167,7 +181,7 @@ public static class InteractionMaster
                     Name = p.GetCustomAttribute<NameAttribute>()?.Text ?? p.Name ?? string.Empty,
                     IsOptional = nullable || p.HasDefaultValue,
                     DefaultValue = nullable ? null : p.DefaultValue,
-                    Choices = choices?.Choices ?? Array.Empty<(string, int)>(),
+                    Choices = choices.ToArray(),
                 };
             }).ToArray();
 
