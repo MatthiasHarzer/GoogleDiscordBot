@@ -59,7 +59,16 @@ public class SlashCommandContext : ICommandContext
         //* Fill the args with the provided option values
         for (i = 0; i < Math.Min(options.Length, args.Length); i++)
         {
-            args[i] = options[i];
+            if (options[i] is long)
+            {
+                //* Not perfect.
+                args[i] = Convert.ToInt32(options[i]);
+            }
+            else
+            {
+                
+                args[i] = options[i];
+            }
         }
 
         UsedArguments = new object?[args.Length];
