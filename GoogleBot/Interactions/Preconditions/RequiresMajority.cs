@@ -1,5 +1,5 @@
 ﻿using System.Threading.Tasks;
-using GoogleBot.Interactions.Preconditions.Exceptions;
+using GoogleBot.Exceptions;
 
 namespace GoogleBot.Interactions.Preconditions;
 

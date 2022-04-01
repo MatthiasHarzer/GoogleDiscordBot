@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GoogleBot.Interactions.Preconditions.Exceptions;
+namespace GoogleBot.Exceptions;
 
 /// <summary>
 /// The precondition wasn't satisfied 
