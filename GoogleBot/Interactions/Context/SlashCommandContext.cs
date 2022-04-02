@@ -62,7 +62,25 @@ public class SlashCommandContext : ICommandContext
             if (options[i] is long)
             {
                 //* Not perfect.
-                args[i] = Convert.ToInt32(options[i]);
+                int val = Convert.ToInt32(options[i]);
+                
+                Type t = CommandInfo.Parameters[i].RawType;
+                
+                if (t.IsEnum && CommandInfo.Parameters[i].Choices.Length > 0)
+                {
+                    // Has choices
+                    
+                    foreach (Enum entry in Enum.GetValues(t))
+                    {
+                        if (entry.ToInt() != val) continue;
+                        
+                        args[i] = entry;
+                        break;
+                    }
+
+                    
+                }
+                args[i] ??= val;
             }
             else
             {

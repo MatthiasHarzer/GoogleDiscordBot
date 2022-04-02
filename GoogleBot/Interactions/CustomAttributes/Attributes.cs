@@ -59,25 +59,6 @@ public class LinkComponentInteractionAttribute : Attribute
 }
 
 /// <summary>
-/// Defines if the parameter can have multiple words (with whitespaces)
-/// </summary>
-// [AttributeUsage(AttributeTargets.Parameter)]
-// public class MultipleAttribute : Attribute
-// {
-//     public bool IsMultiple { get; }
-//
-//     public MultipleAttribute()
-//     {
-//         IsMultiple = true;
-//     }
-//
-//     public MultipleAttribute(bool isMultiple)
-//     {
-//         IsMultiple = isMultiple;
-//     }
-// }
-
-/// <summary>
 /// Sets the applicationOptionType of a parameter 
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]

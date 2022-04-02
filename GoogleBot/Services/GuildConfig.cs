@@ -10,6 +10,13 @@ using GoogleBot.Interactions.Commands;
 
 namespace GoogleBot.Services;
 
+public enum LoopTypes
+{
+    Disabled,
+    Song,
+    Queue
+}
+
 /// <summary>
 /// Additional params for a guild, like an AudioPlayer for playing sound
 /// </summary>
@@ -50,6 +57,20 @@ public class GuildConfig
             autoPlayEnabled = value;
             if(autoPlayEnabled)
                 AudioPlayer.SetTargetSong();
+            Export();
+        }
+    }
+
+    private LoopTypes loopType = LoopTypes.Disabled;
+    /// <summary>
+    /// Depending on it, songs will loop over (queue, song, disblaed)
+    /// </summary>
+    public LoopTypes LoopType
+    {
+        get => loopType;
+        set
+        {
+            loopType = value;
             Export();
         }
     }
@@ -129,7 +150,8 @@ public class GuildConfig
         JsonObject jsonObject = new JsonObject
         {
             { "guildId", Id },
-            { "autoPlay", AutoPlay }
+            { "autoPlay", AutoPlay },
+            { "loopType", loopType.ToInt()}
         };
         if (!Directory.Exists($"{Util.RuntimeDir}/guild.configs"))
         {
@@ -156,6 +178,10 @@ public class GuildConfig
             if (json.TryGetPropertyValue("autoPlay", out JsonNode? ap))
             {
                 if (ap != null) autoPlayEnabled = (bool)ap;
+            }
+            if (json.TryGetPropertyValue("loopType", out JsonNode? lt))
+            {
+                if (lt != null) loopType = (LoopTypes)(int)lt;
             }
         }
 

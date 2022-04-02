@@ -14,6 +14,8 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
     public string Summary { get; init; } = null!;
     public ApplicationCommandOptionType Type { get; init; }
 
+    public Type RawType { get; init; } = null!;
+
     public (int, string)[] Choices = Array.Empty<(int, string)>();
 
     public bool IsOptional { get; init; }
@@ -84,7 +86,8 @@ public class ParameterInfo : IJsonSerializable<ParameterInfo>
             Summary = summery,
             IsOptional = isOptional,
             Type = type,
-            Choices = choices
+            Choices = choices,
+            RawType = typeof(string),
         };
     }
 }

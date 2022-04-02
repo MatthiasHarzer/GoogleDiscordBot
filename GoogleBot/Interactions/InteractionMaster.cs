@@ -154,10 +154,11 @@ public static class InteractionMaster
 
             ParameterInfo[] parameterInfo = method.GetParameters().ToList().ConvertAll(p =>
             {
-                Type type = p.ParameterType;
-                Type? underlying = Nullable.GetUnderlyingType(type);
+                Type? underlyingType = Nullable.GetUnderlyingType(p.ParameterType);
+                bool nullable = underlyingType != null;
                 
-                bool nullable = underlying != null;
+                Type type = nullable ? underlyingType! : p.ParameterType;
+                
                 bool isEnum = type.IsEnum;
                 ApplicationCommandOptionType pType;
                 
@@ -171,7 +172,7 @@ public static class InteractionMaster
                 else
                 {
                     pType = p.GetCustomAttribute<OptionTypeAttribute>()?.Type
-                            ?? Util.ToOptionType(nullable ? underlying! : type);
+                            ?? Util.ToOptionType(type);
                 }
 
                 return new ParameterInfo
@@ -182,6 +183,7 @@ public static class InteractionMaster
                     IsOptional = nullable || p.HasDefaultValue,
                     DefaultValue = nullable ? null : p.DefaultValue,
                     Choices = choices.ToArray(),
+                    RawType = type,
                 };
             }).ToArray();
 

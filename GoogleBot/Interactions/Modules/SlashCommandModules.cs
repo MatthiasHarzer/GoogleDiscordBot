@@ -1,7 +1,5 @@
 ﻿#nullable enable
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
@@ -9,7 +7,6 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1.Data;
-using GoogleBot.Interactions.Commands;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Preconditions;
 using GoogleBot.Services;
@@ -17,13 +14,9 @@ using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 
 namespace GoogleBot.Interactions.Modules;
 
-
-
 [DevOnly]
 public class TestModule : SlashCommandModuleBase
 {
-    
-    
     [Command("component-test")]
     [Summary("Used for testing with buttons and drop-downs")]
     public async Task ComponentTest([Summary("The buttons name")] [Name("name")] string query = "Button")
@@ -62,33 +55,39 @@ public class TestModule : SlashCommandModuleBase
     [Command("play-test")]
     [Summary("Play command as guild command (Dev only) ")]
     [OptionalEphemeral]
-    [VoteConfig(buttonText:"Skip")]
+    [VoteConfig(buttonText: "Skip")]
     [RequiresSameVoiceChannel]
     [RequiresConnectedToVoiceChannel]
     [RequiresMajority]
-    public async Task PlayTest([Summary("A search term or YT-link +")] [Name("query")] string query, [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")] bool shuffle = false)
+    public async Task PlayTest([Summary("A search term or YT-link +")] [Name("query")] string query,
+        [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")] bool shuffle = false)
     {
         var am = new AudioModule();
         am.SetContext(Context);
         await am.Play(query);
     }
-    
-    public enum cChoices
-    {
-        [Description("The 1st optoin")]
-        Option1,
-        [Description("The 2nd option")]
-        Option2,
-        [Description("The 3rd option")]
-        Option3,
-    }
 
-    [Command("choice-test-3")]
-    public async Task ChoicesTest3(cChoices choice2)
+
+    [Command("loop")]
+    public async Task Loop([Name("over")] LoopTypes? loop)
     {
-        await ReplyAsync($"Your choose `{choice2.GetDescription()}`");
+        if (loop != null)
+        {
+            Context.GuildConfig.LoopType = (LoopTypes)loop;
+            if (loop == LoopTypes.Disabled)
+            {
+                await ReplyAsync("Looping is now `Disabled`");
+            }
+            else
+            {
+                await ReplyAsync($"Looping is now set to `{loop.GetDescription()}`");
+            }
+        }
+        else
+        {
+            await ReplyAsync($"Looping is currently set to `{Context.GuildConfig.LoopType.GetDescription()}`");
+        }
     }
-    
 }
 
 /// <summary>
@@ -106,7 +105,8 @@ public class InfoModule : SlashCommandModuleBase
             Title = "Here's a list of commands and their description:"
         };
 
-        foreach (CommandInfo command in InteractionMaster.CommandList.Where(command => !command.IsDevOnly || (command.IsDevOnly && Context.Guild.Id == Secrets.DevGuildId)))
+        foreach (CommandInfo command in InteractionMaster.CommandList.Where(command =>
+                     !command.IsDevOnly || (command.IsDevOnly && Context.Guild.Id == Secrets.DevGuildId)))
         {
             embedBuilder.AddField(Util.FormattedCommand(command), command.Summary);
         }
@@ -122,8 +122,6 @@ public class InfoModule : SlashCommandModuleBase
 /// </summary>
 public class AudioModule : SlashCommandModuleBase
 {
-
- 
     [Command("play")]
     [Summary("Plays music in the current voice channel from an YT-link or query")]
     // [OldPrecondition(requiresBotConnected: true)]
@@ -131,7 +129,8 @@ public class AudioModule : SlashCommandModuleBase
     [RequiresConnectedToVoiceChannel]
     [OptionalEphemeral]
     public async Task Play([Summary("A search term or YT-link")] [Name("query")] string query,
-                            [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")] bool shuffle = false)
+        [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")]
+        bool shuffle = false)
     {
         // Console.WriteLine("executed PLAY");
         IVoiceChannel? channel = Context.VoiceChannel;
@@ -157,7 +156,7 @@ public class AudioModule : SlashCommandModuleBase
 
     [Command("skip")]
     [Summary("Skips the current song")]
-    [VoteConfig(buttonText:"Skip")]
+    [VoteConfig(buttonText: "Skip")]
     [RequiresMajority]
     public async Task Skip()
     {
@@ -181,7 +180,7 @@ public class AudioModule : SlashCommandModuleBase
 
     [Command("stop")]
     [Summary("Disconnects the bot from the current voice channel")]
-    [VoteConfig(buttonText:"Stop")]
+    [VoteConfig(buttonText: "Stop")]
     [RequiresMajority]
     public async Task Stop()
     {
@@ -227,9 +226,9 @@ public class AudioModule : SlashCommandModuleBase
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
         Context.DataStore.QueuePage = 0;
 
-        
+
         // _ = Context.GuildConfig.DeleteLastInteractionOf(Context.CommandInfo);
-        
+
         FormattedMessage reply = Responses.QueuePage(player, 0);
         if (player.QueuePages.Length > 1)
         {
@@ -258,7 +257,6 @@ public class AudioModule : SlashCommandModuleBase
             Context.GuildConfig.AutoPlay = (bool)autoplay;
             await ReplyAsync(Responses.AutoPlayStateChange(Context.GuildConfig.AutoPlay));
         }
-        
     }
 
     [Command("shuffle")]
@@ -267,10 +265,10 @@ public class AudioModule : SlashCommandModuleBase
     public async Task Shuffle()
     {
         Context.GuildConfig.AudioPlayer.ShuffleQueue();
-        
+
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
-        
+
         embed.AddField($"Shuffled queue.", $"{player.Queue.Count} songs shuffled!");
         await ReplyAsync(embed);
     }
