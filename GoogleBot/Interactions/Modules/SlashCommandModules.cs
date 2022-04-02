@@ -66,28 +66,6 @@ public class TestModule : SlashCommandModuleBase
         am.SetContext(Context);
         await am.Play(query);
     }
-
-
-    [Command("loop")]
-    public async Task Loop([Name("over")] LoopTypes? loop)
-    {
-        if (loop != null)
-        {
-            Context.GuildConfig.LoopType = (LoopTypes)loop;
-            if (loop == LoopTypes.Disabled)
-            {
-                await ReplyAsync("Looping is now `Disabled`");
-            }
-            else
-            {
-                await ReplyAsync($"Looping is now set to `{loop.GetDescription()}`");
-            }
-        }
-        else
-        {
-            await ReplyAsync($"Looping is currently set to `{Context.GuildConfig.LoopType.GetDescription()}`");
-        }
-    }
 }
 
 /// <summary>
@@ -245,7 +223,7 @@ public class AudioModule : SlashCommandModuleBase
     }
 
     [Command("autoplay")]
-    [Summary("Gets and/or sets autoplay. When enabled related songs will play after queue end.")]
+    [Summary("Gets or sets autoplay. When enabled related songs will play after queue end.")]
     public async Task ToggleAutoplay([Summary("The new autoplay value")] [Name("set")] bool? autoplay)
     {
         if (autoplay == null)
@@ -271,6 +249,30 @@ public class AudioModule : SlashCommandModuleBase
 
         embed.AddField($"Shuffled queue.", $"{player.Queue.Count} songs shuffled!");
         await ReplyAsync(embed);
+    }
+    
+    
+    [Command("loop")]
+    [Summary("Gets or sets song looping")]
+    [RequiresSameVoiceChannel]
+    public async Task Loop([Name("over")] LoopTypes? loop)
+    {
+        if (loop != null)
+        {
+            Context.GuildConfig.LoopType = (LoopTypes)loop;
+            if (loop == LoopTypes.Disabled)
+            {
+                await ReplyAsync("Looping is now `Disabled`");
+            }
+            else
+            {
+                await ReplyAsync($"Looping is now set to `{loop.GetDescription()}`");
+            }
+        }
+        else
+        {
+            await ReplyAsync($"Looping is currently set to `{Context.GuildConfig.LoopType.GetDescription()}`");
+        }
     }
 }
 

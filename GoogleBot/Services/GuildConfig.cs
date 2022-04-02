@@ -14,7 +14,6 @@ public enum LoopTypes
 {
     Disabled,
     Song,
-    Queue
 }
 
 /// <summary>
