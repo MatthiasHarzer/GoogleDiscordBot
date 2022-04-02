@@ -91,7 +91,6 @@ public class HSL
 /// </summary>
 public static class Util
 {
-    public static string RuntimeDir => System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()!.Location)!;
     private static List<Color> colorPalette = new List<Color>();
     private static readonly Random Random = new Random();
 

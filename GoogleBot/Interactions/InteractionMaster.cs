@@ -606,7 +606,7 @@ public static class InteractionMaster
         savable.Add("messageCommands", messageCommands);
         // Console.WriteLine(JsonSerializer.Serialize(savable));
 
-        File.WriteAllText($"{Util.RuntimeDir}/commands.json", JsonSerializer.Serialize(savable));
+        File.WriteAllText(Storage.CommandsFile, JsonSerializer.Serialize(savable));
     }
 
 
@@ -620,7 +620,7 @@ public static class InteractionMaster
         List<CommandInfo> commandInfos = new();
         try
         {
-            string content = File.ReadAllText($"{Util.RuntimeDir}/commands.json");
+            string content = File.ReadAllText(Storage.CommandsFile);
 
             JsonObject? json = JsonSerializer.Deserialize<JsonObject>(content);
 
@@ -671,7 +671,7 @@ public static class InteractionMaster
 
         try
         {
-            string content = File.ReadAllText($"{Util.RuntimeDir}/commands.json");
+            string content = File.ReadAllText(Storage.CommandsFile);
 
             JsonObject? json = JsonSerializer.Deserialize<JsonObject>(content);
 

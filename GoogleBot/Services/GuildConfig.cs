@@ -152,12 +152,8 @@ public class GuildConfig
             { "autoPlay", AutoPlay },
             { "loopType", loopType.ToInt()}
         };
-        if (!Directory.Exists($"{Util.RuntimeDir}/guild.configs"))
-        {
-            Directory.CreateDirectory($"{Util.RuntimeDir}/guild.configs");
-        }
 
-        File.WriteAllText($"{Util.RuntimeDir}/guild.configs/guild-{Id}.json", JsonSerializer.Serialize(jsonObject));
+        File.WriteAllText(Storage.GetGuildConfigFileOf(this), JsonSerializer.Serialize(jsonObject));
     }
 
     /// <summary>
@@ -167,7 +163,7 @@ public class GuildConfig
     {
         try
         {
-            string content = File.ReadAllText($"{Util.RuntimeDir}/guild.configs/guild-{Id}.json");
+            string content = File.ReadAllText(Storage.GetGuildConfigFileOf(this));
 
             JsonObject? json = JsonSerializer.Deserialize<JsonObject>(content);
 
