@@ -78,9 +78,23 @@ public class SlashCommandContext : ICommandContext
                         break;
                     }
 
-                    
+                    if (args[i] == null)
+                    {
+                        //* I don't know why, but it does not work other than with a for loop
+                        //* thx enum
+                        foreach (Enum entry in Enum.GetValues(t))
+                        {
+                            args[i] = entry;
+                            break;
+                        }
+                    }
+
+
                 }
-                args[i] ??= val;
+                else
+                {
+                    args[i] ??= val;
+                }
             }
             else
             {

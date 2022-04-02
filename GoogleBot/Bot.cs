@@ -156,11 +156,28 @@ internal class Bot
 
             builder.WithName(command.Name);
             builder.WithDescription(command.Summary ?? "No description available");
-
+            
             foreach (ParameterInfo parameter in command.Parameters)
             {
-                builder.AddOption(parameter.Name, parameter.Type,
-                    parameter.Summary, isRequired: !parameter.IsOptional);
+                var option = new SlashCommandOptionBuilder()
+                    .WithName(parameter.Name)
+                    .WithType(parameter.Type)
+                    .WithDescription(parameter.Summary)
+                    .WithRequired(!parameter.IsOptional);
+                if (parameter.Choices.Length > 0)
+                {
+                    if (parameter.Type != ApplicationCommandOptionType.Integer)
+                    {
+                        throw new CommandParameterException(parameter, "Choice parameter must be type int!");
+                    }
+                    foreach ((int value, string name) in parameter.Choices)
+                    {
+                        option.AddChoice(name, value);
+                    }
+                }
+
+
+                builder.AddOption(option);
             }
 
             if (command.IsOptionalEphemeral)
