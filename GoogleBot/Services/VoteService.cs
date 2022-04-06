@@ -280,7 +280,7 @@ public class VoteService
     /// </summary>
     /// <param name="context">The commands context to check/set the majority</param>
     /// <param name="timeout">The timeout, when the vote will fail</param>
-    /// <returns>Whether the vote passed or failed.</returns>
+    /// <returns>True if the vote passed, else false</returns>
     public async Task<bool> AwaitMajorityCommandVote(ICommandContext context, int timeout = 60)
     {
         var users = await context.VoiceChannel!.GetUsersAsync().ToListAsync().AsTask();

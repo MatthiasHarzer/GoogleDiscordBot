@@ -135,6 +135,7 @@ public class AudioModule : SlashCommandModuleBase
     [Command("skip")]
     [Summary("Skips the current song")]
     [VoteConfig(buttonText: "Skip")]
+    [RequiresSameVoiceChannel]
     [RequiresMajority]
     public async Task Skip()
     {
@@ -159,6 +160,7 @@ public class AudioModule : SlashCommandModuleBase
     [Command("stop")]
     [Summary("Disconnects the bot from the current voice channel")]
     [VoteConfig(buttonText: "Stop")]
+    [RequiresSameVoiceChannel]
     [RequiresMajority]
     public async Task Stop()
     {
@@ -184,15 +186,12 @@ public class AudioModule : SlashCommandModuleBase
     [Summary("Clears the queue")]
     public async Task Clear()
     {
-        EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
-
         AudioPlayer player = Context.GuildConfig.AudioPlayer;
-        embed.AddField("Queue cleared", $"Removed `{player.Queue.Count}` " +
-                                        (player.Queue.Count == 1 ? "item" : "items") + ".");
+        FormattedMessage response = Responses.QueueCleared(player.Queue);
 
         player.Clear();
 
-        await ReplyAsync(embed);
+        await ReplyAsync(response);
     }
 
 

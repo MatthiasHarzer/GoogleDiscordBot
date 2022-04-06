@@ -206,10 +206,11 @@ public static class InteractionMaster
             //     ? preconditionAttribute.PreconditionModules
             //         .ToList().ConvertAll(p => (Precondition)Activator.CreateInstance(p)!).ToArray()
             //     : Array.Empty<Precondition>())!;
-            IEnumerable<PreconditionAttribute> preconditions = method.GetCustomAttributes().Select(a => a.GetType())
-                .Where(t =>
-                    t.IsSubclassOf(typeof(PreconditionAttribute)) && !t.IsAbstract)
-                .Select(t => (PreconditionAttribute)Activator.CreateInstance(t)!);
+            IEnumerable<PreconditionAttribute> preconditions = method.GetCustomAttributes()
+                .Where(a =>
+                    a.GetType().IsSubclassOf(typeof(PreconditionAttribute)) && !a.GetType().IsAbstract)
+                .Select(t=>(PreconditionAttribute)t);
+                // .Select(t => (PreconditionAttribute)Activator.CreateInstance(t)!);
 
 
             // IEnumerable<PreconditionAttribute> preconditions = typeof(PreconditionAttribute).Assembly.GetTypes()
@@ -383,9 +384,10 @@ public static class InteractionMaster
                 }
                 return false;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // Console.WriteLine(e);
+                Console.WriteLine(e);
+                
                 await module.DeleteOriginalResponse();
                 return false;
             }

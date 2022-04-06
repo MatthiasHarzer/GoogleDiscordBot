@@ -202,4 +202,10 @@ public static class Responses
             "`You already voted!`",
             "You can only vote once."));
     }
+
+    public static FormattedMessage QueueCleared(List<Video> queue)
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField("Queue cleared", $"Removed `{queue.Count}` " +
+            (queue.Count == 1 ? "item" : "items") + "."));
+    }
 }
