@@ -4,12 +4,14 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Google.Apis.CustomSearchAPI.v1;
 using Google.Apis.CustomSearchAPI.v1.Data;
 using Google.Apis.Services;
+using GoogleBot.Exceptions;
 using GoogleBot.Interactions;
 using GoogleBot.Services;
 using YoutubeExplode.Videos;
@@ -18,7 +20,8 @@ using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
 using DiscordColor = Discord.Color;
 using ICommandContext = GoogleBot.Interactions.Context.ICommandContext;
 using ParameterInfo = GoogleBot.Interactions.Commands.ParameterInfo;
-
+using PreconditionAttribute = GoogleBot.Interactions.Preconditions.PreconditionAttribute;
+using IModuleBase = GoogleBot.Interactions.Modules.IModuleBase;
 // using CommandInfo = Discord.Commands.CommandInfo;
 
 namespace GoogleBot;
@@ -208,6 +211,18 @@ public static class Util
     public static string RandomComponentId(GuildConfig guild, string prefix = "comp")
     {
         return $"{prefix}{(prefix.Length > 0 && prefix.Last() == '-' ? "" : "-")}{guild.Id}-{RandomString(40)}-{DateTime.Now.TimeOfDay.TotalMilliseconds}";
+    }
+
+    public static string RandomUniqueString(List<string> nogos, int length = 20)
+    {
+        if (nogos.Count <= 0) return RandomString(length);
+        string s;
+        do
+        {
+            s = RandomString(length);
+        } while (nogos.Contains(s));
+
+        return s;
     }
 
 
@@ -460,5 +475,62 @@ public static class Util
         }
         return choices.ToArray();
     }
-    
+
+    public static List<T> Shuffle<T>(List<T> list)
+    {
+        Random rng = new Random();
+        return list.OrderBy(_ => rng.Next()).ToList();
+    }
+
+    /// <summary>
+    /// Checks if all preconditions of a command are met. Handles unmet responses
+    /// </summary>
+    /// <param name="preconditions">THe preconditions</param>
+    /// <param name="commandContext">The command context to check the precondition on</param>
+    /// <param name="module">The command contexts module</param>
+    /// <returns>True is all preconditions are met, else false</returns>
+    public static async Task<bool> CheckPreconditions(PreconditionAttribute[] preconditions, ICommandContext commandContext, IModuleBase module)
+    {
+        foreach (PreconditionAttribute precondition in preconditions)
+        {
+            // Console.WriteLine("Checking precondition " + precondition);
+            try
+            {
+                await precondition.WithContext(commandContext).Satisfy();
+            }
+            catch (PreconditionNotSatisfiedException e)
+            {
+                await module.ReplyAsync(e.FormattedMessage);
+                return false;
+            }
+            catch (PreconditionFailedException e)
+            {
+                if (!e.Responded)
+                {
+                    // TODO
+                }
+                return false;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                
+                await module.DeleteOriginalResponse();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static long TimestampNow => DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+    public static async Task<int> GetUserCount(this IVoiceChannel voiceChannel, bool excludeBots = true)
+    {
+        var users = (await voiceChannel.GetUsersAsync().ToListAsync().AsTask()).First().ToList();
+        if (!excludeBots) return users.Count;
+        int userCount = users.FindAll(u => !u.IsBot)?.Count ?? 0;
+        return userCount;
+    }
+
 }

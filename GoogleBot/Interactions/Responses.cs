@@ -75,6 +75,12 @@ public static class Responses
             case AudioPlayState.VoiceChannelEmpty:
                 embed.AddField("Cancelled", "`Voice channel is empty.`");
                 break;
+            case AudioPlayState.QueuedFirst:
+                embed.AddField("Song added", $"{Util.FormattedLinkedVideo(playReturnValue.Video!)} will play next.");
+                break;
+            case AudioPlayState.OnlyNonPlaylistAllowed:
+                embed.AddField("Query invalid", "`Only non playlist links allowed!`");
+                break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -207,5 +213,17 @@ public static class Responses
     {
         return new FormattedMessage(new EmbedBuilder().AddField("Queue cleared", $"Removed `{queue.Count}` " +
             (queue.Count == 1 ? "item" : "items") + "."));
+    }
+
+    public static FormattedMessage BotsVcNotEmpty(IVoiceChannel vc)
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField("Couldn't perform action",
+            $"The bots voice channel {vc.Mention} must be empty!"));
+    }
+
+    public static FormattedMessage JoinedVoiceChannel(IVoiceChannel vc)
+    {
+        return new FormattedMessage(new EmbedBuilder().AddField(
+            "Joined voice channel", $"Successfully joined {vc.Mention}"));
     }
 }

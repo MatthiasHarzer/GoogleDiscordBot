@@ -42,6 +42,11 @@ public interface IContext
     public GuildConfig GuildConfig { get; }
 
     public SocketInteraction Respondable { get; }
+
+    /// <summary>
+    /// The bots client
+    /// </summary>
+    public DiscordSocketClient Client => Globals.Client;
 }
 
 /// <summary>

@@ -36,19 +36,12 @@ public class MessageCommandContext : ICommandContext
     public MessageCommandContext(SocketMessageCommand command)
     {
         IGuildUser guildUser = (command.User as IGuildUser)!;
-
         TextChannel = command.Channel;
-
         Command = command;
-
         CommandInfo = InteractionMaster.GetMessageCommandFromName(command.CommandName)!;
-
         Guild = (SocketGuild?)guildUser.Guild!;
-
         User = guildUser;
-
-        GuildConfig = GuildConfig.Get(guildUser.GuildId);
-
+        GuildConfig = GuildConfig.Get(Guild);
         VoiceChannel = guildUser.VoiceChannel;
         Arguments = new object?[] { command.Data.Message }; //Message commands have only one argument (the msg)
     }

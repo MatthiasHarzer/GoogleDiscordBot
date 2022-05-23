@@ -28,8 +28,6 @@ public class RequiresSameVoiceChannel : PreconditionAttribute
             // Console.WriteLine("Invalid");
             throw new PreconditionNotSatisfiedException(Responses.WrongVoiceChannel(botsVc));
         }
-        
-        // Console.WriteLine("Valid");
         return Task.CompletedTask;
     }
 }

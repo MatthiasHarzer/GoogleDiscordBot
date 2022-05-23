@@ -9,15 +9,11 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using GoogleBot.Exceptions;
 using GoogleBot.Interactions.Commands;
 using GoogleBot.Interactions.Context;
 using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Modules;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
-using ICommandContext = GoogleBot.Interactions.Context.ICommandContext;
-using IModuleBase = GoogleBot.Interactions.Modules.IModuleBase;
-using ModuleBase = GoogleBot.Interactions.Modules.ModuleBase;
 using ParameterInfo = GoogleBot.Interactions.Commands.ParameterInfo;
 using PreconditionAttribute = GoogleBot.Interactions.Preconditions.PreconditionAttribute;
 
@@ -354,47 +350,7 @@ public static class InteractionMaster
         return true;
     }
 
-    /// <summary>
-    /// Checks if all preconditions of a command are met. Handles unmet responses
-    /// </summary>
-    /// <param name="commandContext">The command context to check the precondition on</param>
-    /// <param name="module">The command contexts module</param>
-    /// <returns>True is all preconditions are met, else false</returns>
-    private static async Task<bool> CheckPreconditions(ICommandContext commandContext, IModuleBase module)
-    {
-        CommandInfo commandInfo = commandContext.CommandInfo;
-        
-        foreach (PreconditionAttribute precondition in commandInfo.Preconditions)
-        {
-            // Console.WriteLine("Checking precondition " + precondition);
-            try
-            {
-                await precondition.WithContext(commandContext).Satisfy();
-            }
-            catch (PreconditionNotSatisfiedException e)
-            {
-                await module.ReplyAsync(e.FormattedMessage);
-                return false;
-            }
-            catch (PreconditionFailedException e)
-            {
-                if (!e.Responded)
-                {
-                    // TODO
-                }
-                return false;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                
-                await module.DeleteOriginalResponse();
-                return false;
-            }
-        }
-
-        return true;
-    }
+    
 
 
     /// <summary>
@@ -424,13 +380,13 @@ public static class InteractionMaster
 
                 await command.DeferAsync(commandContext.IsEphemeral);
 
-                bool preconditionsMet = await CheckPreconditions(commandContext, module);
+                bool preconditionsMet = await Util.CheckPreconditions(commandInfo.Preconditions, commandContext, module);
                 if(!preconditionsMet) return;
                 
                 Console.WriteLine($"Executing with args: {string.Join(", ", args)}");
 
 
-                // helper.SetContext(commandContext);
+                // helper.WithContext(commandContext);
                 try
                 {
                     //* Check if auto delete old components is enabled, and if so, delete
@@ -478,7 +434,7 @@ public static class InteractionMaster
             Console.WriteLine($"Found message command {commandInfo.Name} in {module}");
             object[] args = { commandContext.Message };
 
-            bool preconditionsMet = await CheckPreconditions(commandContext, module);
+            bool preconditionsMet = await Util.CheckPreconditions(commandInfo.Preconditions, commandContext, module);
             
             if(!preconditionsMet) return;
             
@@ -547,7 +503,7 @@ public static class InteractionMaster
             }
         }
         // Console.WriteLine(context.DataStore.QueuePage);
-        //* Invoke addition component callbacs
+        //* Invoke addition component callbacks
         // foreach (var keyValuePair in AdditionalComponentCallbacks.Where(c=>c.Key==component.Data.CustomId))
         // {
         //     keyValuePair.Value.Invoke(context);
@@ -619,7 +575,7 @@ public static class InteractionMaster
     public static List<CommandInfo> ImportSlashCommands()
     {
         // Console.WriteLine($"Commands: {Util.RuntimeDir}/commands.json");
-        List<CommandInfo> commandInfos = new();
+        List<CommandInfo> commandInfos = new List<CommandInfo>();
         try
         {
             string content = File.ReadAllText(Storage.CommandsFile);
@@ -717,8 +673,8 @@ public static class InteractionMaster
     /// <returns>The list of commands</returns>
     public static List<CommandInfo> ImportAllCommands()
     {
-        List<CommandInfo> cmds = ImportSlashCommands();
-        cmds.AddRange(ImportMessageCommands());
-        return cmds;
+        List<CommandInfo> commands = ImportSlashCommands();
+        commands.AddRange(ImportMessageCommands());
+        return commands;
     }
 }

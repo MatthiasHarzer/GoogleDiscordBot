@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Discord;
 using GoogleBot.Exceptions;
 
 namespace GoogleBot.Interactions.Preconditions;
@@ -10,9 +11,10 @@ public class RequiresMajority : PreconditionAttribute
 {
     public override async Task Satisfy()
     {
-        if (Context.VoiceChannel == null && Context.GuildConfig.BotConnectedToVc)
+        IVoiceChannel? voiceChannel = Context.GuildConfig.BotsVoiceChannel;
+        if (Context.VoiceChannel == null && voiceChannel != null)
             throw new PreconditionNotSatisfiedException(
-                Responses.WrongVoiceChannel(Context.GuildConfig.BotsVoiceChannel!));
+                Responses.WrongVoiceChannel(voiceChannel));
         bool voteResult = await Context.GuildConfig.VoteService.AwaitMajorityCommandVote(Context);
         // Console.WriteLine("Vote result: " + voteResult);
         if (!voteResult)

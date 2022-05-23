@@ -47,7 +47,7 @@ public class SlashCommandContext : ICommandContext
         Command = command;
         Guild = (SocketGuild?)guildUser.Guild!;
         User = guildUser;
-        GuildConfig = GuildConfig.Get(guildUser.GuildId);
+        GuildConfig = GuildConfig.Get(Guild);
         VoiceChannel = guildUser.VoiceChannel;
 
         object?[] args = new object[CommandInfo.Method!.GetParameters().Length];

@@ -9,6 +9,8 @@ namespace GoogleBot;
 /// </summary>
 public static class Storage
 {
+    
+    
     /// <summary>
     /// The absolute path of the runtime directory. All local files will be placed here, or in a sub directory
     /// </summary>

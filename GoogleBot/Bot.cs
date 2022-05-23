@@ -46,6 +46,7 @@ internal class Bot
 
     private async Task ClientReady()
     {
+        // Console.WriteLine(client.CurrentUser);
         CommandService commandsService = new CommandService(new CommandServiceConfig
         {
             CaseSensitiveCommands = false,
@@ -143,7 +144,6 @@ internal class Bot
 
         Console.WriteLine("New or changed global commands found:");
         Console.WriteLine(string.Join("\n", newOrChangedCommands));
-
         
         // var guild = client.GetGuild(guildId);
 
@@ -155,8 +155,8 @@ internal class Bot
             SlashCommandBuilder builder = new SlashCommandBuilder();
 
             builder.WithName(command.Name);
-            builder.WithDescription(command.Summary ?? "No description available");
-            
+            builder.WithDescription(command.Summary);
+
             foreach (ParameterInfo parameter in command.Parameters)
             {
                 var option = new SlashCommandOptionBuilder()
@@ -170,6 +170,7 @@ internal class Bot
                     {
                         throw new CommandParameterException(parameter, "Choice parameter must be type int!");
                     }
+
                     foreach ((int value, string name) in parameter.Choices)
                     {
                         option.AddChoice(name, value);
@@ -269,7 +270,7 @@ internal class Bot
 
         Console.WriteLine("New or changed dev-only commands:");
         Console.WriteLine(string.Join("\n", newOrChangedCommands));
-        
+
         var guild = client.GetGuild(Secrets.DevGuildId);
         if (guild == null)
         {
@@ -284,7 +285,7 @@ internal class Bot
             SlashCommandBuilder builder = new SlashCommandBuilder();
 
             builder.WithName(command.Name);
-            builder.WithDescription(command.Summary ?? "No description available");
+            builder.WithDescription(command.Summary);
 
             foreach (ParameterInfo parameter in command.Parameters)
             {
@@ -299,6 +300,7 @@ internal class Bot
                     {
                         throw new CommandParameterException(parameter, "Choice parameter must be type int!");
                     }
+
                     foreach ((int value, string name) in parameter.Choices)
                     {
                         option.AddChoice(name, value);
@@ -314,7 +316,7 @@ internal class Bot
                 builder.AddOption("hidden", ApplicationCommandOptionType.Boolean,
                     "Whether the responds should be private", false);
             }
-            
+
 
             applicationCommandProperties.Add(builder.Build());
         }
@@ -345,6 +347,7 @@ public class CommandHandler
 
     public CommandHandler(DiscordSocketClient client, CommandService commands)
     {
+        Globals.Client = client;
         this.client = client;
         this.commands = commands;
     }
@@ -402,7 +405,6 @@ public class CommandHandler
 
     private Task HandleMessageCommandAsync(SocketMessageCommand command)
     {
-        
         try
         {
             _ = InteractionMaster.ExecuteMessageCommand(command);

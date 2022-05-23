@@ -14,4 +14,6 @@ public class Store
 
     public int QueuePage { get; set; } = 0;
 
+    public long LastPlayedTs { get; set; } = Util.TimestampNow;
+
 }

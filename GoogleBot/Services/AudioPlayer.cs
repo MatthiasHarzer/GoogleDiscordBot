@@ -42,7 +42,9 @@ public enum AudioPlayState
     JoiningChannelFailed,
     DifferentVoiceChannels,
     CancelledEarly,
-    VoiceChannelEmpty
+    VoiceChannelEmpty,
+    QueuedFirst,
+    OnlyNonPlaylistAllowed
 }
 
 /// <summary>
@@ -140,28 +142,28 @@ public class AudioPlayer
     /// Whether a song is currently playing or not
     /// </summary>
     public bool Playing;
-    
+
     /// <summary>
     /// When enabled, related songs will play after queue end
     /// </summary>
     public bool AutoPlayEnabled => GuildConfig.AutoPlay;
-    
+
     /// <summary>
     /// The discord audio client for connecting and playing
     /// </summary>
     public IAudioClient? AudioClient;
-    
+
     /// <summary>
     /// The discord voice the bot is connected to (or null if none)
     /// </summary>
     public IVoiceChannel? VoiceChannel { get; private set; }
-    
-    
+
+
     /// <summary>
     /// The bots queue (only includes songs that will be played and none that were)
     /// </summary>
     public List<Video> Queue = new List<Video>();
-    
+
     /// <summary>
     /// Whether is complete or not. Queue is incomplete when playing a playlist and processing its songs
     /// </summary>
@@ -174,7 +176,6 @@ public class AudioPlayer
     {
         get
         {
-            
             List<string> pages = new List<string>();
             // pages = new List<string>()
             // {
@@ -214,21 +215,21 @@ public class AudioPlayer
                 }
 
                 index += counter;
-                
+
                 pages.Add(queueFormatted);
                 if (index < Queue.Count) continue;
                 break;
             }
-            
+
             return pages.ToArray();
         }
     }
-    
+
     /// <summary>
     /// The currently playing song
     /// </summary>
     public Video? CurrentSong { get; private set; }
-    
+
     /// <summary>
     /// The next song to play after <see cref="CurrentSong"/>. If <see cref="CurrentSong"/> is the last song in the
     /// <see cref="Queue"/>, a related song will follow (found by the yt api)
@@ -238,14 +239,14 @@ public class AudioPlayer
     /// <summary>
     /// This Players guild config. Every player has exactly one guild config and vice versa  
     /// </summary>
-    private GuildConfig GuildConfig { get;}
-    
+    private GuildConfig GuildConfig { get; }
+
     /// <summary>
     /// The Youtube api client for finding songs by query or finding related songs
     /// </summary>
     private static YouTubeApiClient YouTubeApiClient => YouTubeApiClient.Get();
 
-    
+
     private readonly YoutubeClient youtubeExplodeClient = new YoutubeClient();
 
     private CancellationTokenSource audioCancellationToken = new CancellationTokenSource();
@@ -267,7 +268,6 @@ public class AudioPlayer
     {
         targetSongSetter?.Dispose();
         targetSongSetter = _SetTargetSongAsync();
-        
     }
 
     private async Task _SetTargetSongAsync()
@@ -277,7 +277,7 @@ public class AudioPlayer
         {
             NextTargetSong = Queue.First();
         }
-        else if(CurrentSong != null)
+        else if (CurrentSong != null)
         {
             // Find a recommended video
             List<string> nextVideos = await YouTubeApiClient.FindRelatedVideos(CurrentSong.Id.Value);
@@ -311,9 +311,12 @@ public class AudioPlayer
     /// <param name="playlistVideos">The playlistVideos to add</param>
     /// <param name="videoNotToAdd">The video to skip when occuring in playlist</param>
     /// <param name="shuffle">If true, the queue gets shuffled after processing</param>
-    private async Task AddToQueueExceptAsync(PlaylistVideo[] playlistVideos, Video? videoNotToAdd = null, bool shuffle = false)
+    private async Task AddToQueueExceptAsync(PlaylistVideo[] playlistVideos, Video? videoNotToAdd = null,
+        bool shuffle = false)
     {
         QueueComplete = false;
+        if (shuffle)
+            playlistVideos = Util.Shuffle(playlistVideos.ToList()).ToArray();
         foreach (PlaylistVideo playlistVideo in playlistVideos)
         {
             if (videoNotToAdd == null || playlistVideo.Id == videoNotToAdd.Id ||
@@ -321,8 +324,6 @@ public class AudioPlayer
             Video video = await youtubeExplodeClient.Videos.GetAsync(playlistVideo.Id);
             Queue.Add(video);
         }
-        if(shuffle)
-            ShuffleQueue();
 
         QueueComplete = true;
     }
@@ -350,14 +351,28 @@ public class AudioPlayer
             await discord.WriteAsync(stream.ToArray().AsMemory(0, stream.ToArray().Length),
                 audioCancellationToken.Token);
         }
-        catch (Exception)
+        catch (TaskCanceledException)
         {
-            // ignored (probably song just got skipped) 
+            //ignored -> playback cancelled intentionally
+        }
+        catch (Exception e)
+        {
+            // IVoiceChannel? vc = await GuildConfig.GetBotsVoiceChannel();
+            // if (vc != null)
+            // {
+            //     Console.WriteLine("Reconnecting");
+            //     AudioClient = await vc.ConnectAsync();
+            //     PlayAudioFromStream(AudioClient, stream, onFinished);
+            // }
+            // Console.WriteLine("playback erro ------");
+            Console.WriteLine(e.Message);
+            // Console.WriteLine(e.StackTrace);
         }
         finally
         {
             Playing = false;
             await discord.FlushAsync();
+            await stream.FlushAsync();
 
             onFinished?.Invoke();
         }
@@ -369,8 +384,10 @@ public class AudioPlayer
     /// <param name="query">A Youtube link or id or some search terms </param>
     /// <param name="vc">The voice channel of the user</param>
     /// <param name="shuffle">If <see cref="query"/> is a playlist link, shuffle it before first time play</param>
-    /// <returns>An PlayReturnValue containing a State</returns>
-    public async Task<PlayReturnValue> Play(string query, IVoiceChannel? vc = null, bool shuffle = false)
+    /// <param name="forceNext">If true, the song will play immediately</param>
+    /// <returns>A PlayReturnValue containing a State</returns>
+    public async Task<PlayReturnValue> Play(string query, IVoiceChannel? vc = null,
+        bool shuffle = false, bool forceNext = false)
     {
         if (vc != null)
         {
@@ -389,18 +406,15 @@ public class AudioPlayer
 
         if (VoiceChannel == null)
         {
-            
             return new PlayReturnValue
             {
                 AudioPlayState = AudioPlayState.NoVoiceChannel,
             };
         }
 
-        
 
         if (query.Length <= 0)
         {
-            
             return new PlayReturnValue
             {
                 AudioPlayState = AudioPlayState.InvalidQuery
@@ -428,10 +442,20 @@ public class AudioPlayer
 
                 if (playlistVideos.Count > 0)
                 {
-                    video = await youtubeExplodeClient.Videos.GetAsync(shuffle ? Util.GetRandom(playlistVideos).Id : playlistVideos.First().Id);
+                    if (forceNext)
+                    {
+                        return new PlayReturnValue
+                        {
+                            AudioPlayState = AudioPlayState.OnlyNonPlaylistAllowed,
+                        };
+                    }
+
+                    video = await youtubeExplodeClient.Videos.GetAsync(shuffle
+                        ? Util.GetRandom(playlistVideos).Id
+                        : playlistVideos.First().Id);
                     isNewPlaylist = true;
 
-                    _ = AddToQueueExceptAsync(playlistVideos.ToArray(), video);
+                    _ = AddToQueueExceptAsync(playlistVideos.ToArray(), video, shuffle);
                 }
                 else
                 {
@@ -495,7 +519,20 @@ public class AudioPlayer
         //* If a song is already playing -> add new one to queue
         if (Playing)
         {
-            Queue.Add(video);
+            if (forceNext)
+            {
+                Queue.Insert(0, video);
+                return new PlayReturnValue
+                {
+                    AudioPlayState = AudioPlayState.QueuedFirst,
+                    Video = video
+                };
+            }
+            else
+            {
+                Queue.Add(video);
+            }
+
             SetTargetSong();
             if (isNewPlaylist)
             {
@@ -517,7 +554,7 @@ public class AudioPlayer
 
         Playing = true;
         CurrentSong = video;
-        
+
         var users = await VoiceChannel.GetUsersAsync().ToListAsync().AsTask();
         int userCount = users.First()?.ToList().FindAll(u => !u.IsBot).Count ?? 0;
         if (userCount <= 0)
@@ -533,27 +570,26 @@ public class AudioPlayer
         SetTargetSong();
 
         MemoryStream memoryStream = new MemoryStream();
-   
+
         //* get stream from youtube
         var manifest = await youtubeExplodeClient.Videos.Streams.GetManifestAsync(video.Id);
-        
+
         // var streamInfo = manifest.GetMuxedStreams().GetWithHighestBitrate();
         var s = manifest.GetAudioOnlyStreams().GetWithHighestBitrate();
         Stream stream = await youtubeExplodeClient.Videos.Streams.GetAsync(s);
-        
+
         // Console.WriteLine(stream.);
         // url =
         //     "https://rr4---sn-h0jelnes.googlevideo.com/videoplayback?expire=1647618142&ei=_lM0YtybI4bv7gOh8bSQBA&ip=2003%3Ad2%3Af703%3Af07%3Ad78%3A1c42%3A8e92%3Aa2ae&id=o-ANiYSRXUDxoj9aFqr-Oc5seDooeYLUl9RoWskadNoQQS&itag=251&source=youtube&requiressl=yes&mh=RH&mm=31%2C29&mn=sn-h0jelnes%2Csn-h0jeenl6&ms=au%2Crdu&mv=m&mvi=4&pl=36&ctier=A&pfa=5&initcwndbps=1313750&hightc=yes&vprv=1&mime=audio%2Fwebm&ns=PovBucmpJChzSnfye4EGT9IG&gir=yes&clen=10131779&dur=659.781&lmt=1638011164437871&mt=1647596213&fvip=4&keepalive=yes&fexp=24001373%2C24007246&c=WEB&txp=5431432&n=PVzQzDpDesw15g&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cctier%2Cpfa%2Chightc%2Cvprv%2Cmime%2Cns%2Cgir%2Cclen%2Cdur%2Clmt&sig=AOq0QJ8wRAIgH-jqQ2RJiQyYFiVqKe5Qw1HhA8GsHC1Jy_WFhK8Ja5MCICyPJLYPGVscCKaSkGa7w1UL7PI2h44l_c33CIPnyCi6&lsparams=mh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Cinitcwndbps&lsig=AG3C_xAwRQIhALfpQRmSZKHX6T4Q2hT2V1RRS9UWrKSBdQAk-0q6R1IFAiBEkG-IoeCi9S-hG08tHjQ1UgI5-Jm0hGaubQHNWfl2Dw%3D%3D&alr=yes&cpn=0edB5ygKSPnmH557&cver=2.20220317.00.00&rn=11&rbuf=2729";
 
         //* Start ffmpeg process to convert stream to memory stream
-       await Cli.Wrap("ffmpeg")
+        await Cli.Wrap("ffmpeg")
             .WithArguments($"-hide_banner -loglevel panic -i pipe:0 -ac 2 -f s16le -ar 48000 pipe:1")
             .WithStandardInputPipe(PipeSource.FromStream(stream))
             .WithStandardOutputPipe(PipeTarget.ToStream(memoryStream))
             .ExecuteAsync();
-        
-        
-       
+
+
         // ffmpegProcess = CreateFfmpegProcess(streamInfo.Url);
 
         //* If bot isn't connected -> connect 
@@ -562,7 +598,7 @@ public class AudioPlayer
             Console.WriteLine("Connecting to voicechannel");
             try
             {
-                AudioClient = await this.VoiceChannel.ConnectAsync();
+                AudioClient = await VoiceChannel.ConnectAsync();
             }
             catch (Exception)
             {
@@ -585,6 +621,9 @@ public class AudioPlayer
 
         //* Play sound async
         PlayAudioFromStream(AudioClient, memoryStream, NextSong);
+
+        // Check if the VC is empty every 5 minutes
+        GuildConfig.Timer.Run(() => _ = CheckIdleStatus(), Globals.IdleTimerId).Every(minutes: 5).Start();
 
         if (isNewPlaylist)
         {
@@ -612,6 +651,7 @@ public class AudioPlayer
         audioCancellationToken.Cancel();
         // ffmpegProcess?.Close();
         Playing = false;
+        GuildConfig.DataStore.LastPlayedTs = Util.TimestampNow;
     }
 
     /// <summary>
@@ -622,7 +662,7 @@ public class AudioPlayer
         // Console.WriteLine("Next Song");
         if (audioCancellationToken.IsCancellationRequested) return null;
         CancelPlayback();
-        
+
         //Check for loop settings
         if (!force && CurrentSong != null)
         {
@@ -634,7 +674,6 @@ public class AudioPlayer
                 case LoopTypes.Disabled:
                 default:
                     break;
-                
             }
         }
 
@@ -651,14 +690,16 @@ public class AudioPlayer
             {
                 video = Queue[0];
             }
+
             Queue.Remove(video!);
             _ = Play(video!.Id);
             return video;
-        }else if (GuildConfig.AutoPlay && targetSongSetter != null)
+        }
+        else if (GuildConfig.AutoPlay && targetSongSetter != null)
         {
             // Wait for the target song to be set
             if (NextTargetSong == null) await targetSongSetter;
-            
+
             Video nextSong = NextTargetSong!;
             _ = Play(NextTargetSong!.Id.Value);
             return nextSong;
@@ -666,6 +707,31 @@ public class AudioPlayer
 
         Stop();
         return null;
+    }
+
+    /// <summary>
+    /// The bot joins the given voicechannel
+    /// </summary>
+    /// <param name="voiceChannel">The vc to join</param>
+    public async Task Join(IVoiceChannel voiceChannel)
+    {
+        VoiceChannel = voiceChannel;
+
+        Console.WriteLine($"Connecting to voicechannel {voiceChannel.Name}");
+        try
+        {
+            AudioClient = await VoiceChannel.ConnectAsync();
+
+            // Check if the VC is empty in 1 minute
+            GuildConfig.Timer.Run(() => _ = CheckIdleStatus()).In(minutes: 1).Start();
+        }
+        catch (Exception)
+        {
+            Playing = false;
+            CurrentSong = null;
+            VoiceChannel = null;
+            AudioClient = null;
+        }
     }
 
     /// <summary>
@@ -693,7 +759,20 @@ public class AudioPlayer
     /// <returns>The now playing song</returns>
     public async Task<Video?> Skip()
     {
-        return await NextSong(force:true);
+        return await NextSong(force: true);
+    }
+
+    /// <summary>
+    /// If the bot is alone, disconnect
+    /// </summary>
+    private async Task CheckIdleStatus()
+    {
+        int userCount = VoiceChannel == null ? 0 : await VoiceChannel.GetUserCount();
+        if (userCount <= 0)
+        {
+            Stop();
+            GuildConfig.Timer.Stop(Globals.IdleTimerId);
+        }
     }
 
     /// <summary>
@@ -710,8 +789,7 @@ public class AudioPlayer
     /// </summary>
     public void ShuffleQueue()
     {
-        Random rng = new Random();
-        Queue = Queue.OrderBy(_ => rng.Next()).ToList();
+        Queue = Util.Shuffle(Queue);
         SetTargetSong();
     }
 }

@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Rest;
+using Discord.WebSocket;
 using GoogleBot.Interactions.Commands;
 
 namespace GoogleBot.Services;
@@ -23,6 +24,10 @@ public class GuildConfig
 {
     private static readonly List<GuildConfig> GuildMaster = new List<GuildConfig>();
 
+    public SocketGuild Guild { get;}
+
+    public GuildTimer Timer { get; } = new GuildTimer();
+
     /// <summary>
     /// The <see cref="GoogleBot.Services.AudioPlayer"/> instance of this guild
     /// </summary>
@@ -33,12 +38,12 @@ public class GuildConfig
     /// <summary>
     /// The guilds id
     /// </summary>
-    public ulong Id { get; }
+    public ulong Id => Guild.Id;
 
     /// <summary>
     /// The last response of a command
     /// </summary>
-    private Dictionary<string, RestInteractionMessage> lastResponses = new Dictionary<string, RestInteractionMessage>();
+    private readonly Dictionary<string, RestInteractionMessage> lastResponses = new Dictionary<string, RestInteractionMessage>();
 
     /// <summary>
     /// If set to true, recommended songs will auto play when the queue is over
@@ -75,14 +80,11 @@ public class GuildConfig
     }
 
     /// <summary>
-    /// Whether the bot is currently connected to a VC in this guild 
-    /// </summary>
-    public bool BotConnectedToVc => BotsVoiceChannel != null;
-
-    /// <summary>
     /// The current bots VC, if connected
     /// </summary>
-    public IVoiceChannel? BotsVoiceChannel => AudioPlayer.VoiceChannel;
+    public IVoiceChannel? BotsVoiceChannel => Guild.GetUser(Globals.Client.CurrentUser.Id)?.VoiceChannel;
+    
+
     
     /// <summary>
     /// A data store for saving cross command data 
@@ -121,11 +123,11 @@ public class GuildConfig
     }
 
 
-    private GuildConfig(ulong id)
+    private GuildConfig(SocketGuild guild)
     {
+        Guild = guild;
         AudioPlayer = new AudioPlayer(this);
         VoteService = new VoteService(this);
-        Id = id;
         GuildMaster.Add(this);
         Import();
     }
@@ -134,11 +136,11 @@ public class GuildConfig
     /// <summary>
     /// Creates or gets existing Guild object with the ID
     /// </summary>
-    /// <param name="guildId">The guilds ID</param>
+    /// <param name="guild">The guilds ID</param>
     /// <returns>New or existing guild object</returns>
-    public static GuildConfig Get(ulong? guildId)
+    public static GuildConfig Get(SocketGuild guild)
     {
-        return GuildMaster.Find(guild => guild.Id.Equals(guildId)) ?? new GuildConfig((ulong)guildId!);
+        return GuildMaster.Find(g => g.Id.Equals(guild.Id)) ?? new GuildConfig(guild);
     }
 
     /// <summary>

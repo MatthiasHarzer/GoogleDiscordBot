@@ -2,6 +2,8 @@
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
+using Discord.WebSocket;
+using GoogleBot.Services;
 
 namespace GoogleBot;
 
@@ -40,5 +42,10 @@ public static class Extensions
                 return (int)Convert.ToUInt64(e);
             return (int)Convert.ToInt64(e);
         }
+    }
+
+    public static GuildConfig GetGuildConfig(this SocketGuild guild)
+    {
+        return Services.GuildConfig.Get(guild);
     }
 }

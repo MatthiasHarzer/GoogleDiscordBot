@@ -11,6 +11,7 @@ using GoogleBot.Interactions.CustomAttributes;
 using GoogleBot.Interactions.Preconditions;
 using GoogleBot.Services;
 using CommandInfo = GoogleBot.Interactions.Commands.CommandInfo;
+using PreconditionAttribute = GoogleBot.Interactions.Preconditions.PreconditionAttribute;
 
 namespace GoogleBot.Interactions.Modules;
 
@@ -60,7 +61,8 @@ public class TestModule : SlashCommandModuleBase
     [RequiresConnectedToVoiceChannel]
     [RequiresMajority]
     public async Task PlayTest([Summary("A search term or YT-link +")] [Name("query")] string query,
-        [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")] bool shuffle = false)
+        [Summary("If the input is a playlist, shuffle it before first play")] [Name("shuffle")]
+        bool shuffle = false)
     {
         var am = new AudioModule();
         am.SetContext(Context);
@@ -165,9 +167,10 @@ public class AudioModule : SlashCommandModuleBase
     public async Task Stop()
     {
         EmbedBuilder embed = new EmbedBuilder().WithCurrentTimestamp();
+        IVoiceChannel? voiceChannel = Context.GuildConfig.BotsVoiceChannel;
 
 
-        if (Context.GuildConfig.AudioPlayer.Playing)
+        if (voiceChannel != null)
         {
             embed.AddField("Disconnecting", "Stopping audio and disconnecting from voice channel");
         }
@@ -249,7 +252,42 @@ public class AudioModule : SlashCommandModuleBase
         embed.AddField($"Shuffled queue.", $"{player.Queue.Count} songs shuffled!");
         await ReplyAsync(embed);
     }
-    
+
+    [Command("join")]
+    [RequiresConnectedToVoiceChannel]
+    [RequiresEmptyBotChannel]
+    public async Task Join()
+    {
+        await Context.GuildConfig.AudioPlayer.Join(Context.VoiceChannel!);
+        await ReplyAsync(Responses.JoinedVoiceChannel(Context.VoiceChannel!));
+        // if(!Context.GuildConfig.AudioPlayer.Playing)
+        //     Context.GuildConfig.Timer.Run(() =>
+        //     {
+        //         Context.GuildConfig.AudioPlayer.Stop();
+        //         Console.WriteLine("Stop");
+        //     }, "voice-dc").In(seconds: 15).Start();
+    }
+
+    [Command("next")]
+    [Summary("Gets or sets the upcoming song")]
+    public async Task Next(string? query = null)
+    {
+        if (query is { Length: > 0 })
+        {
+            if (!await Util.CheckPreconditions(
+                    new PreconditionAttribute[]
+                    {
+                        new RequiresMajority(), new RequiresSameVoiceChannel(), new RequiresConnectedToVoiceChannel()
+                    }, Context, this)) return;
+
+            await ReplyAsync(Responses.FromPlayReturnValue(
+                await Context.GuildConfig.AudioPlayer.Play(query, Context.VoiceChannel, forceNext: true))
+            );
+            return;
+        }
+
+        await Queue();
+    }
     
     [Command("loop")]
     [Summary("Gets or sets song looping")]

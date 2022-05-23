@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using GoogleBot.Interactions.Context;
+using GoogleBot.Services;
 
 namespace GoogleBot.Interactions.Modules;
 
@@ -174,6 +175,11 @@ public abstract class SlashCommandModuleBase : ModuleBase
     protected SlashCommandContext Context { get; private set; } = null!;
 
     /// <summary>
+    /// The guild where the command is executed in
+    /// </summary>
+    protected GuildConfig GuildConfig => Context.GuildConfig;
+
+    /// <summary>
     /// Set the context of the module
     /// </summary>
     /// <param name="context">The context</param>
@@ -181,7 +187,6 @@ public abstract class SlashCommandModuleBase : ModuleBase
     {
         SetInnerContext(context);
         Context = context;
-        
     }
 }
 

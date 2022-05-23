@@ -25,11 +25,11 @@ public class InteractionContext : IContext
     public InteractionContext(SocketMessageComponent component)
     {
         IGuildUser guildUser = (component.User as IGuildUser)!;
-        GuildConfig = GuildConfig.Get(guildUser.GuildId);
         User = guildUser;
         TextChannel = component.Channel;
         VoiceChannel = guildUser.VoiceChannel;
         Guild = (SocketGuild)guildUser.Guild;
+        GuildConfig = GuildConfig.Get(Guild);
         Component = component;
     }
 }

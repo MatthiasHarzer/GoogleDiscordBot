@@ -24,6 +24,7 @@ public class VoteService
     private class Vote
     {
         private static readonly List<Vote> RunningVotes = new List<Vote>();
+        public static readonly string VoteId = "MajorityVote";
         
         private CommandInfo CommandInfo { get; }
         private ICommandContext? Context { get; set; }
@@ -40,7 +41,6 @@ public class VoteService
 
         private string Id { get; set; } = string.Empty;
         
-        private Timer? timer;
         private int timeout = 60; //seconds
 
         private bool running;
@@ -75,12 +75,7 @@ public class VoteService
         /// <returns>The vote or null if not found</returns>
         public static Vote? GetById(string id)
         {
-            foreach (Vote runningVote in RunningVotes)
-            {
-                if (runningVote.Id == id) return runningVote;
-            }
-
-            return null;
+            return RunningVotes.FirstOrDefault(runningVote => runningVote.Id == id);
         }
         
         /// <summary>
@@ -88,7 +83,8 @@ public class VoteService
         /// </summary>
         private async Task Reset()
         {
-            timer?.Stop();
+            GuildConfig.Timer.Stop(VoteId);
+            
             //* Only delete the message when the voted wasn't completed
             if (running)
             {
@@ -186,13 +182,9 @@ public class VoteService
         /// <param name="milliseconds">The time to wait until stopping the vote</param>
         private void StopVoteIn(long milliseconds)
         {
-            timer?.Stop();
-            timer = new Timer(milliseconds);
-            timer.Enabled = true;
-            timer.AutoReset = false;
-            timer.Elapsed += (sender, args) =>
-            {
             
+            GuildConfig.Timer.Run(() =>
+            {
                 try
                 {
                     _ = CancelVote();
@@ -203,7 +195,8 @@ public class VoteService
                     Console.WriteLine(e.StackTrace);
                     //ignored
                 }
-            };
+            }, VoteId).In(milliseconds: milliseconds)
+                .Start();
         }
 
         /// <summary>
@@ -230,10 +223,10 @@ public class VoteService
         public async Task TryVote(SocketMessageComponent component)
         {
             // Console.WriteLine("TRYING TO VOTE");
-            if(!running) return;
+            if(!running || Context == null) return;
 
             IGuildUser? user = component.User as IGuildUser;
-            IVoiceChannel vc = GuildConfig.BotsVoiceChannel ?? Context!.User.VoiceChannel;
+            IVoiceChannel vc = Context.GuildConfig.BotsVoiceChannel ?? Context.User.VoiceChannel;
 
             //* If the id doesnt match or the users isn't connected to the vc, ignore (return)
             var usersInVc = (await vc.GetUsersAsync().ToListAsync().AsTask()).First();
