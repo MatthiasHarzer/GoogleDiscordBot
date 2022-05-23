@@ -12,7 +12,7 @@ public static class Globals
 
     //See https://stackoverflow.com/a/61033353/11664234
     public static readonly Regex YoutubeRegex =
-        new Regex(@"/(?:https?:\/\/)?(?:[a-z]*\.)?youtu(?:\.be\/|be.com\/\S*(?:watch|embed)(?:(?:(?=\/[-a-zA-Z0-9_]{11,}(?!\S))\/)|(?:\S*v=|v\/)))([-a-zA-Z0-9_]{11,})/gm", RegexOptions.IgnoreCase);
+        new Regex(@"(?:https?:\/\/)?(?:[a-z]*\.)?youtu(?:\.be\/|be.com\/\S*(?:watch|embed)(?:(?:(?=\/[-a-zA-Z0-9_]{11,}(?!\S))\/)|(?:\S*v=|v\/)))([-a-zA-Z0-9_]{11,})", RegexOptions.IgnoreCase);
 
     public const string IdleTimerId = @"idle-timer";
 

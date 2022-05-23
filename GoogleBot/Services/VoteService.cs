@@ -19,7 +19,7 @@ namespace GoogleBot.Services;
 public class VoteService
 {
     /// <summary>
-    /// A vote of a command (one vote per command per gulid)
+    /// A vote of a command (one vote per command per guild)
     /// </summary>
     private class Vote
     {
@@ -58,9 +58,8 @@ public class VoteService
         /// <returns>The vote</returns>
         public static async Task<Vote> GetOrCreate(CommandInfo commandInfo)
         {
-            foreach (Vote v in RunningVotes)
+            foreach (Vote v in RunningVotes.Where(v => v.CommandInfo.Id == commandInfo.Id))
             {
-                if (v.CommandInfo.Id != commandInfo.Id) continue;
                 await v.Reset();
                 return v;
             }

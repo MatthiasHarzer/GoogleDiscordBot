@@ -488,8 +488,8 @@ public static class Util
     /// <param name="preconditions">THe preconditions</param>
     /// <param name="commandContext">The command context to check the precondition on</param>
     /// <param name="module">The command contexts module</param>
-    /// <returns>True is all preconditions are met, else false</returns>
-    public static async Task<bool> CheckPreconditions(PreconditionAttribute[] preconditions, ICommandContext commandContext, IModuleBase module)
+    /// <returns>True if all preconditions are met, else false</returns>
+    public static async Task<bool> CheckPreconditions(IEnumerable<PreconditionAttribute> preconditions, ICommandContext commandContext, IModuleBase module)
     {
         foreach (PreconditionAttribute precondition in preconditions)
         {

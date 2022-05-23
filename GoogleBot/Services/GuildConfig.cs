@@ -169,7 +169,7 @@ public class GuildConfig
 
             JsonObject? json = JsonSerializer.Deserialize<JsonObject>(content);
 
-            if (json == null || !json.TryGetPropertyValue("id", out JsonNode? id)) return;
+            if (json == null || !json.TryGetPropertyValue("guildId", out JsonNode? id)) return;
             if (id == null || (ulong)id != Id) return;
 
             if (json.TryGetPropertyValue("autoPlay", out JsonNode? ap))
