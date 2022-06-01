@@ -48,7 +48,7 @@ public class GuildConfig
     /// <summary>
     /// If set to true, recommended songs will auto play when the queue is over
     /// </summary>
-    private bool autoPlayEnabled = true;
+    private bool autoPlayEnabled = false;
 
     /// <summary>
     /// Whether autoplay is enabled

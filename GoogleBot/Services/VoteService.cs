@@ -28,7 +28,7 @@ public class VoteService
         
         private CommandInfo CommandInfo { get; }
         private ICommandContext? Context { get; set; }
-        private GuildConfig GuildConfig => Context!.GuildConfig;
+        private GuildConfig? GuildConfig => Context?.GuildConfig;
         
         /// <summary>
         /// Number of votes needed to pass the vote
@@ -82,7 +82,7 @@ public class VoteService
         /// </summary>
         private async Task Reset()
         {
-            GuildConfig.Timer.Stop(VoteId);
+            GuildConfig?.Timer.Stop(VoteId);
             
             //* Only delete the message when the voted wasn't completed
             if (running)
@@ -127,7 +127,7 @@ public class VoteService
             requiredVotes = reqVotes;
             
             Id =
-                $"vote-{CommandInfo.Name}-{GuildConfig.Id}-{DateTime.Now.TimeOfDay.TotalMilliseconds}-{Util.RandomString()}";
+                $"vote-{CommandInfo.Name}-{GuildConfig?.Id}-{DateTime.Now.TimeOfDay.TotalMilliseconds}-{Util.RandomString()}";
             votedUsers.Add(context.User.Id);
             running = true;
             
@@ -182,7 +182,7 @@ public class VoteService
         private void StopVoteIn(long milliseconds)
         {
             
-            GuildConfig.Timer.Run(() =>
+            GuildConfig?.Timer.Run(() =>
             {
                 try
                 {
