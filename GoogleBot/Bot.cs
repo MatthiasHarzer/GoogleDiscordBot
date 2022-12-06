@@ -23,6 +23,7 @@ internal class Bot
 
     public static Task Main(string[] args)
     {
+        Console.WriteLine("STARTING");
         return new Bot().MainAsync();
     }
 

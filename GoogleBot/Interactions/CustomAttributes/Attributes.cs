@@ -30,7 +30,7 @@ public class PrivateAttribute : Attribute
 }
 
 /// <summary>
-/// Links the method to a componentInteraction. If not id is provided, all interactions will be linked
+/// Links the method to a componentInteraction. If no id is provided, all interactions will be linked
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
 public class LinkComponentInteractionAttribute : Attribute

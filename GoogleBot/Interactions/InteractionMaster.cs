@@ -52,12 +52,7 @@ public static class InteractionMaster
     public static CommandInfo? GetCommandFromName(string commandName)
     {
         var res = CommandList.FindAll(c => c.Name == commandName);
-        if (res.Count > 0)
-        {
-            return res.First();
-        }
-
-        return null;
+        return res.Count > 0 ? res.First() : null;
     }
 
     /// <summary>
@@ -136,9 +131,9 @@ public static class InteractionMaster
         //* Get all methods in the module
         foreach (MethodInfo method in moduleType.GetMethods())
         {
-            //* All methods must be async tasks
             CommandAttribute? commandAttribute = method.GetCustomAttribute<CommandAttribute>();
 
+            //* All methods must be async tasks
             if (method.ReturnType != typeof(Task)) continue;
             if (commandAttribute == null) continue;
 

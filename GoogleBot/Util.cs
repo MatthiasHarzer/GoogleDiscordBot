@@ -344,50 +344,33 @@ public static class Util
 
     public static ApplicationCommandOptionType ToOptionType(string? type)
     {
-        switch (type)
+        return type switch
         {
-            case "string":
-                return ApplicationCommandOptionType.String;
-            case "boolean":
-                return ApplicationCommandOptionType.Boolean;
-            case "integer":
-                return ApplicationCommandOptionType.Integer;
-            case "number":
-                return ApplicationCommandOptionType.Number;
-            case "user":
-                return ApplicationCommandOptionType.User;
-            case "role":
-                return ApplicationCommandOptionType.Role;
-            case "channel":
-                return ApplicationCommandOptionType.Channel;
-            case "mentionable":
-                return ApplicationCommandOptionType.Mentionable;
-            default:
-                return ApplicationCommandOptionType.String;
-        }
+            "string" => ApplicationCommandOptionType.String,
+            "boolean" => ApplicationCommandOptionType.Boolean,
+            "integer" => ApplicationCommandOptionType.Integer,
+            "number" => ApplicationCommandOptionType.Number,
+            "user" => ApplicationCommandOptionType.User,
+            "role" => ApplicationCommandOptionType.Role,
+            "channel" => ApplicationCommandOptionType.Channel,
+            "mentionable" => ApplicationCommandOptionType.Mentionable,
+            _ => ApplicationCommandOptionType.String
+        };
     }
 
     public static string OptionTypeToString(ApplicationCommandOptionType type)
     {
-        switch (type)
+        return type switch
         {
-            case ApplicationCommandOptionType.String:
-                return "string";
-            case ApplicationCommandOptionType.Boolean:
-                return "boolean";
-            case ApplicationCommandOptionType.Integer:
-                return "integer";
-            case ApplicationCommandOptionType.Number:
-                return "number";
-            case ApplicationCommandOptionType.User:
-                return "user";
-            case ApplicationCommandOptionType.Role:
-                return "role";
-            case ApplicationCommandOptionType.Channel:
-                return "channel";
-            default:
-                return "string";
-        }
+            ApplicationCommandOptionType.String => "string",
+            ApplicationCommandOptionType.Boolean => "boolean",
+            ApplicationCommandOptionType.Integer => "integer",
+            ApplicationCommandOptionType.Number => "number",
+            ApplicationCommandOptionType.User => "user",
+            ApplicationCommandOptionType.Role => "role",
+            ApplicationCommandOptionType.Channel => "channel",
+            _ => "string"
+        };
     }
     
     public static bool ArrayEquals<T>(T[] a, T[] b)

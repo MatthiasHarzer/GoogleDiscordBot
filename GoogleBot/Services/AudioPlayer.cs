@@ -600,7 +600,7 @@ public class AudioPlayer
             {
                 AudioClient = await VoiceChannel.ConnectAsync();
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 Playing = false;
                 CurrentSong = null;
@@ -610,6 +610,9 @@ public class AudioPlayer
                         AudioPlayState = AudioPlayState.CancelledEarly
                     };
                 VoiceChannel = null;
+                Console.WriteLine("An exception occurred while joining the VC:");
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
                 return new PlayReturnValue
                 {
                     AudioPlayState = AudioPlayState.JoiningChannelFailed
